@@ -1,9 +1,9 @@
+[submodule "external/DatabaseAdapter"]
+	path = external/DatabaseAdapter
+	url = https://github.com/MisterixTeamAsmodeus/DatabaseAdapter.git
 [submodule "external/ReflectionApi"]
 	path = external/ReflectionApi
 	url = https://github.com/MisterixTeamAsmodeus/ReflectionApi.git
 [submodule "external/QueryCraft"]
 	path = external/QueryCraft
 	url = https://github.com/MisterixTeamAsmodeus/QueryCraft.git
-[submodule "external/DatabaseAdapter"]
-	path = external/DatabaseAdapter
-	url = https://github.com/MisterixTeamAsmodeus/DatabaseAdapter.git
