@@ -1,6 +1,8 @@
 #pragma once
 
 #include "entitycraft_global.h"
+#include "QueryCraft/conditiongroup.h"
+#include "QueryCraft/table.h"
 #include "ReflectionApi/entity.h"
 
 namespace EntityCraft {
@@ -15,23 +17,23 @@ public:
     }
 
 public:
-    explicit Table(std::string scheme, std::string table_name, Columns... properties)
-        : _scheme(std::move(scheme))
-        , _table_name(std::move(table_name))
+    explicit Table(std::string table_name, std::string scheme, Columns... properties)
+        : _table_info(std::move(table_name), std::move(scheme))
         , _columns(std::make_tuple<Columns...>(std::move(properties)...))
     {
+        for_each([this](auto& column) {
+            _table_info.addColumn(column.mutable_column_info());
+        });
     }
 
     Table(const Table& other)
-        : _scheme(other._scheme)
-        , _table_name(other._table_name)
+        : _table_info(other._table_info)
         , _columns(other._columns)
     {
     }
 
     Table(Table&& other) noexcept
-        : _scheme(std::move(other._scheme))
-        , _table_name(std::move(other._table_name))
+        : _table_info(std::move(other._table_info))
         , _columns(std::move(other._columns))
     {
     }
@@ -40,8 +42,7 @@ public:
     {
         if(this == &other)
             return *this;
-        _scheme = other._scheme;
-        _table_name = other._table_name;
+        _table_info = other._table_info;
         _columns = other._columns;
         return *this;
     }
@@ -51,8 +52,7 @@ public:
         if(this == &other)
             return *this;
 
-        _scheme = std::move(other._scheme);
-        _table_name = std::move(other._table_name);
+        _table_info = std::move(other._table_info);
         _columns = std::move(other._columns);
 
         return *this;
@@ -77,24 +77,18 @@ public:
             std::forward<Action>(action));
     }
 
-    std::string scheme() const
+    QueryCraft::Table table_info() const
     {
-        return _scheme;
-    }
-
-    std::string table_name() const
-    {
-        return _table_name;
+        return _table_info;
     }
 
 private:
-    std::string _scheme;
-    std::string _table_name;
+    QueryCraft::Table _table_info;
     std::tuple<Columns...> _columns = {};
 };
 
 template<typename ClassType, typename... Properties>
-auto ENTITYCRAFT_EXPORT make_table(std::string scheme, std::string table_name, Properties&&... properties)
+ENTITYCRAFT_EXPORT auto make_table(std::string table_name, std::string scheme, Properties&&... properties)
 {
     return Table<ClassType, Properties...>(std::move(scheme), std::move(table_name), std::move(properties)...);
 }

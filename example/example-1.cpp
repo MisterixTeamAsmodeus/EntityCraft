@@ -10,6 +10,12 @@ struct Test
 
 int main()
 {
-    auto table = EntityCraft::make_table<Test>("public", "test",
-          EntityCraft::make_column("id", &Test::a));
+    using namespace EntityCraft;
+
+    auto table = make_table<Test>("test", "public",
+          make_column("id", &Test::a, primary_key()));
+
+    std::cout << "Table: " << table.table_info().tableName() << std::endl;
+
+    return 0;
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "entitycraft_global.h"
+#include "QueryCraft/conditiongroup.h"
 
 #include <ReflectionApi/helper/templates.h>
 #include <ReflectionApi/property.h>
@@ -16,8 +17,8 @@ template<typename ClassType,
 class ENTITYCRAFT_EXPORT Column
 {
 public:
-    Column(std::string column_name, const ReflectionApi::Property<ClassType, PropertyType, Setter, Getter>& reflection_property)
-        : _column_name(std::move(column_name))
+    Column(QueryCraft::ColumnInfo column_info, const ReflectionApi::Property<ClassType, PropertyType, Setter, Getter>& reflection_property)
+        : _column_info(std::move(column_info))
         , _reflection_property(reflection_property)
     {
     }
@@ -25,13 +26,13 @@ public:
     ~Column() = default;
 
     Column(const Column& other)
-        : _column_name(other._column_name)
+        : _column_info(other._column_info)
         , _reflection_property(other._reflection_property)
     {
     }
 
     Column(Column&& other) noexcept
-        : _column_name(std::move(other._column_name))
+        : _column_info(std::move(other._column_info))
         , _reflection_property(std::move(other._reflection_property))
     {
     }
@@ -40,7 +41,7 @@ public:
     {
         if(this == &other)
             return *this;
-        _column_name = other._column_name;
+        _column_info = other._column_info;
         _reflection_property = other._reflection_property;
         return *this;
     }
@@ -49,14 +50,24 @@ public:
     {
         if(this == &other)
             return *this;
-        _column_name = std::move(other._column_name);
+        _column_info = std::move(other._column_info);
         _reflection_property = std::move(other._reflection_property);
         return *this;
     }
 
-    std::string column_name() const
+    ReflectionApi::Property<ClassType, PropertyType, Setter, Getter> property() const
     {
-        return _column_name;
+        return _reflection_property;
+    }
+
+    QueryCraft::ColumnInfo column_info() const
+    {
+        return _column_info;
+    }
+
+    QueryCraft::ColumnInfo& mutable_column_info()
+    {
+        return _column_info;
     }
 
     ReflectionApi::Property<ClassType, PropertyType, Setter, Getter> reflection_property() const
@@ -65,17 +76,20 @@ public:
     }
 
 private:
-    std::string _column_name;
+    QueryCraft::ColumnInfo _column_info;
     ReflectionApi::Property<ClassType, PropertyType, Setter, Getter> _reflection_property;
 };
 
 template<typename ClassType, typename PropertyType>
-auto ENTITYCRAFT_EXPORT make_column(
+ENTITYCRAFT_EXPORT auto make_column(
     std::string column_name,
-    ReflectionApi::Helper::Variable_t<ClassType, PropertyType> variable)
+    ReflectionApi::Helper::Variable_t<ClassType, PropertyType> variable,
+    const QueryCraft::ColumnSettings settings = QueryCraft::ColumnSettings::NONE)
 {
     return Column<ClassType, PropertyType>(
-        std::move(column_name),
+        QueryCraft::ColumnInfo(
+            std::move(column_name),
+            settings),
         ReflectionApi::make_property(
             column_name,
             variable));
@@ -85,17 +99,25 @@ template<typename ClassType,
     typename PropertyType,
     typename Setter,
     typename Getter>
-auto ENTITYCRAFT_EXPORT make_column(
+ENTITYCRAFT_EXPORT auto make_column(
     std::string column_name,
     Setter&& setter,
-    Getter&& getter)
+    Getter&& getter,
+    const QueryCraft::ColumnSettings settings = QueryCraft::ColumnSettings::NONE)
 {
     return Column<ClassType, PropertyType>(
-        std::move(column_name),
+        QueryCraft::ColumnInfo(
+            std::move(column_name),
+            settings),
         ReflectionApi::make_property(
             column_name,
             std::forward<Setter>(setter),
             std::forward<Getter>(getter)));
+}
+
+ENTITYCRAFT_EXPORT inline auto primary_key()
+{
+    return QueryCraft::ColumnSettings::PRIMARY_KEY;
 }
 
 } // namespace EntityCraft
