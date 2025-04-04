@@ -8,15 +8,16 @@ project(${entity_craft_project_name} LANGUAGES CXX)
 file(GLOB_RECURSE HEADER_FILES include/*.h)
 file(GLOB_RECURSE SOURCE_FILES src/*.cpp)
 
-add_definitions(-DENTITYCRAFT_LIBRARY)
+add_subdirectory(external/SqliteAdapter)
 
-add_subdirectory(external/ReflectionApi)
-add_subdirectory(external/QueryCraft)
+add_subdirectory(include/external/DatabaseAdapter)
+add_subdirectory(include/external/ReflectionApi)
+add_subdirectory(include/external/QueryCraft)
 
-add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SOURCE_FILES})
+add_library(${PROJECT_NAME} STATIC ${HEADER_FILES} ${SOURCE_FILES})
 
 target_include_directories(${PROJECT_NAME} PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/external
+        include/external
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
@@ -55,14 +56,4 @@ install(DIRECTORY include
 
 if(${ENTITY_CRAFT_EXAMPLE})
     add_subdirectory(example)
-
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            $<TARGET_FILE:${PROJECT_NAME}>
-            $<TARGET_FILE_DIR:${PROJECT_NAME}>/example)
-
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            $<TARGET_FILE:QueryCraft>
-            $<TARGET_FILE_DIR:${PROJECT_NAME}>/example)
 endif ()

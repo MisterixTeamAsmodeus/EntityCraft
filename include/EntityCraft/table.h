@@ -1,6 +1,5 @@
 #pragma once
 
-#include "entitycraft_global.h"
 #include "QueryCraft/conditiongroup.h"
 #include "QueryCraft/table.h"
 #include "ReflectionApi/entity.h"
@@ -8,7 +7,7 @@
 namespace EntityCraft {
 
 template<typename ClassType, typename... Columns>
-class ENTITYCRAFT_EXPORT Table
+class Table
 {
 public:
     static ClassType empty_entity()
@@ -88,7 +87,7 @@ private:
 };
 
 template<typename ClassType, typename... Properties>
-ENTITYCRAFT_EXPORT auto make_table(std::string table_name, std::string scheme, Properties&&... properties)
+auto make_table(std::string table_name, std::string scheme, Properties&&... properties)
 {
     return Table<ClassType, Properties...>(std::move(scheme), std::move(table_name), std::move(properties)...);
 }

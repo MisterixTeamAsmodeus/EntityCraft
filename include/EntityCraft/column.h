@@ -1,6 +1,5 @@
 #pragma once
 
-#include "entitycraft_global.h"
 #include "QueryCraft/conditiongroup.h"
 
 #include <ReflectionApi/helper/templates.h>
@@ -14,7 +13,7 @@ template<typename ClassType,
     typename PropertyType,
     typename Setter = ReflectionApi::Helper::Setter_t<ClassType, PropertyType>,
     typename Getter = ReflectionApi::Helper::ConstGetter_t<ClassType, PropertyType>>
-class ENTITYCRAFT_EXPORT Column
+class Column
 {
 public:
     Column(QueryCraft::ColumnInfo column_info, const ReflectionApi::Property<ClassType, PropertyType, Setter, Getter>& reflection_property)
@@ -81,7 +80,7 @@ private:
 };
 
 template<typename ClassType, typename PropertyType>
-ENTITYCRAFT_EXPORT auto make_column(
+auto make_column(
     std::string column_name,
     ReflectionApi::Helper::Variable_t<ClassType, PropertyType> variable,
     const QueryCraft::ColumnSettings settings = QueryCraft::ColumnSettings::NONE)
@@ -99,7 +98,7 @@ template<typename ClassType,
     typename PropertyType,
     typename Setter,
     typename Getter>
-ENTITYCRAFT_EXPORT auto make_column(
+auto make_column(
     std::string column_name,
     Setter&& setter,
     Getter&& getter,
@@ -115,7 +114,7 @@ ENTITYCRAFT_EXPORT auto make_column(
             std::forward<Getter>(getter)));
 }
 
-ENTITYCRAFT_EXPORT inline auto primary_key()
+inline auto primary_key()
 {
     return QueryCraft::ColumnSettings::PRIMARY_KEY;
 }
