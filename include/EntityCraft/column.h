@@ -9,6 +9,12 @@
 
 namespace EntityCraft {
 
+/**
+ * Макрос для автоматической генерации имени колонки
+ * @param field Ссылка на колонку следующего вида - &Test::id -> id
+ */
+#define create_column_name(field) (strrchr(#field, ':') ? strrchr(#field, ':') + 1 : #field), field
+
 template<typename ClassType,
     typename PropertyType,
     typename Setter = ReflectionApi::Helper::Setter_t<ClassType, PropertyType>,
@@ -69,11 +75,6 @@ public:
         return _column_info;
     }
 
-    ReflectionApi::Property<ClassType, PropertyType, Setter, Getter> reflection_property() const
-    {
-        return _reflection_property;
-    }
-
 private:
     QueryCraft::ColumnInfo _column_info;
     ReflectionApi::Property<ClassType, PropertyType, Setter, Getter> _reflection_property;
@@ -94,6 +95,7 @@ auto make_column(
             variable));
 }
 
+//TODO переделать по аналогии с ReflectionApi::make_property
 template<typename ClassType,
     typename PropertyType,
     typename Setter,

@@ -8,8 +8,6 @@ project(${entity_craft_project_name} LANGUAGES CXX)
 file(GLOB_RECURSE HEADER_FILES include/*.h)
 file(GLOB_RECURSE SOURCE_FILES src/*.cpp)
 
-add_subdirectory(external/SqliteAdapter)
-
 add_subdirectory(include/external/DatabaseAdapter)
 add_subdirectory(include/external/ReflectionApi)
 add_subdirectory(include/external/QueryCraft)
@@ -23,6 +21,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 target_link_libraries(${PROJECT_NAME} PUBLIC
         QueryCraft
         ReflectionApi
+        DatabaseAdapter
 )
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_14)

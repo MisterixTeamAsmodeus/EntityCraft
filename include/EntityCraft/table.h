@@ -87,9 +87,9 @@ private:
 };
 
 template<typename ClassType, typename... Properties>
-auto make_table(std::string table_name, std::string scheme, Properties&&... properties)
+auto make_table(std::string scheme, std::string table_name, Properties&&... properties)
 {
-    return Table<ClassType, Properties...>(std::move(scheme), std::move(table_name), std::move(properties)...);
+    return Table<ClassType, Properties...>(std::move(table_name), std::move(scheme), std::move(properties)...);
 }
 
-}
+} // namespace EntityCraft
