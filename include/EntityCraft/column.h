@@ -1,5 +1,6 @@
 #pragma once
 
+#include "nullcheker.h"
 #include "QueryCraft/conditiongroup.h"
 
 #include <ReflectionApi/helper/templates.h>
@@ -80,14 +81,27 @@ public:
         return _reflection_property.converter();
     }
 
-    void set_converter(const std::shared_ptr<ReflectionApi::Converter<PropertyType>>& converter)
+    auto& set_converter(const std::shared_ptr<ReflectionApi::Converter<PropertyType>>& converter)
     {
         _reflection_property.set_converter(converter);
+        return *this;
+    }
+
+    std::shared_ptr<NullCheker<PropertyType>> null_cheker() const
+    {
+        return _null_cheker;
+    }
+
+    auto& set_null_cheker(const std::shared_ptr<NullCheker<PropertyType>>& null_cheker)
+    {
+        _null_cheker = null_cheker;
+        return *this;
     }
 
 private:
     QueryCraft::ColumnInfo _column_info;
     ReflectionApi::Property<ClassType, PropertyType, Setter, Getter> _reflection_property;
+    std::shared_ptr<NullCheker<PropertyType>> _null_cheker = std::make_shared<NullCheker<PropertyType>>();
 };
 
 template<typename ClassType, typename PropertyType>

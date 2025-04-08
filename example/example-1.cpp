@@ -5,12 +5,12 @@
 struct WorkerInfo
 {
     int id;
-    std::string name;
+    std::shared_ptr<std::string> name;
     bool isActiveWorker;
 
-    std::string get_name() const { return name; }
+    std::shared_ptr<std::string> get_name() const { return name; }
 
-    void set_name(const std::string& name) { this->name = name; }
+    void set_name(const std::shared_ptr<std::string>& name) { this->name = name; }
 };
 
 int main()
@@ -20,7 +20,7 @@ int main()
     auto dto = make_table<WorkerInfo>("", "WorkerInfo",
         make_column(create_column_name(&WorkerInfo::id), QueryCraft::primary_key()),
         make_column("name", &WorkerInfo::set_name, &WorkerInfo::get_name),
-        make_column(create_column_name(&WorkerInfo::isActiveWorker)));
+        make_column(create_column_name(&WorkerInfo::isActiveWorker), QueryCraft::not_null()));
 
     auto table_info = dto.table_info();
 
@@ -34,9 +34,9 @@ int main()
 
     auto storage = make_storage(adapter, dto);
 
-    WorkerInfo worker1 { 1, "worker1", true };
-    WorkerInfo worker2 { 2, "worker2", false };
-    WorkerInfo worker3 { 3, "worker3", true };
+    WorkerInfo worker1 { 1, std::make_shared<std::string>("worker1"), true };
+    WorkerInfo worker2 { 2, nullptr, false };
+    WorkerInfo worker3 { 3, std::make_shared<std::string>("worker2"), true };
 
     std::vector<WorkerInfo> workers = {
         worker1,
@@ -54,13 +54,13 @@ int main()
 
     std::cout << "count in database = " << storage.select().size() << "\n";
 
-    worker2.name += " update";
+    worker2.name = std::make_shared<std::string>(" update");
     storage.update(worker2);
 
     std::cout << "Workers in transaction:\n";
     for(const auto& worker : storage.select()) {
         std::cout << "Worker id = " << worker.id << "\n";
-        std::cout << "Worker name = " << worker.name << "\n";
+        std::cout << "Worker name = " << *worker.name << "\n";
         std::cout << "Worker isActiveWorker = " << worker.isActiveWorker << "\n";
         std::cout << "\n";
     }

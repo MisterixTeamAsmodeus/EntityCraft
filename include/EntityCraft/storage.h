@@ -103,12 +103,20 @@ public:
         return res;
     }
 
-    std::shared_ptr<ClassType> get(const QueryCraft::ConditionGroup& condition_group)
+    size_t count()
     {
-        const QueryCraft::SqlTable sql_table(_dto.table_info());
-
+        const auto temp = _condition_group;
         clear_select_settings();
-        _condition_group = condition_group;
+        _condition_group = temp;
+
+        return select().size();
+    }
+
+    std::shared_ptr<ClassType> get()
+    {
+        const auto temp = _condition_group;
+        clear_select_settings();
+        _condition_group = temp;
         _limit = 1;
 
         const auto res = select();
@@ -143,7 +151,12 @@ public:
                 auto property = column.property();
 
                 const auto property_value = property.value(value);
-                row.emplace_back(property.converter()->convertToString(property_value));
+                const auto column_info = column.column_info();
+                if(!column_info.hasSettings(QueryCraft::ColumnSettings::PRIMARY_KEY) && !column_info.hasSettings(QueryCraft::ColumnSettings::NOT_NULL) && column.null_cheker()->isNull(property_value)) {
+                    row.emplace_back(QueryCraft::ColumnInfo::nullValue());
+                } else {
+                    row.emplace_back(property.converter()->convertToString(property_value));
+                }
             });
 
             sql_table.addRow(row);
@@ -169,14 +182,17 @@ public:
 
             auto property = column.property();
 
-            const auto string_property_value = property.converter()
-                                                   ->convertToString(property.value(value));
+            const auto propery_value = property.value(value);
 
             if(column_info.hasSettings(QueryCraft::ColumnSettings::PRIMARY_KEY)) {
-                condition_for_update = column_info == string_property_value;
+                condition_for_update = column_info == property.converter()->convertToString(propery_value);
             } else {
                 columns_for_update.emplace_back(column_info);
-                row.emplace_back(string_property_value);
+                if(!column_info.hasSettings(QueryCraft::ColumnSettings::NOT_NULL) && column.null_cheker()->isNull(propery_value)) {
+                    row.emplace_back(QueryCraft::ColumnInfo::nullValue());
+                } else {
+                    row.emplace_back(property.converter()->convertToString(propery_value));
+                }
             }
         });
 
