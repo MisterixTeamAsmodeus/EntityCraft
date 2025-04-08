@@ -1,6 +1,5 @@
 #pragma once
 
-#include "converterhelper.h"
 #include "QueryCraft/sqltable.h"
 #include "table.h"
 
@@ -55,15 +54,11 @@ public:
 
     void transaction(const int type = -1)
     {
-        // TODO подумать что делать если транзакиция уже открыта
-
         _open_transaction = _database->open_transaction(type);
     }
 
     bool commit() const
     {
-        // TODO добавить ошибку если транзакции нет
-
         if(_open_transaction != nullptr)
             return _open_transaction->commit();
 
@@ -72,8 +67,6 @@ public:
 
     bool rollback() const
     {
-        // TODO добавить ошибку если транзакции нет
-
         if(_open_transaction != nullptr)
             return _open_transaction->rollback();
 
@@ -90,14 +83,13 @@ public:
             _limit,
             _offset);
 
+        clear_select_settings();
+
+        std::cout << std::endl;
         std::cout << sql << std::endl;
+        std::cout << std::endl;
 
         const auto result = exec(sql);
-
-        _condition_group = {};
-        _limit = 0;
-        _offset = 0;
-        _sortColumns = {};
 
         if(result.empty()) {
             return {};
@@ -115,10 +107,9 @@ public:
     {
         const QueryCraft::SqlTable sql_table(_dto.table_info());
 
+        clear_select_settings();
         _condition_group = condition_group;
         _limit = 1;
-        _offset = 0;
-        _sortColumns = {};
 
         const auto res = select();
         if(res.empty()) {
@@ -136,24 +127,127 @@ public:
 
     void insert(const ClassType& value)
     {
+        std::vector<ClassType> data = { value };
+
+        insert(data.begin(), data.end());
+    }
+
+    template<typename Begin, typename End>
+    void insert(const Begin& begin, const End& end)
+    {
         QueryCraft::SqlTable sql_table(_dto.table_info());
 
-        QueryCraft::SqlTable::Row row;
-        _dto.for_each([&row, &value](auto& column) {
-            auto property = column.property();
+        std::for_each(begin, end, [this, &sql_table](const auto& value) {
+            QueryCraft::SqlTable::Row row;
+            _dto.for_each([&row, &value](auto& column) {
+                auto property = column.property();
 
-            const auto property_value = property.value(value);
-            // TODO перенести получение конвертера из ReflectionApi::Property
-            row.emplace_back(Converter<decltype(property_value)>().convertToString(property_value));
+                const auto property_value = property.value(value);
+                row.emplace_back(property.converter()->convertToString(property_value));
+            });
+
+            sql_table.addRow(row);
         });
 
-        sql_table.addRow(row);
         const auto sql = sql_table.insertRowSql();
+        std::cout << std::endl;
         std::cout << sql << std::endl;
+        std::cout << std::endl;
         exec(sql);
     }
 
+    void update(const ClassType& value)
+    {
+        QueryCraft::SqlTable sql_table(_dto.table_info());
+
+        QueryCraft::ConditionGroup condition_for_update;
+        std::vector<QueryCraft::ColumnInfo> columns_for_update;
+        QueryCraft::SqlTable::Row row;
+
+        _dto.for_each([&row, &value, &condition_for_update, &columns_for_update](auto& column) {
+            const auto column_info = column.column_info();
+
+            auto property = column.property();
+
+            const auto string_property_value = property.converter()
+                                                   ->convertToString(property.value(value));
+
+            if(column_info.hasSettings(QueryCraft::ColumnSettings::PRIMARY_KEY)) {
+                condition_for_update = column_info == string_property_value;
+            } else {
+                columns_for_update.emplace_back(column_info);
+                row.emplace_back(string_property_value);
+            }
+        });
+
+        sql_table.addRow(row);
+
+        const auto sql = sql_table.updateRowSql(condition_for_update, columns_for_update);
+        std::cout << std::endl;
+        std::cout << sql << std::endl;
+        std::cout << std::endl;
+        exec(sql);
+    }
+
+    template<typename Begin, typename End>
+    void update(const Begin& begin, const End& end)
+    {
+        std::for_each(begin, end, [](const auto& value) {
+            update(value);
+        });
+    }
+
+    void remove(const ClassType& value)
+    {
+        std::vector<ClassType> data = { value };
+
+        remove(data.begin(), data.end());
+    }
+
+    template<typename Begin, typename End>
+    void remove(const Begin& begin, const End& end)
+    {
+        QueryCraft::SqlTable sql_table(_dto.table_info());
+
+        QueryCraft::ConditionGroup condition_for_remove;
+
+        std::for_each(begin, end, [this, &condition_for_remove](const auto& value) {
+            _dto.for_each([&value, &condition_for_remove](auto& column) {
+                auto column_info = column.column_info();
+
+                auto property = column.property();
+
+                const auto string_property_value = property.converter()
+                                                       ->convertToString(property.value(value));
+
+                if(column_info.hasSettings(QueryCraft::ColumnSettings::PRIMARY_KEY)) {
+                    condition_for_remove = column_info == string_property_value;
+                }
+            });
+        });
+
+        const auto sql = sql_table.removeRowSql(condition_for_remove);
+        std::cout << std::endl;
+        std::cout << sql << std::endl;
+        std::cout << std::endl;
+        exec(sql);
+    }
+
+    void removeAll()
+    {
+        std::vector<ClassType> data;
+        remove(data.begin(), data.end());
+    }
+
 private:
+    void clear_select_settings()
+    {
+        _condition_group = {};
+        _limit = 0;
+        _offset = 0;
+        _sortColumns = {};
+    }
+
     QueryCraft::ColumnInfo primary_key_column()
     {
         QueryCraft::ColumnInfo primary_key;
@@ -181,8 +275,7 @@ private:
                 return;
 
             auto property_value = property.empty_property();
-            // TODO перенести получение конвертера из ReflectionApi::Property
-            Converter<decltype(property_value)>().fillFromString(property_value, it->second);
+            property.converter()->fillFromString(property_value, it->second);
             property.set_value(entity, property_value);
         });
 

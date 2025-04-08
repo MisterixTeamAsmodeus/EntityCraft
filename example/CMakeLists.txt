@@ -14,6 +14,10 @@ foreach(EXAMPLE_SOURCE_FILE ${EXAMPLE_SOURCE_FILES})
 
     add_executable(${EXAMPLE_TARGET} ${EXAMPLE_SOURCE_FILE})
 
+    add_custom_command(TARGET ${EXAMPLE_TARGET} PRE_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/db/${EXAMPLE_NAME}.db" "${CMAKE_CURRENT_BINARY_DIR}/db/${EXAMPLE_NAME}.db"
+    )
+
     target_compile_features(${EXAMPLE_TARGET} PUBLIC cxx_std_14)
     target_include_directories(${EXAMPLE_TARGET} PRIVATE ../external/SqliteAdapter)
     target_link_libraries(${EXAMPLE_TARGET} PRIVATE ${entity_craft_project_name} SqliteAdapter)

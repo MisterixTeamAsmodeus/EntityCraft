@@ -13,7 +13,7 @@ namespace EntityCraft {
  * Макрос для автоматической генерации имени колонки
  * @param field Ссылка на колонку следующего вида - &Test::id -> id
  */
-#define create_column_name(field) (strrchr(#field, ':') ? strrchr(#field, ':') + 1 : #field), field
+#define create_column_name(field) (strrchr(#field, ':') ? strrchr(#field, ':') + 1 : "Error"), field
 
 template<typename ClassType,
     typename PropertyType,
@@ -75,6 +75,16 @@ public:
         return _column_info;
     }
 
+    std::shared_ptr<ReflectionApi::Converter<PropertyType>> converter() const
+    {
+        return _reflection_property.converter();
+    }
+
+    void set_converter(const std::shared_ptr<ReflectionApi::Converter<PropertyType>>& converter)
+    {
+        _reflection_property.set_converter(converter);
+    }
+
 private:
     QueryCraft::ColumnInfo _column_info;
     ReflectionApi::Property<ClassType, PropertyType, Setter, Getter> _reflection_property;
@@ -88,37 +98,115 @@ auto make_column(
 {
     return Column<ClassType, PropertyType>(
         QueryCraft::ColumnInfo(
-            std::move(column_name),
+            column_name,
             settings),
         ReflectionApi::make_property(
             column_name,
             variable));
 }
 
-//TODO переделать по аналогии с ReflectionApi::make_property
-template<typename ClassType,
-    typename PropertyType,
-    typename Setter,
-    typename Getter>
+template<typename ClassType, typename PropertyType>
 auto make_column(
     std::string column_name,
-    Setter&& setter,
-    Getter&& getter,
+    ReflectionApi::Helper::Setter_t<ClassType, PropertyType> setter,
+    ReflectionApi::Helper::ConstGetter_t<ClassType, PropertyType> getter,
     const QueryCraft::ColumnSettings settings = QueryCraft::ColumnSettings::NONE)
 {
     return Column<ClassType, PropertyType>(
         QueryCraft::ColumnInfo(
-            std::move(column_name),
+            column_name,
             settings),
         ReflectionApi::make_property(
             column_name,
-            std::forward<Setter>(setter),
-            std::forward<Getter>(getter)));
+            setter,
+            getter));
 }
 
-inline auto primary_key()
+template<typename ClassType, typename PropertyType>
+auto make_column(
+    std::string column_name,
+    ReflectionApi::Helper::Setter_t<ClassType, PropertyType> setter,
+    ReflectionApi::Helper::MutableGetter_t<ClassType, PropertyType> getter,
+    const QueryCraft::ColumnSettings settings = QueryCraft::ColumnSettings::NONE)
 {
-    return QueryCraft::ColumnSettings::PRIMARY_KEY;
+    return Column<ClassType, PropertyType>(
+        QueryCraft::ColumnInfo(
+            column_name,
+            settings),
+        ReflectionApi::make_property(
+            column_name,
+            setter,
+            getter));
+}
+
+template<typename ClassType, typename PropertyType>
+auto make_column(
+    std::string column_name,
+    ReflectionApi::Helper::Setter_t<ClassType, PropertyType> setter,
+    ReflectionApi::Helper::Getter_t<ClassType, PropertyType> getter,
+    const QueryCraft::ColumnSettings settings = QueryCraft::ColumnSettings::NONE)
+{
+    return Column<ClassType, PropertyType>(
+        QueryCraft::ColumnInfo(
+            column_name,
+            settings),
+        ReflectionApi::make_property(
+            column_name,
+            setter,
+            getter));
+}
+
+//-----------------------------Перегрузки для примитивов, где параметры в setter не по const &-----------------------------------
+
+template<typename ClassType, typename PropertyType>
+auto make_column(
+    std::string column_name,
+    ReflectionApi::Helper::BaseSetter_t<ClassType, PropertyType>&& setter,
+    ReflectionApi::Helper::ConstGetter_t<ClassType, PropertyType>&& getter,
+    const QueryCraft::ColumnSettings settings = QueryCraft::ColumnSettings::NONE)
+{
+    return Column<ClassType, PropertyType>(
+        QueryCraft::ColumnInfo(
+            column_name,
+            settings),
+        ReflectionApi::make_property(
+            column_name,
+            setter,
+            getter));
+}
+
+template<typename ClassType, typename PropertyType>
+auto make_column(
+    std::string column_name,
+    ReflectionApi::Helper::BaseSetter_t<ClassType, PropertyType> setter,
+    ReflectionApi::Helper::MutableGetter_t<ClassType, PropertyType> getter,
+    const QueryCraft::ColumnSettings settings = QueryCraft::ColumnSettings::NONE)
+{
+    return Column<ClassType, PropertyType>(
+        QueryCraft::ColumnInfo(
+            column_name,
+            settings),
+        ReflectionApi::make_property(
+            column_name,
+            setter,
+            getter));
+}
+
+template<typename ClassType, typename PropertyType>
+auto make_column(
+    std::string column_name,
+    ReflectionApi::Helper::BaseSetter_t<ClassType, PropertyType> setter,
+    ReflectionApi::Helper::Getter_t<ClassType, PropertyType> getter,
+    const QueryCraft::ColumnSettings settings = QueryCraft::ColumnSettings::NONE)
+{
+    return Column<ClassType, PropertyType>(
+        QueryCraft::ColumnInfo(
+            column_name,
+            settings),
+        ReflectionApi::make_property(
+            column_name,
+            setter,
+            getter));
 }
 
 } // namespace EntityCraft
