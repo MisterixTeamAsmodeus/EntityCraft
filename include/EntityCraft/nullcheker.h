@@ -23,10 +23,10 @@ bool isNull(const T& value)
 }
 
 /// Специализация по умолчания
-/// @note При добавлении частичной специализации для других типов прописывать std::enable_if_t = false
+/// @note При добавлении частичной специализации для других типов прописывать std::enable_if_t
 template<typename T,
-    std::enable_if_t<std::is_floating_point<T>::value, bool> = false,
-    std::enable_if_t<std::is_integral<T>::value, bool> = false>
+    std::enable_if_t<!std::is_floating_point<T>::value, bool> = true,
+    std::enable_if_t<!std::is_integral<T>::value, bool> = true>
 bool isNull(const T&)
 {
     return false;

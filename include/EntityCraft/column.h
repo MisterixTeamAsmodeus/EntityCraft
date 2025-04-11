@@ -10,12 +10,6 @@
 
 namespace EntityCraft {
 
-/**
- * Макрос для автоматической генерации имени колонки
- * @param field Ссылка на колонку следующего вида - &Test::id -> id
- */
-#define create_column_name(field) (strrchr(#field, ':') ? strrchr(#field, ':') + 1 : "Error"), field
-
 template<typename ClassType,
     typename PropertyType,
     typename Setter = ReflectionApi::Helper::Setter_t<ClassType, PropertyType>,
