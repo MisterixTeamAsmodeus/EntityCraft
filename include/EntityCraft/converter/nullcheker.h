@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <stdexcept>
 #include <string>
 
 namespace EntityCraft {
@@ -29,7 +30,7 @@ template<typename T,
     std::enable_if_t<!std::is_integral<T>::value, bool> = true>
 bool isNull(const T&)
 {
-    return false;
+    throw std::runtime_error("isNull not implemented");
 }
 } // namespace Helpers
 

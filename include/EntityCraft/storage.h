@@ -108,8 +108,13 @@ public:
 
         std::vector<QueryCraft::ColumnInfo> columns = sql_table.columns();
 
-        if(!_without_relation_entity)
+        _dto.for_each(Visitor::make_reference_column_visitor([&columns](auto& reference_column) {
+            columns.erase(std::remove(columns.begin(), columns.end(), reference_column.column_info()));
+        }));
+
+        if(!_without_relation_entity) {
             append_join_columns(columns, _dto);
+        }
 
         const auto sql = sql_table.selectRowsSql(
             _without_relation_entity ? std::vector<QueryCraft::JoinColumn> {} : join_columns(_dto),
@@ -133,7 +138,7 @@ public:
 
         std::vector<ClassType> res;
         for(const auto& row : result.data()) {
-            res.emplace_back(fill_class_by_sql(_dto, row));
+            res.emplace_back(fill_class_by_sql(_dto, row, _database, _open_transaction));
         }
 
         return res;
@@ -169,7 +174,7 @@ public:
     template<typename IdType>
     std::shared_ptr<ClassType> get_by_id(const IdType& id)
     {
-        return get(primary_key_column() == id);
+        return get(primary_key_column(_dto) == id);
     }
 
     bool find(const ClassType& value)
@@ -212,24 +217,41 @@ public:
             transaction();
         }
 
-        std::for_each(begin, end, [this, &sql_table](const auto& value) {
+        std::vector<QueryCraft::ColumnInfo> columns_for_insert;
+
+        std::for_each(begin, end, [this, &sql_table, &columns_for_insert](const auto& value) {
+            bool need_update_column_info = columns_for_insert.empty();
             QueryCraft::SqlTable::Row row;
             _dto.for_each(Visitor::make_any_column_visitor(
-                [&row, &value](auto& column) {
+                [&row, &value, &need_update_column_info, &columns_for_insert](auto& column) {
+                    if(need_update_column_info) {
+                        columns_for_insert.emplace_back(column.column_info());
+                    }
                     action_fill_to_insert()(column, row, value);
                 },
-                [this, &value, &row](auto& reference_column) {
-                    if(reference_column.type() != RelationType::ONE_TO_ONE) {
-                        return;
-                    }
+                [this, &value, &row, &need_update_column_info, &columns_for_insert](auto& reference_column) {
+                    switch(reference_column.type()) {
+                        case RelationType::ONE_TO_ONE: {
+                            columns_for_insert.emplace_back(reference_column.column_info());
+                            action_insert_one_to_one()(reference_column, row, value);
+                            break;
+                        }
+                        case RelationType::ONE_TO_MANY: {
+                            auto reference_storage = make_storage(_database, reference_column.reference_table());
+                            reference_storage.set_transaction(_open_transaction);
+                            const auto property_value = reference_column.property().value(value);
+                            reference_storage.upsert(property_value);
 
-                    action_insert_one_to_one()(reference_column, row, value);
+                            reference_storage.set_transaction(nullptr);
+                            break;
+                        }
+                    }
                 }));
 
             sql_table.addRow(row);
         });
 
-        const auto sql = sql_table.insertRowSql();
+        const auto sql = sql_table.insertRowSql(columns_for_insert);
         std::cout << std::endl;
         std::cout << sql << std::endl;
         std::cout << std::endl;
@@ -238,6 +260,12 @@ public:
         if(!has_transactional) {
             commit();
         }
+    }
+
+    template<typename Container>
+    void insert(const Container& value)
+    {
+        insert(value.begin(), value.end());
     }
 
     void update(const ClassType& value)
@@ -259,11 +287,21 @@ public:
                 action_fill_to_update()(column, value, condition_for_update, columns_for_update, row);
             },
             [this, &value, &row, &columns_for_update](auto& reference_column) {
-                if(reference_column.type() != RelationType::ONE_TO_ONE) {
-                    return;
-                }
+                switch(reference_column.type()) {
+                    case RelationType::ONE_TO_ONE: {
+                        action_update_one_to_one()(reference_column, value, row, columns_for_update);
+                        break;
+                    }
+                    case RelationType::ONE_TO_MANY: {
+                        auto reference_storage = make_storage(_database, reference_column.reference_table());
+                        reference_storage.set_transaction(_open_transaction);
+                        const auto property_value = reference_column.property().value(value);
+                        reference_storage.upsert(property_value);
 
-                action_update_one_to_one()(reference_column, value, row, columns_for_update);
+                        reference_storage.set_transaction(nullptr);
+                        break;
+                    }
+                }
             }));
 
         sql_table.addRow(row);
@@ -287,6 +325,12 @@ public:
         });
     }
 
+    template<typename Container>
+    void update(const Container& value)
+    {
+        update(value.begin(), value.end());
+    }
+
     void upsert(const ClassType& value)
     {
         if(find(value)) {
@@ -299,9 +343,15 @@ public:
     template<typename Begin, typename End>
     void upsert(const Begin& begin, const End& end)
     {
-        std::for_each(begin, end, [](const auto& value) {
+        std::for_each(begin, end, [this](const auto& value) {
             upsert(value);
         });
+    }
+
+    template<typename Container>
+    void upsert(const Container& value)
+    {
+        upsert(value.begin(), value.end());
     }
 
     void remove(const ClassType& value)
@@ -338,6 +388,12 @@ public:
         std::cout << sql << std::endl;
         std::cout << std::endl;
         exec(sql);
+    }
+
+    template<typename Container>
+    void remove(const Container& value)
+    {
+        remove(value.begin(), value.end());
     }
 
     void remove()
@@ -402,7 +458,10 @@ private:
     }
 
     template<typename JoinClassType, typename... JoinClassColumn>
-    static JoinClassType fill_class_by_sql(Table<JoinClassType, JoinClassColumn...>& dto, const DatabaseAdapter::Models::QueryResult::ResultRow& query_result)
+    static JoinClassType fill_class_by_sql(Table<JoinClassType, JoinClassColumn...>& dto,
+        const DatabaseAdapter::Models::QueryResult::ResultRow& query_result,
+        const std::shared_ptr<DatabaseAdapter::IDataBaseDriver>& database,
+        const std::shared_ptr<DatabaseAdapter::ITransaction>& open_transaction)
     {
         auto entity = dto.empty_entity();
 
@@ -410,19 +469,61 @@ private:
             [&entity, &query_result](auto& column) {
                 action_fill_property()(column, query_result, entity);
             },
-            [&entity, &query_result](auto& reference_column) {
-                if(reference_column.type() != RelationType::ONE_TO_ONE) {
-                    return;
-                }
-
+            [&entity, &query_result, &database, &open_transaction, &dto](auto& reference_column) {
                 auto reference_propery = reference_column.property();
                 auto reference_table = reference_column.reference_table();
-                auto reference_entity = fill_class_by_sql(reference_table, query_result);
 
-                reference_propery.set_value(entity, reference_entity);
+                switch(reference_column.type()) {
+                    case RelationType::ONE_TO_ONE: {
+                        auto reference_entity = fill_class_by_sql(reference_table, query_result, database, open_transaction);
+
+                        reference_propery.set_value(entity, reference_entity);
+                        break;
+                    }
+                    case RelationType::ONE_TO_MANY: {
+                        auto reference_storage = make_storage(database, reference_table);
+                        reference_storage.set_transaction(open_transaction);
+
+                        auto mapped_column = reference_table.table_info().column(reference_column.column_info().name());
+                        QueryCraft::ConditionGroup condition;
+                        dto.for_each(Visitor::make_column_visitor([&condition, &reference_column, &entity, &mapped_column](auto& column) {
+                            if(column.column_info().hasSettings(QueryCraft::ColumnSettings::PRIMARY_KEY)) {
+                                auto property = column.property();
+                                auto id_value = property.converter()->convertToString(property.value(entity));
+                                condition = mapped_column == id_value;
+                            }
+                        }));
+
+                        reference_storage.condition_group(condition);
+
+                        auto result = reference_storage.select();
+
+                        auto property_value = reference_column.empty_property();
+                        auto inserter = reference_column.inserter();
+                        inserter.insertInRelationProperty(property_value, result);
+
+                        reference_propery.set_value(entity, property_value);
+
+                        break;
+                    }
+                }
             }));
 
         return entity;
+    }
+
+    template<typename JoinClassType, typename... JoinClassColumn>
+    static QueryCraft::ColumnInfo primary_key_column(Table<JoinClassType, JoinClassColumn...>& dto)
+    {
+        QueryCraft::ColumnInfo primary_key;
+
+        dto.for_each([&primary_key](const auto& column) {
+            auto column_info = column.column_info();
+            if(column_info.hasSettings(QueryCraft::ColumnSettings::PRIMARY_KEY))
+                primary_key = column_info;
+        });
+
+        return primary_key;
     }
 
     template<typename JoinClassType, typename... JoinClassColumn>
@@ -437,18 +538,10 @@ private:
 
             auto reference_table = reference_column.reference_table();
 
-            QueryCraft::ColumnInfo primary_key;
-
-            reference_table.for_each([&primary_key](const auto& column) {
-                auto column_info = column.column_info();
-                if(column_info.hasSettings(QueryCraft::ColumnSettings::PRIMARY_KEY))
-                    primary_key = column_info;
-            });
-
             QueryCraft::JoinColumn join_column;
             join_column.joinType = QueryCraft::JoinColumn::Type::LEFT;
             join_column.joinedTable = reference_table.table_info();
-            join_column.condition = reference_column.column_info().equals(primary_key);
+            join_column.condition = reference_column.column_info().equals(primary_key_column(reference_table));
 
             joined_columns.emplace_back(join_column);
 
@@ -464,19 +557,19 @@ private:
     static void append_join_columns(std::vector<QueryCraft::ColumnInfo>& columns, Table<JoinClassType, JoinClassColumn...>& dto)
     {
         dto.for_each(Visitor::make_reference_column_visitor([&columns](auto& reference_column) {
-            if(reference_column.type() != RelationType::ONE_TO_ONE) {
-                return;
+            switch(reference_column.type()) {
+                case RelationType::ONE_TO_ONE: {
+                    auto reference_table = reference_column.reference_table();
+                    reference_table.for_each([&columns](const auto& column) {
+                        auto column_info = column.column_info();
+                        columns.emplace_back(column_info);
+                    });
+
+                    append_join_columns(columns, reference_table);
+
+                    break;
+                }
             }
-
-            columns.erase(std::remove(columns.begin(), columns.end(), reference_column.column_info()));
-
-            auto reference_table = reference_column.reference_table();
-            reference_table.for_each([&columns](const auto& column) {
-                auto column_info = column.column_info();
-                columns.emplace_back(column_info);
-            });
-
-            append_join_columns(columns, reference_table);
         }));
     }
 
@@ -555,19 +648,6 @@ private:
         _offset = 0;
         _sortColumns = {};
         _without_relation_entity = false;
-    }
-
-    QueryCraft::ColumnInfo primary_key_column()
-    {
-        QueryCraft::ColumnInfo primary_key;
-
-        _dto.for_each([&primary_key](const auto& column) {
-            auto column_info = column.column_info();
-            if(column_info.hasSettings(QueryCraft::ColumnSettings::PRIMARY_KEY))
-                primary_key = column_info;
-        });
-
-        return primary_key;
     }
 
     DatabaseAdapter::Models::QueryResult exec(const std::string& sql) const
