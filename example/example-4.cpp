@@ -72,7 +72,7 @@ struct BTableInfo
 
         return make_table<B>("", "B",
             make_column(id, &B::id, QueryCraft::primary_key()),
-            make_reference_column(a_id, &B::a, ATableInfo::dto()));
+            make_reference_column(a_id, &B::a, ATableInfo::dto(), RelationType::MANY_TO_ONE));
     }
 
     static QueryCraft::Table table_info()
@@ -116,7 +116,7 @@ int main()
     using namespace EntityCraft;
 
     DatabaseAdapter::SqliteSettings settings;
-    settings.url = R"(./db/example-2.db)";
+    settings.url = R"(./db/example-4.db)";
 
     std::shared_ptr<DatabaseAdapter::IDataBaseDriver> adapter = std::make_shared<DatabaseAdapter::SqliteDatabaseAdapter>(settings);
 
@@ -157,7 +157,4 @@ int main()
         std::cout << "a_info - " << data.a.info << "\n";
         std::cout << "\n";
     }
-
-    a_storage().remove();
-    b_storage().remove();
 }

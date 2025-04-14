@@ -231,9 +231,10 @@ public:
                 },
                 [this, &value, &row, &need_update_column_info, &columns_for_insert](auto& reference_column) {
                     switch(reference_column.type()) {
+                        case RelationType::MANY_TO_ONE:
                         case RelationType::ONE_TO_ONE: {
                             columns_for_insert.emplace_back(reference_column.column_info());
-                            action_insert_one_to_one()(reference_column, row, value);
+                            action_insert()(reference_column, row, value);
                             break;
                         }
                         case RelationType::ONE_TO_MANY: {
@@ -288,8 +289,9 @@ public:
             },
             [this, &value, &row, &columns_for_update](auto& reference_column) {
                 switch(reference_column.type()) {
+                    case RelationType::MANY_TO_ONE:
                     case RelationType::ONE_TO_ONE: {
-                        action_update_one_to_one()(reference_column, value, row, columns_for_update);
+                        action_update()(reference_column, value, row, columns_for_update);
                         break;
                     }
                     case RelationType::ONE_TO_MANY: {
@@ -474,6 +476,7 @@ private:
                 auto reference_table = reference_column.reference_table();
 
                 switch(reference_column.type()) {
+                    case RelationType::MANY_TO_ONE:
                     case RelationType::ONE_TO_ONE: {
                         auto reference_entity = fill_class_by_sql(reference_table, query_result, database, open_transaction);
 
@@ -532,7 +535,7 @@ private:
         std::vector<QueryCraft::JoinColumn> joined_columns;
 
         dto.for_each(Visitor::make_reference_column_visitor([&joined_columns](auto& reference_column) {
-            if(reference_column.type() != RelationType::ONE_TO_ONE) {
+            if(reference_column.type() != RelationType::ONE_TO_ONE && reference_column.type() != RelationType::MANY_TO_ONE) {
                 return;
             }
 
@@ -558,6 +561,7 @@ private:
     {
         dto.for_each(Visitor::make_reference_column_visitor([&columns](auto& reference_column) {
             switch(reference_column.type()) {
+                case RelationType::MANY_TO_ONE:
                 case RelationType::ONE_TO_ONE: {
                     auto reference_table = reference_column.reference_table();
                     reference_table.for_each([&columns](const auto& column) {
@@ -574,7 +578,7 @@ private:
     }
 
 private:
-    auto action_insert_one_to_one()
+    auto action_insert()
     {
         return [this](auto& reference_column, QueryCraft::SqlTable::Row& row, const auto& value) {
             auto property = reference_column.property();
@@ -607,7 +611,7 @@ private:
         };
     }
 
-    auto action_update_one_to_one()
+    auto action_update()
     {
         return [this](auto& reference_column, auto& value, QueryCraft::SqlTable::Row& row, std::vector<QueryCraft::ColumnInfo>& columns_for_update) {
             columns_for_update.emplace_back(reference_column.column_info());
