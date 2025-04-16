@@ -8,9 +8,17 @@ project(${entity_craft_project_name} LANGUAGES CXX)
 file(GLOB_RECURSE HEADER_FILES include/*.h)
 file(GLOB_RECURSE SOURCE_FILES src/*.cpp)
 
-add_subdirectory(include/external/DatabaseAdapter)
-add_subdirectory(include/external/ReflectionApi)
-add_subdirectory(include/external/QueryCraft)
+if(NOT TARGET DatabaseAdapter)
+    add_subdirectory(include/external/DatabaseAdapter)
+endif()
+
+if(NOT TARGET ReflectionApi)
+    add_subdirectory(include/external/ReflectionApi)
+endif()
+
+if(NOT TARGET QueryCraft)
+    add_subdirectory(include/external/QueryCraft)
+endif()
 
 add_library(${PROJECT_NAME} STATIC ${HEADER_FILES} ${SOURCE_FILES})
 

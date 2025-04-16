@@ -7,28 +7,17 @@
 namespace EntityCraft {
 
 namespace Helpers {
-/// Специализация для всех целочисленных типов
+/// Специализация для численных типов
 template<typename T,
-    std::enable_if_t<std::is_integral<T>::value, bool> = true>
-bool isNull(const T& value)
-{
-    return value == 0;
-}
-
-/// Специализация для всех типов с плавующей точкой
-template<typename T,
-    std::enable_if_t<std::is_floating_point<T>::value, bool> = true>
-bool isNull(const T& value)
+    std::enable_if_t<std::is_integral<T>::value | std::is_floating_point<T>::value, bool> = true>
+bool isNull(const T& value, int)
 {
     return value == 0;
 }
 
 /// Специализация по умолчания
-/// @note При добавлении частичной специализации для других типов прописывать std::enable_if_t
-template<typename T,
-    std::enable_if_t<!std::is_floating_point<T>::value, bool> = true,
-    std::enable_if_t<!std::is_integral<T>::value, bool> = true>
-bool isNull(const T&)
+template<typename T>
+bool isNull(const T&, ...)
 {
     throw std::runtime_error("isNull not implemented");
 }
@@ -42,7 +31,7 @@ public:
 
     virtual bool isNull(const T& value) const
     {
-        return Helpers::isNull(value);
+        return Helpers::isNull(value, 0);
     }
 };
 
