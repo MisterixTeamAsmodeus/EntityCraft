@@ -20,6 +20,10 @@ if(NOT TARGET QueryCraft)
     add_subdirectory(include/external/QueryCraft)
 endif()
 
+if(NOT TARGET SqliteAdapter)
+    add_subdirectory(external/SqliteAdapter)
+endif()
+
 add_library(${PROJECT_NAME} STATIC ${HEADER_FILES} ${SOURCE_FILES})
 
 target_include_directories(${PROJECT_NAME} PUBLIC

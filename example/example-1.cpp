@@ -1,15 +1,35 @@
 #include <EntityCraft/entitycraft.h>
 #include <SqliteAdapter/sqlitedatabaseadapter.h>
 
-struct WorkerInfo
+struct Id
 {
     int id;
+
+    Id() = default;
+
+    explicit Id(const int id)
+        : id(id)
+    {
+    }
+};
+
+struct WorkerInfo : Id
+{
     std::shared_ptr<std::string> name;
     bool isActiveWorker;
 
     std::shared_ptr<std::string> get_name() const { return name; }
 
     void set_name(const std::shared_ptr<std::string>& name) { this->name = name; }
+
+    WorkerInfo() = default;
+
+    WorkerInfo(const int id, std::shared_ptr<std::string> name, const bool is_active_worker)
+        : Id(id)
+        , name(std::move(name))
+        , isActiveWorker(is_active_worker)
+    {
+    }
 };
 
 struct WorkerTableInfo
@@ -23,7 +43,7 @@ struct WorkerTableInfo
         using namespace EntityCraft;
 
         return make_table<WorkerInfo>("", "WorkerInfo",
-            make_column(id, &WorkerInfo::id, QueryCraft::primary_key()),
+            make_column(id, static_cast<int WorkerInfo::*>(&WorkerInfo::id), QueryCraft::primary_key()),
             make_column(name, &WorkerInfo::set_name, &WorkerInfo::get_name),
             make_column(is_active_worker, &WorkerInfo::isActiveWorker, QueryCraft::not_null()));
     }
@@ -74,6 +94,8 @@ private:
 int main()
 {
     using namespace EntityCraft;
+
+    int WorkerInfo::*t = &WorkerInfo::id;
 
     DatabaseAdapter::SqliteSettings settings;
     settings.url = R"(./db/example-1.db)";

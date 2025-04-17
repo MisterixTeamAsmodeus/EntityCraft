@@ -3,7 +3,9 @@ cmake_minimum_required(VERSION 3.10)
 project("${entity_craft_project_name}Example" LANGUAGES CXX)
 
 # Add the SqliteAdapter library
-add_subdirectory(../external/SqliteAdapter ${CMAKE_CURRENT_BINARY_DIR}/SqliteAdapter)
+if(NOT TARGET SqliteAdapter)
+    add_subdirectory(../external/SqliteAdapter ${CMAKE_CURRENT_BINARY_DIR}/SqliteAdapter)
+endif()
 
 file(GLOB_RECURSE EXAMPLE_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 
