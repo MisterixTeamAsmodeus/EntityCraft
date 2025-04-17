@@ -75,7 +75,7 @@ public:
         return _reflection_property.converter();
     }
 
-    auto& set_converter(const std::shared_ptr<ReflectionApi::Converter<PropertyType>>& converter)
+    auto set_converter(const std::shared_ptr<ReflectionApi::Converter<PropertyType>>& converter)
     {
         _reflection_property.set_converter(converter);
         return *this;
@@ -86,7 +86,7 @@ public:
         return _null_cheker;
     }
 
-    auto& set_null_cheker(const std::shared_ptr<NullCheker<PropertyType>>& null_cheker)
+    auto set_null_cheker(const std::shared_ptr<NullCheker<PropertyType>>& null_cheker)
     {
         _null_cheker = null_cheker;
         return *this;

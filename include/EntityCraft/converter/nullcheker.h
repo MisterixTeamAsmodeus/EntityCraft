@@ -5,8 +5,8 @@
 #include <string>
 
 namespace EntityCraft {
-
 namespace Helpers {
+
 /// Специализация для численных типов
 template<typename T,
     std::enable_if_t<std::is_integral<T>::value | std::is_floating_point<T>::value, bool> = true>
