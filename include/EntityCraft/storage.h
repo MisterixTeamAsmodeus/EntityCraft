@@ -117,7 +117,9 @@ public:
         std::vector<QueryCraft::ColumnInfo> columns = sql_table.columns();
 
         _dto.for_each(Visitor::make_reference_column_visitor([&columns](auto& reference_column) {
-            columns.erase(std::remove(columns.begin(), columns.end(), reference_column.column_info()));
+            auto it = std::remove(columns.begin(), columns.end(), reference_column.column_info());
+            if(it != columns.end())
+                columns.erase(it);
         }));
 
         if(!_without_relation_entity) {
@@ -318,7 +320,7 @@ public:
     template<typename Begin, typename End>
     void update(const Begin& begin, const End& end)
     {
-        std::for_each(begin, end, [](const auto& value) {
+        std::for_each(begin, end, [this](const auto& value) {
             update(value);
         });
     }
