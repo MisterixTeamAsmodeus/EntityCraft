@@ -46,9 +46,10 @@ public:
         return _inserter;
     }
 
-    void set_inserter(const RelationInserter<PropertyType, ReferencePropertyType>& inserter)
+    auto set_inserter(const RelationInserter<PropertyType, ReferencePropertyType>& inserter)
     {
         _inserter = inserter;
+        return *this;
     }
 
 private:
