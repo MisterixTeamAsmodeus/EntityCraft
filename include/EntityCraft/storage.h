@@ -19,9 +19,10 @@ template<typename ClassType, typename... Columns>
 class Storage
 {
 public:
-    Storage(const std::shared_ptr<DatabaseAdapter::IDataBaseDriver>& database, Table<ClassType, Columns...> dto)
+    Storage(const std::shared_ptr<DatabaseAdapter::IDataBaseDriver>& database, Table<ClassType, Columns...> dto, const bool auto_commit = true)
         : _database(database)
         , _dto(std::move(dto))
+        , _auto_commit(auto_commit)
     {
         if(!_database->is_open())
             _database->connect();
@@ -29,7 +30,7 @@ public:
 
     ~Storage()
     {
-        if(_open_transaction != nullptr)
+        if(_open_transaction != nullptr && _auto_commit)
             _open_transaction->commit();
 
         _database->disconnect();
@@ -67,11 +68,18 @@ public:
 
     void transaction(const int type = -1)
     {
+        _auto_commit = true;
         _open_transaction = _database->open_transaction(type);
+    }
+
+    std::shared_ptr<DatabaseAdapter::ITransaction> get_transaction() const
+    {
+        return _open_transaction;
     }
 
     void set_transaction(const std::shared_ptr<DatabaseAdapter::ITransaction>& transaction)
     {
+        _auto_commit = false;
         _open_transaction = transaction;
     }
 
@@ -125,10 +133,6 @@ public:
             columns);
 
         clear_select_settings();
-
-        std::cout << std::endl;
-        std::cout << sql << std::endl;
-        std::cout << std::endl;
 
         const auto result = exec(sql);
 
@@ -242,8 +246,6 @@ public:
                             reference_storage.set_transaction(_open_transaction);
                             const auto property_value = reference_column.property().value(value);
                             reference_storage.upsert(property_value);
-
-                            reference_storage.set_transaction(nullptr);
                             break;
                         }
                     }
@@ -253,9 +255,7 @@ public:
         });
 
         const auto sql = sql_table.insertRowSql(columns_for_insert);
-        std::cout << std::endl;
-        std::cout << sql << std::endl;
-        std::cout << std::endl;
+
         exec(sql);
 
         if(!has_transactional) {
@@ -299,8 +299,6 @@ public:
                         reference_storage.set_transaction(_open_transaction);
                         const auto property_value = reference_column.property().value(value);
                         reference_storage.upsert(property_value);
-
-                        reference_storage.set_transaction(nullptr);
                         break;
                     }
                 }
@@ -309,9 +307,7 @@ public:
         sql_table.addRow(row);
 
         const auto sql = sql_table.updateRowSql(condition_for_update, columns_for_update);
-        std::cout << std::endl;
-        std::cout << sql << std::endl;
-        std::cout << std::endl;
+
         exec(sql);
 
         if(!has_transactional) {
@@ -386,9 +382,7 @@ public:
         });
 
         const auto sql = sql_table.removeRowSql(condition_for_remove);
-        std::cout << std::endl;
-        std::cout << sql << std::endl;
-        std::cout << std::endl;
+
         exec(sql);
     }
 
@@ -605,9 +599,6 @@ private:
 
             if(row.back() != QueryCraft::ColumnInfo::nullValue())
                 reference_storage.upsert(reference_property_value);
-
-            // Нужно потому что в деструткоре вызывается commit если есть активная транзакция
-            reference_storage.set_transaction(nullptr);
         };
     }
 
@@ -639,9 +630,6 @@ private:
 
             if(row.back() != QueryCraft::ColumnInfo::nullValue())
                 reference_storage.upsert(reference_property_value);
-
-            // Нужно потому что в деструткоре вызывается commit если есть активная транзакция
-            reference_storage.set_transaction(nullptr);
         };
     }
 
@@ -663,6 +651,7 @@ private:
     std::shared_ptr<DatabaseAdapter::IDataBaseDriver> _database;
     std::shared_ptr<DatabaseAdapter::ITransaction> _open_transaction;
     Table<ClassType, Columns...> _dto;
+    bool _auto_commit;
 
     // Настройки для select
     QueryCraft::ConditionGroup _condition_group;
@@ -673,9 +662,9 @@ private:
 };
 
 template<typename ClassType, typename... Columns>
-auto make_storage(const std::shared_ptr<DatabaseAdapter::IDataBaseDriver>& database, Table<ClassType, Columns...> dto)
+auto make_storage(const std::shared_ptr<DatabaseAdapter::IDataBaseDriver>& database, Table<ClassType, Columns...> dto, const bool auto_commit = true)
 {
-    return Storage<ClassType, Columns...>(database, std::move(dto));
+    return Storage<ClassType, Columns...>(database, std::move(dto), auto_commit);
 }
 
 } // namespace EntityCraft
