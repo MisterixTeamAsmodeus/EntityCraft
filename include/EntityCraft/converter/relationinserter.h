@@ -6,10 +6,9 @@
 #include <vector>
 
 namespace EntityCraft {
-
 namespace Impl {
 template<typename Container, typename Type,
-    std::enable_if_t<SFINAE::has_push_back_v<Container, Type>, bool> = true>
+    std::enable_if_t<SFINAE::has_emplace_back_v<Container, Type>, bool> = true>
 void insertInRelationProperty(Container& relation_property, const std::vector<Type>& result, int)
 {
     for(const auto& value : result) {
