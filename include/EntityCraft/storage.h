@@ -356,11 +356,7 @@ public:
 
     void remove(const QueryCraft::ConditionInfo& condition)
     {
-        const QueryCraft::SqlTable sql_table(_dto.table_info());
-
-        const auto sql = sql_table.removeRowSql(condition);
-
-        exec(sql);
+        remove(static_cast<QueryCraft::ConditionGroup>(condition));
     }
 
     void remove(const QueryCraft::ConditionGroup& condition)
