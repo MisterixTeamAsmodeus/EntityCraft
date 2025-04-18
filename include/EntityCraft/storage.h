@@ -354,6 +354,24 @@ public:
         upsert(value.begin(), value.end());
     }
 
+    void remove(const QueryCraft::ConditionInfo& condition)
+    {
+        const QueryCraft::SqlTable sql_table(_dto.table_info());
+
+        const auto sql = sql_table.removeRowSql(condition);
+
+        exec(sql);
+    }
+
+    void remove(const QueryCraft::ConditionGroup& condition)
+    {
+        const QueryCraft::SqlTable sql_table(_dto.table_info());
+
+        const auto sql = sql_table.removeRowSql(condition);
+
+        exec(sql);
+    }
+
     void remove(const ClassType& value)
     {
         std::vector<ClassType> data = { value };
@@ -398,15 +416,6 @@ public:
     {
         std::vector<ClassType> data;
         remove(data.begin(), data.end());
-    }
-
-    void remove(const QueryCraft::ConditionGroup& condition)
-    {
-        const QueryCraft::SqlTable sql_table(_dto.table_info());
-
-        const auto sql = sql_table.removeRowSql(condition);
-
-        exec(sql);
     }
 
 private:
