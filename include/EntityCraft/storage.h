@@ -400,6 +400,15 @@ public:
         remove(data.begin(), data.end());
     }
 
+    void remove(const QueryCraft::ConditionGroup& condition)
+    {
+        const QueryCraft::SqlTable sql_table(_dto.table_info());
+
+        const auto sql = sql_table.removeRowSql(condition);
+
+        exec(sql);
+    }
+
 private:
     static auto action_fill_to_insert()
     {
