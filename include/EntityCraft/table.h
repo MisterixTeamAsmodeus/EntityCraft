@@ -21,10 +21,7 @@ public:
         , _columns(std::make_tuple<Columns...>(std::move(properties)...))
     {
         for_each([this](auto& column) {
-            try {
-                _table_info.addColumn(column.mutable_column_info());
-            } catch(const std::exception& /*e*/) {
-            }
+            _table_info.addColumn(column.mutable_column_info());
         });
     }
 
