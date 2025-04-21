@@ -21,7 +21,7 @@ public:
         typename PropertyType,
         typename Setter,
         typename Getter>
-    void operator()(Column<ClassType, PropertyType, Setter, Getter>& column)
+    void operator()(Column<ClassType, PropertyType, Setter, Getter>& /*column*/)
     {
     }
 

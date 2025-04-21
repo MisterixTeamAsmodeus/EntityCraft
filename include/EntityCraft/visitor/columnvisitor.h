@@ -31,7 +31,7 @@ public:
         typename Setter,
         typename Getter,
         typename... ReferenceColumns>
-    void operator()(ReferenceColumn<ClassType, PropertyType, Setter, Getter, ReferenceColumns...>& reference_column)
+    void operator()(ReferenceColumn<ClassType, PropertyType, Setter, Getter, ReferenceColumns...>& /*reference_column*/)
     {
     }
 
