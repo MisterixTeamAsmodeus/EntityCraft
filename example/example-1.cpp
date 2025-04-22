@@ -95,8 +95,6 @@ int main()
 {
     using namespace EntityCraft;
 
-    int WorkerInfo::*t = &WorkerInfo::id;
-
     DatabaseAdapter::SqliteSettings settings;
     settings.url = R"(./db/example-1.db)";
 
