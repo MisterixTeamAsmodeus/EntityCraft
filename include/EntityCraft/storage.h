@@ -48,6 +48,12 @@ public:
         return *this;
     }
 
+    auto sort_column(const QueryCraft::SortColumn& sort_column)
+    {
+        _sortColumns = { sort_column };
+        return *this;
+    }
+
     auto limit(const size_t limit)
     {
         _limit = limit;
