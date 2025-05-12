@@ -21,7 +21,12 @@ public:
         , _columns(std::make_tuple<Columns...>(std::move(properties)...))
     {
         for_each([this](auto& column) {
-            _table_info.addColumn(column.mutable_column_info());
+            try {
+                // При отношениях one to many может происходить дублирования колонок при
+                // работе storage они автоматически удаляются и не играют никакой роли
+                _table_info.addColumn(column.mutable_column_info());
+            } catch(...) {
+            }
         });
     }
 
