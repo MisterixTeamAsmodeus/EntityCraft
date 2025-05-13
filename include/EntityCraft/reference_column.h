@@ -112,4 +112,334 @@ auto make_reference_column(
         type);
 }
 
+template<typename ClassType,
+    typename PropertyType,
+    typename ReferencePropertyType,
+    typename... ReferenceColumns>
+auto make_reference_column(
+    std::string column_name,
+    ReflectionApi::Helper::Setter_t<ClassType, PropertyType> setter,
+    ReflectionApi::Helper::ConstGetter_t<ClassType, PropertyType> getter,
+    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    const QueryCraft::ColumnSettings settings = QueryCraft::ColumnSettings::NONE,
+    const RelationType type = RelationType::ONE_TO_ONE)
+{
+    return ReferenceColumn<ClassType,
+        PropertyType,
+        decltype(setter),
+        decltype(getter),
+        ReferencePropertyType,
+        ReferenceColumns...>(
+        settings,
+        ReflectionApi::make_property(
+            column_name,
+            setter,
+            getter),
+        std::move(reference_table),
+        type);
+}
+
+template<typename ClassType,
+    typename PropertyType,
+    typename ReferencePropertyType,
+    typename... ReferenceColumns>
+auto make_reference_column(
+    std::string column_name,
+    ReflectionApi::Helper::Setter_t<ClassType, PropertyType> setter,
+    ReflectionApi::Helper::ConstGetter_t<ClassType, PropertyType> getter,
+    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    const RelationType type)
+{
+    return ReferenceColumn<ClassType,
+        PropertyType,
+        decltype(setter),
+        decltype(getter),
+        ReferencePropertyType,
+        ReferenceColumns...>(
+        QueryCraft::ColumnInfo(
+            column_name,
+            QueryCraft::ColumnSettings::NONE),
+        ReflectionApi::make_property(
+            column_name,
+            setter,
+            getter),
+        std::move(reference_table),
+        type);
+}
+
+template<typename ClassType,
+    typename PropertyType,
+    typename ReferencePropertyType,
+    typename... ReferenceColumns>
+auto make_reference_column(
+    std::string column_name,
+    ReflectionApi::Helper::Setter_t<ClassType, PropertyType> setter,
+    ReflectionApi::Helper::MutableGetter_t<ClassType, PropertyType> getter,
+    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    const QueryCraft::ColumnSettings settings = QueryCraft::ColumnSettings::NONE,
+    const RelationType type = RelationType::ONE_TO_ONE)
+{
+    return ReferenceColumn<ClassType,
+        PropertyType,
+        decltype(setter),
+        decltype(getter),
+        ReferencePropertyType,
+        ReferenceColumns...>(
+        settings,
+        ReflectionApi::make_property(
+            column_name,
+            setter,
+            getter),
+        std::move(reference_table),
+        type);
+}
+
+template<typename ClassType,
+    typename PropertyType,
+    typename ReferencePropertyType,
+    typename... ReferenceColumns>
+auto make_reference_column(
+    std::string column_name,
+    ReflectionApi::Helper::Setter_t<ClassType, PropertyType> setter,
+    ReflectionApi::Helper::ConstGetter_t<ClassType, PropertyType> getter,
+    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    const RelationType type)
+{
+    return ReferenceColumn<ClassType,
+        PropertyType,
+        decltype(setter),
+        decltype(getter),
+        ReferencePropertyType,
+        ReferenceColumns...>(
+        QueryCraft::ColumnInfo(
+            column_name,
+            QueryCraft::ColumnSettings::NONE),
+        ReflectionApi::make_property(
+            column_name,
+            setter,
+            getter),
+        std::move(reference_table),
+        type);
+}
+
+template<typename ClassType,
+    typename PropertyType,
+    typename ReferencePropertyType,
+    typename... ReferenceColumns>
+auto make_reference_column(
+    std::string column_name,
+    ReflectionApi::Helper::Setter_t<ClassType, PropertyType> setter,
+    ReflectionApi::Helper::Getter_t<ClassType, PropertyType> getter,
+    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    const QueryCraft::ColumnSettings settings = QueryCraft::ColumnSettings::NONE,
+    const RelationType type = RelationType::ONE_TO_ONE)
+{
+    return ReferenceColumn<ClassType,
+        PropertyType,
+        decltype(setter),
+        decltype(getter),
+        ReferencePropertyType,
+        ReferenceColumns...>(
+        settings,
+        ReflectionApi::make_property(
+            column_name,
+            setter,
+            getter),
+        std::move(reference_table),
+        type);
+}
+
+template<typename ClassType,
+    typename PropertyType,
+    typename ReferencePropertyType,
+    typename... ReferenceColumns>
+auto make_reference_column(
+    std::string column_name,
+    ReflectionApi::Helper::Setter_t<ClassType, PropertyType> setter,
+    ReflectionApi::Helper::Getter_t<ClassType, PropertyType> getter,
+    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    const RelationType type)
+{
+    return ReferenceColumn<ClassType,
+        PropertyType,
+        decltype(setter),
+        decltype(getter),
+        ReferencePropertyType,
+        ReferenceColumns...>(
+        QueryCraft::ColumnInfo(
+            column_name,
+            QueryCraft::ColumnSettings::NONE),
+        ReflectionApi::make_property(
+            column_name,
+            setter,
+            getter),
+        std::move(reference_table),
+        type);
+}
+
+template<typename ClassType,
+    typename PropertyType,
+    typename ReferencePropertyType,
+    typename... ReferenceColumns>
+auto make_reference_column(
+    std::string column_name,
+    ReflectionApi::Helper::BaseSetter_t<ClassType, PropertyType> setter,
+    ReflectionApi::Helper::ConstGetter_t<ClassType, PropertyType> getter,
+    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    const QueryCraft::ColumnSettings settings = QueryCraft::ColumnSettings::NONE,
+    const RelationType type = RelationType::ONE_TO_ONE)
+{
+    return ReferenceColumn<ClassType,
+        PropertyType,
+        decltype(setter),
+        decltype(getter),
+        ReferencePropertyType,
+        ReferenceColumns...>(
+        settings,
+        ReflectionApi::make_property(
+            column_name,
+            setter,
+            getter),
+        std::move(reference_table),
+        type);
+}
+
+template<typename ClassType,
+    typename PropertyType,
+    typename ReferencePropertyType,
+    typename... ReferenceColumns>
+auto make_reference_column(
+    std::string column_name,
+    ReflectionApi::Helper::BaseSetter_t<ClassType, PropertyType> setter,
+    ReflectionApi::Helper::ConstGetter_t<ClassType, PropertyType> getter,
+    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    const RelationType type)
+{
+    return ReferenceColumn<ClassType,
+        PropertyType,
+        decltype(setter),
+        decltype(getter),
+        ReferencePropertyType,
+        ReferenceColumns...>(
+        QueryCraft::ColumnInfo(
+            column_name,
+            QueryCraft::ColumnSettings::NONE),
+        ReflectionApi::make_property(
+            column_name,
+            setter,
+            getter),
+        std::move(reference_table),
+        type);
+}
+
+template<typename ClassType,
+    typename PropertyType,
+    typename ReferencePropertyType,
+    typename... ReferenceColumns>
+auto make_reference_column(
+    std::string column_name,
+    ReflectionApi::Helper::BaseSetter_t<ClassType, PropertyType> setter,
+    ReflectionApi::Helper::MutableGetter_t<ClassType, PropertyType> getter,
+    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    const QueryCraft::ColumnSettings settings = QueryCraft::ColumnSettings::NONE,
+    const RelationType type = RelationType::ONE_TO_ONE)
+{
+    return ReferenceColumn<ClassType,
+        PropertyType,
+        decltype(setter),
+        decltype(getter),
+        ReferencePropertyType,
+        ReferenceColumns...>(
+        settings,
+        ReflectionApi::make_property(
+            column_name,
+            setter,
+            getter),
+        std::move(reference_table),
+        type);
+}
+
+template<typename ClassType,
+    typename PropertyType,
+    typename ReferencePropertyType,
+    typename... ReferenceColumns>
+auto make_reference_column(
+    std::string column_name,
+    ReflectionApi::Helper::BaseSetter_t<ClassType, PropertyType> setter,
+    ReflectionApi::Helper::ConstGetter_t<ClassType, PropertyType> getter,
+    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    const RelationType type)
+{
+    return ReferenceColumn<ClassType,
+        PropertyType,
+        decltype(setter),
+        decltype(getter),
+        ReferencePropertyType,
+        ReferenceColumns...>(
+        QueryCraft::ColumnInfo(
+            column_name,
+            QueryCraft::ColumnSettings::NONE),
+        ReflectionApi::make_property(
+            column_name,
+            setter,
+            getter),
+        std::move(reference_table),
+        type);
+}
+
+template<typename ClassType,
+    typename PropertyType,
+    typename ReferencePropertyType,
+    typename... ReferenceColumns>
+auto make_reference_column(
+    std::string column_name,
+    ReflectionApi::Helper::BaseSetter_t<ClassType, PropertyType> setter,
+    ReflectionApi::Helper::Getter_t<ClassType, PropertyType> getter,
+    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    const QueryCraft::ColumnSettings settings = QueryCraft::ColumnSettings::NONE,
+    const RelationType type = RelationType::ONE_TO_ONE)
+{
+    return ReferenceColumn<ClassType,
+        PropertyType,
+        decltype(setter),
+        decltype(getter),
+        ReferencePropertyType,
+        ReferenceColumns...>(
+        settings,
+        ReflectionApi::make_property(
+            column_name,
+            setter,
+            getter),
+        std::move(reference_table),
+        type);
+}
+
+template<typename ClassType,
+    typename PropertyType,
+    typename ReferencePropertyType,
+    typename... ReferenceColumns>
+auto make_reference_column(
+    std::string column_name,
+    ReflectionApi::Helper::BaseSetter_t<ClassType, PropertyType> setter,
+    ReflectionApi::Helper::Getter_t<ClassType, PropertyType> getter,
+    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    const RelationType type)
+{
+    return ReferenceColumn<ClassType,
+        PropertyType,
+        decltype(setter),
+        decltype(getter),
+        ReferencePropertyType,
+        ReferenceColumns...>(
+        QueryCraft::ColumnInfo(
+            column_name,
+            QueryCraft::ColumnSettings::NONE),
+        ReflectionApi::make_property(
+            column_name,
+            setter,
+            getter),
+        std::move(reference_table),
+        type);
+}
+
 } // namespace EntityCraft
