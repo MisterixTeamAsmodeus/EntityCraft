@@ -201,7 +201,7 @@ template<typename ClassType,
 auto make_reference_column(
     std::string column_name,
     ReflectionApi::Helper::Setter_t<ClassType, PropertyType> setter,
-    ReflectionApi::Helper::ConstGetter_t<ClassType, PropertyType> getter,
+    ReflectionApi::Helper::MutableGetter_t<ClassType, PropertyType> getter,
     Table<ReferencePropertyType, ReferenceColumns...> reference_table,
     const RelationType type)
 {
@@ -276,6 +276,8 @@ auto make_reference_column(
         std::move(reference_table),
         type);
 }
+
+//-----------------------------Перегрузки для примитивов, где параметры в setter не по const &-----------------------------------
 
 template<typename ClassType,
     typename PropertyType,
@@ -366,7 +368,7 @@ template<typename ClassType,
 auto make_reference_column(
     std::string column_name,
     ReflectionApi::Helper::BaseSetter_t<ClassType, PropertyType> setter,
-    ReflectionApi::Helper::ConstGetter_t<ClassType, PropertyType> getter,
+    ReflectionApi::Helper::MutableGetter_t<ClassType, PropertyType> getter,
     Table<ReferencePropertyType, ReferenceColumns...> reference_table,
     const RelationType type)
 {
