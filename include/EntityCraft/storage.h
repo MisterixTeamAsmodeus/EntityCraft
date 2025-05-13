@@ -161,6 +161,7 @@ public:
         const auto temp = _condition_group;
         clear_select_settings();
         _condition_group = temp;
+        _without_relation_entity = true;
 
         return select().size();
     }
@@ -189,7 +190,7 @@ public:
         return get(primary_key_column(_dto) == id);
     }
 
-    bool find(const ClassType& value)
+    bool contains(const ClassType& value)
     {
         clear_select_settings();
 
@@ -232,6 +233,7 @@ public:
         std::vector<QueryCraft::ColumnInfo> columns_for_insert;
 
         std::for_each(begin, end, [this, &sql_table, &columns_for_insert](const auto& value) {
+            // Переменная чтобы только один раз записать названия колонок для вставки
             bool need_update_column_info = columns_for_insert.empty();
             QueryCraft::SqlTable::Row row;
             _dto.for_each(Visitor::make_any_column_visitor(
@@ -241,7 +243,7 @@ public:
                     }
                     action_fill_to_insert()(column, row, value);
                 },
-                [this, &value, &row, &need_update_column_info, &columns_for_insert](auto& reference_column) {
+                [this, &value, &row, &columns_for_insert](auto& reference_column) {
                     switch(reference_column.type()) {
                         case RelationType::MANY_TO_ONE:
                         case RelationType::ONE_TO_ONE: {
@@ -249,6 +251,7 @@ public:
                             action_insert()(reference_column, row, value);
                             break;
                         }
+                        case RelationType::ONE_TO_ONE_INVERTED:
                         case RelationType::ONE_TO_MANY: {
                             auto reference_storage = make_storage(_database, reference_column.reference_table());
                             reference_storage.set_transaction(_open_transaction);
@@ -302,6 +305,7 @@ public:
                         action_update()(reference_column, value, row, columns_for_update);
                         break;
                     }
+                    case RelationType::ONE_TO_ONE_INVERTED:
                     case RelationType::ONE_TO_MANY: {
                         auto reference_storage = make_storage(_database, reference_column.reference_table());
                         reference_storage.set_transaction(_open_transaction);
@@ -339,7 +343,7 @@ public:
 
     void upsert(const ClassType& value)
     {
-        if(find(value)) {
+        if(contains(value)) {
             update(value);
         } else {
             insert(value);
@@ -493,6 +497,7 @@ private:
 
                 switch(reference_column.type()) {
                     case RelationType::MANY_TO_ONE:
+                    case RelationType::ONE_TO_ONE_INVERTED:
                     case RelationType::ONE_TO_ONE: {
                         auto reference_entity = fill_class_by_sql(reference_table, query_result, database, open_transaction);
 
@@ -550,17 +555,25 @@ private:
     {
         std::vector<QueryCraft::JoinColumn> joined_columns;
 
-        dto.for_each(Visitor::make_reference_column_visitor([&joined_columns](auto& reference_column) {
-            if(reference_column.type() != RelationType::ONE_TO_ONE && reference_column.type() != RelationType::MANY_TO_ONE) {
-                return;
-            }
-
+        dto.for_each(Visitor::make_reference_column_visitor([&joined_columns, &dto](auto& reference_column) {
             auto reference_table = reference_column.reference_table();
 
             QueryCraft::JoinColumn join_column;
             join_column.joinType = QueryCraft::JoinColumn::Type::LEFT;
             join_column.joinedTable = reference_table.table_info();
-            join_column.condition = reference_column.column_info().equals(primary_key_column(reference_table));
+            switch(reference_column.type()) {
+                case RelationType::ONE_TO_ONE:
+                case RelationType::MANY_TO_ONE: {
+                    join_column.condition = reference_column.column_info().equals(primary_key_column(reference_table));
+                    break;
+                }
+                case RelationType::ONE_TO_ONE_INVERTED: {
+                    join_column.condition = primary_key_column(dto).equals(reference_table.table_info().column(reference_column.column_info().name()));
+                    break;
+                }
+                default:
+                    return;
+            }
 
             joined_columns.emplace_back(join_column);
 
@@ -578,6 +591,7 @@ private:
         dto.for_each(Visitor::make_reference_column_visitor([&columns](auto& reference_column) {
             switch(reference_column.type()) {
                 case RelationType::MANY_TO_ONE:
+                case RelationType::ONE_TO_ONE_INVERTED:
                 case RelationType::ONE_TO_ONE: {
                     auto reference_table = reference_column.reference_table();
                     reference_table.for_each([&columns](const auto& column) {
