@@ -187,7 +187,8 @@ public:
     template<typename IdType>
     std::shared_ptr<ClassType> get_by_id(const IdType& id)
     {
-        return get(primary_key_column(_dto) == id);
+        _condition_group = primary_key_column(_dto) == id;
+        return get();
     }
 
     bool contains(const ClassType& value)
