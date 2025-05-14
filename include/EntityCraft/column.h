@@ -1,6 +1,6 @@
 #pragma once
 
-#include "converter/nullcheker.h"
+#include "nullcheker.h"
 #include "QueryCraft/conditiongroup.h"
 
 #include <ReflectionApi/helper/templates.h>

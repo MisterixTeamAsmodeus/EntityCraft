@@ -1,7 +1,6 @@
 #pragma once
 
 #include "column.h"
-#include "converter/relationinserter.h"
 #include "relationtype.h"
 #include "table.h"
 
@@ -46,7 +45,7 @@ public:
         return _inserter;
     }
 
-    auto set_inserter(const RelationInserter<PropertyType, ReferencePropertyType>& inserter)
+    auto set_inserter(const type_converter_api::container_converter<PropertyType, ReferencePropertyType>& inserter)
     {
         _inserter = inserter;
         return *this;
@@ -56,7 +55,7 @@ private:
     Table<ReferencePropertyType, ReferenceColumns...> _reference_table;
     RelationType _type;
 
-    RelationInserter<PropertyType, ReferencePropertyType> _inserter;
+    type_converter_api::container_converter<PropertyType, ReferencePropertyType> _inserter;
 };
 
 template<typename ClassType,

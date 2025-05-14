@@ -524,7 +524,7 @@ private:
 
                         auto property_value = reference_column.empty_property();
                         auto inserter = reference_column.inserter();
-                        inserter.insertInRelationProperty(property_value, result);
+                        inserter.convert_to_target(property_value, result);
 
                         reference_propery.set_value(entity, property_value);
 
