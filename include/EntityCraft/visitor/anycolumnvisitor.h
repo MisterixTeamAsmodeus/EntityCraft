@@ -1,18 +1,18 @@
 #pragma once
 
 #include "EntityCraft/column.h"
-#include "EntityCraft/reference_column.h"
+#include "EntityCraft/referencecolumn.h"
 
 #include <utility>
 
-namespace EntityCraft {
-namespace Visitor {
+namespace entity_craft {
+namespace visitor {
 
 template<typename ColumnAction, typename ReferenceColumnAction>
-class AnyColumnVisitor
+class any_column_visitor
 {
 public:
-    AnyColumnVisitor(ColumnAction property_action, ReferenceColumnAction reference_property_action)
+    any_column_visitor(ColumnAction property_action, ReferenceColumnAction reference_property_action)
         : _column_action(std::move(property_action))
         , _reference_column_action(std::move(reference_property_action))
     {
@@ -22,7 +22,7 @@ public:
         typename PropertyType,
         typename Setter,
         typename Getter>
-    void operator()(Column<ClassType, PropertyType, Setter, Getter>& column)
+    void operator()(column<ClassType, PropertyType, Setter, Getter>& column)
     {
         _column_action(column);
     }
@@ -32,7 +32,7 @@ public:
         typename Setter,
         typename Getter,
         typename... ReferenceColumns>
-    void operator()(ReferenceColumn<ClassType, PropertyType, Setter, Getter, ReferenceColumns...>& reference_column)
+    void operator()(reference_column<ClassType, PropertyType, Setter, Getter, ReferenceColumns...>& reference_column)
     {
         _reference_column_action(reference_column);
     }
@@ -47,10 +47,10 @@ auto make_any_column_visitor(
     ColumnAction&& column_action,
     ReferenceColumnAction&& reference_column_action)
 {
-    return AnyColumnVisitor<ColumnAction, ReferenceColumnAction>(
+    return any_column_visitor<ColumnAction, ReferenceColumnAction>(
         std::forward<ColumnAction>(column_action),
         std::forward<ReferenceColumnAction>(reference_column_action));
 }
 
-} // namespace Visitor
-} // namespace EntityCraft
+} // namespace visitor
+} // namespace entity_craft

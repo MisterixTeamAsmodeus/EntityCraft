@@ -40,7 +40,7 @@ struct WorkerTableInfo
 
     static auto dto()
     {
-        using namespace EntityCraft;
+        using namespace entity_craft;
 
         return make_table<WorkerInfo>("", "WorkerInfo",
             make_column(id, static_cast<int WorkerInfo::*>(&WorkerInfo::id), query_craft::primary_key()),
@@ -93,7 +93,7 @@ private:
 
 int main()
 {
-    using namespace EntityCraft;
+    using namespace entity_craft;
 
     database_adapter::sqlite_settings settings;
     settings.url = R"(./db/example-1.db)";

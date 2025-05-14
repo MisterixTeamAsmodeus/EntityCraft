@@ -4,6 +4,6 @@
 
 #include "EntityCraft/column.h"
 
-namespace EntityCraft {
+namespace entity_craft {
 
 }

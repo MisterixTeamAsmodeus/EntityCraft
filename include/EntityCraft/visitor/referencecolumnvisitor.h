@@ -1,18 +1,18 @@
 #pragma once
 
 #include "EntityCraft/column.h"
-#include "EntityCraft/reference_column.h"
+#include "EntityCraft/referencecolumn.h"
 
 #include <utility>
 
-namespace EntityCraft {
-namespace Visitor {
+namespace entity_craft {
+namespace visitor {
 
 template<typename ReferenceColumnAction>
-class ReferenceColumnVisitor
+class reference_column_visitor
 {
 public:
-    explicit ReferenceColumnVisitor(ReferenceColumnAction reference_property_action)
+    explicit reference_column_visitor(ReferenceColumnAction reference_property_action)
         : _reference_column_action(std::move(reference_property_action))
     {
     }
@@ -21,7 +21,7 @@ public:
         typename PropertyType,
         typename Setter,
         typename Getter>
-    void operator()(Column<ClassType, PropertyType, Setter, Getter>& /*column*/)
+    void operator()(column<ClassType, PropertyType, Setter, Getter>& /*column*/)
     {
     }
 
@@ -30,7 +30,7 @@ public:
         typename Setter,
         typename Getter,
         typename... ReferenceColumns>
-    void operator()(ReferenceColumn<ClassType, PropertyType, Setter, Getter, ReferenceColumns...>& reference_column)
+    void operator()(reference_column<ClassType, PropertyType, Setter, Getter, ReferenceColumns...>& reference_column)
     {
         _reference_column_action(reference_column);
     }
@@ -42,9 +42,9 @@ private:
 template<typename ReferenceColumnAction>
 auto make_reference_column_visitor(ReferenceColumnAction&& reference_column_action)
 {
-    return ReferenceColumnVisitor<ReferenceColumnAction>(
+    return reference_column_visitor<ReferenceColumnAction>(
         std::forward<ReferenceColumnAction>(reference_column_action));
 }
 
-} // namespace Visitor
-} // namespace EntityCraft
+} // namespace visitor
+} // namespace entity_craft

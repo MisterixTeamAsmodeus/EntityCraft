@@ -4,71 +4,71 @@
 #include <stdexcept>
 #include <string>
 
-namespace EntityCraft {
-namespace Helpers {
+namespace entity_craft {
+namespace helpers {
 
 /// Специализация для численных типов
 template<typename T,
     std::enable_if_t<std::is_integral<T>::value | std::is_floating_point<T>::value, bool> = true>
-bool isNull(const T& value, int)
+bool is_null(const T& value, int)
 {
     return value == 0;
 }
 
 /// Специализация по умолчания
 template<typename T>
-bool isNull(const T&, ...)
+bool is_null(const T&, ...)
 {
-    throw std::runtime_error("isNull not implemented");
+    throw std::runtime_error("is_null not implemented");
 }
-} // namespace Helpers
+} // namespace helpers
 
 template<typename T>
-class NullCheker
+class null_cheker
 {
 public:
-    virtual ~NullCheker() = default;
+    virtual ~null_cheker() = default;
 
-    virtual bool isNull(const T& value) const
+    virtual bool is_null(const T& value) const
     {
-        return Helpers::isNull(value, 0);
+        return helpers::is_null(value, 0);
     }
 };
 
 template<>
-class NullCheker<std::string> final
+class null_cheker<std::string> final
 {
 public:
-    ~NullCheker() = default;
+    ~null_cheker() = default;
 
-    bool isNull(const std::string& value) const
+    bool is_null(const std::string& value) const
     {
         return value.empty();
     }
 };
 
 template<typename T>
-class NullCheker<std::shared_ptr<T>> final
+class null_cheker<std::shared_ptr<T>> final
 {
 public:
-    ~NullCheker() = default;
+    ~null_cheker() = default;
 
-    bool isNull(const std::shared_ptr<T>& value) const
+    bool is_null(const std::shared_ptr<T>& value) const
     {
         return value == nullptr;
     }
 };
 
 template<typename T>
-class NullCheker<std::unique_ptr<T>> final
+class null_cheker<std::unique_ptr<T>> final
 {
 public:
-    ~NullCheker() = default;
+    ~null_cheker() = default;
 
-    bool isNull(const std::unique_ptr<T>& value) const
+    bool is_null(const std::unique_ptr<T>& value) const
     {
         return value == nullptr;
     }
 };
 
-} // namespace EntityCraft
+} // namespace entity_craft

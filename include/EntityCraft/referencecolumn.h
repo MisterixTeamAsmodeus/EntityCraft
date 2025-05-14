@@ -4,14 +4,14 @@
 #include "relationtype.h"
 #include "table.h"
 
-namespace EntityCraft {
+namespace entity_craft {
 template<typename ClassType,
     typename PropertyType,
     typename Setter,
     typename Getter,
     typename ReferencePropertyType,
     typename... ReferenceColumns>
-class ReferenceColumn : public Column<ClassType, PropertyType, Setter, Getter>
+class reference_column : public column<ClassType, PropertyType, Setter, Getter>
 {
 public:
     static PropertyType empty_property()
@@ -20,11 +20,11 @@ public:
     }
 
 public:
-    ReferenceColumn(query_craft::column_info column_info,
+    reference_column(query_craft::column_info column_info,
         reflection_api::property<ClassType, PropertyType, Setter, Getter> reflection_property,
-        Table<ReferencePropertyType, ReferenceColumns...> reference_table,
-        const RelationType type = RelationType::ONE_TO_ONE)
-        : Column<ClassType, PropertyType, Setter, Getter>(std::move(column_info), std::move(reflection_property))
+        table<ReferencePropertyType, ReferenceColumns...> reference_table,
+        const relation_type type = relation_type::one_to_one)
+        : column<ClassType, PropertyType, Setter, Getter>(std::move(column_info), std::move(reflection_property))
         , _reference_table(std::move(reference_table))
         , _type(type)
     {
@@ -35,7 +35,7 @@ public:
         return _reference_table;
     }
 
-    RelationType type() const
+    relation_type type() const
     {
         return _type;
     }
@@ -52,8 +52,8 @@ public:
     }
 
 private:
-    Table<ReferencePropertyType, ReferenceColumns...> _reference_table;
-    RelationType _type;
+    table<ReferencePropertyType, ReferenceColumns...> _reference_table;
+    relation_type _type;
 
     type_converter_api::container_converter<PropertyType, ReferencePropertyType> _inserter;
 };
@@ -65,11 +65,11 @@ template<typename ClassType,
 auto make_reference_column(
     std::string column_name,
     reflection_api::helper::Variable_t<ClassType, PropertyType> variable,
-    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    table<ReferencePropertyType, ReferenceColumns...> reference_table,
     const query_craft::column_settings settings = query_craft::column_settings::none,
-    const RelationType type = RelationType::ONE_TO_ONE)
+    const relation_type type = relation_type::one_to_one)
 {
-    return ReferenceColumn<ClassType,
+    return reference_column<ClassType,
         PropertyType,
         reflection_api::helper::Setter_t<ClassType, PropertyType>,
         reflection_api::helper::ConstGetter_t<ClassType, PropertyType>,
@@ -92,10 +92,10 @@ template<typename ClassType,
 auto make_reference_column(
     std::string column_name,
     reflection_api::helper::Variable_t<ClassType, PropertyType> variable,
-    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
-    const RelationType type)
+    table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    const relation_type type)
 {
-    return ReferenceColumn<ClassType,
+    return reference_column<ClassType,
         PropertyType,
         reflection_api::helper::Setter_t<ClassType, PropertyType>,
         reflection_api::helper::ConstGetter_t<ClassType, PropertyType>,
@@ -119,11 +119,11 @@ auto make_reference_column(
     std::string column_name,
     reflection_api::helper::Setter_t<ClassType, PropertyType> setter,
     reflection_api::helper::ConstGetter_t<ClassType, PropertyType> getter,
-    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    table<ReferencePropertyType, ReferenceColumns...> reference_table,
     const query_craft::column_settings settings = query_craft::column_settings::none,
-    const RelationType type = RelationType::ONE_TO_ONE)
+    const relation_type type = relation_type::one_to_one)
 {
-    return ReferenceColumn<ClassType,
+    return reference_column<ClassType,
         PropertyType,
         decltype(setter),
         decltype(getter),
@@ -146,10 +146,10 @@ auto make_reference_column(
     std::string column_name,
     reflection_api::helper::Setter_t<ClassType, PropertyType> setter,
     reflection_api::helper::ConstGetter_t<ClassType, PropertyType> getter,
-    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
-    const RelationType type)
+    table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    const relation_type type)
 {
-    return ReferenceColumn<ClassType,
+    return reference_column<ClassType,
         PropertyType,
         decltype(setter),
         decltype(getter),
@@ -174,11 +174,11 @@ auto make_reference_column(
     std::string column_name,
     reflection_api::helper::Setter_t<ClassType, PropertyType> setter,
     reflection_api::helper::MutableGetter_t<ClassType, PropertyType> getter,
-    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    table<ReferencePropertyType, ReferenceColumns...> reference_table,
     const query_craft::column_settings settings = query_craft::column_settings::none,
-    const RelationType type = RelationType::ONE_TO_ONE)
+    const relation_type type = relation_type::one_to_one)
 {
-    return ReferenceColumn<ClassType,
+    return reference_column<ClassType,
         PropertyType,
         decltype(setter),
         decltype(getter),
@@ -201,10 +201,10 @@ auto make_reference_column(
     std::string column_name,
     reflection_api::helper::Setter_t<ClassType, PropertyType> setter,
     reflection_api::helper::MutableGetter_t<ClassType, PropertyType> getter,
-    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
-    const RelationType type)
+    table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    const relation_type type)
 {
-    return ReferenceColumn<ClassType,
+    return reference_column<ClassType,
         PropertyType,
         decltype(setter),
         decltype(getter),
@@ -229,11 +229,11 @@ auto make_reference_column(
     std::string column_name,
     reflection_api::helper::Setter_t<ClassType, PropertyType> setter,
     reflection_api::helper::Getter_t<ClassType, PropertyType> getter,
-    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    table<ReferencePropertyType, ReferenceColumns...> reference_table,
     const query_craft::column_settings settings = query_craft::column_settings::none,
-    const RelationType type = RelationType::ONE_TO_ONE)
+    const relation_type type = relation_type::one_to_one)
 {
-    return ReferenceColumn<ClassType,
+    return reference_column<ClassType,
         PropertyType,
         decltype(setter),
         decltype(getter),
@@ -256,10 +256,10 @@ auto make_reference_column(
     std::string column_name,
     reflection_api::helper::Setter_t<ClassType, PropertyType> setter,
     reflection_api::helper::Getter_t<ClassType, PropertyType> getter,
-    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
-    const RelationType type)
+    table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    const relation_type type)
 {
-    return ReferenceColumn<ClassType,
+    return reference_column<ClassType,
         PropertyType,
         decltype(setter),
         decltype(getter),
@@ -286,11 +286,11 @@ auto make_reference_column(
     std::string column_name,
     reflection_api::helper::BaseSetter_t<ClassType, PropertyType> setter,
     reflection_api::helper::ConstGetter_t<ClassType, PropertyType> getter,
-    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    table<ReferencePropertyType, ReferenceColumns...> reference_table,
     const query_craft::column_settings settings = query_craft::column_settings::none,
-    const RelationType type = RelationType::ONE_TO_ONE)
+    const relation_type type = relation_type::one_to_one)
 {
-    return ReferenceColumn<ClassType,
+    return reference_column<ClassType,
         PropertyType,
         decltype(setter),
         decltype(getter),
@@ -313,10 +313,10 @@ auto make_reference_column(
     std::string column_name,
     reflection_api::helper::BaseSetter_t<ClassType, PropertyType> setter,
     reflection_api::helper::ConstGetter_t<ClassType, PropertyType> getter,
-    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
-    const RelationType type)
+    table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    const relation_type type)
 {
-    return ReferenceColumn<ClassType,
+    return reference_column<ClassType,
         PropertyType,
         decltype(setter),
         decltype(getter),
@@ -341,11 +341,11 @@ auto make_reference_column(
     std::string column_name,
     reflection_api::helper::BaseSetter_t<ClassType, PropertyType> setter,
     reflection_api::helper::MutableGetter_t<ClassType, PropertyType> getter,
-    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    table<ReferencePropertyType, ReferenceColumns...> reference_table,
     const query_craft::column_settings settings = query_craft::column_settings::none,
-    const RelationType type = RelationType::ONE_TO_ONE)
+    const relation_type type = relation_type::one_to_one)
 {
-    return ReferenceColumn<ClassType,
+    return reference_column<ClassType,
         PropertyType,
         decltype(setter),
         decltype(getter),
@@ -368,10 +368,10 @@ auto make_reference_column(
     std::string column_name,
     reflection_api::helper::BaseSetter_t<ClassType, PropertyType> setter,
     reflection_api::helper::MutableGetter_t<ClassType, PropertyType> getter,
-    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
-    const RelationType type)
+    table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    const relation_type type)
 {
-    return ReferenceColumn<ClassType,
+    return reference_column<ClassType,
         PropertyType,
         decltype(setter),
         decltype(getter),
@@ -396,11 +396,11 @@ auto make_reference_column(
     std::string column_name,
     reflection_api::helper::BaseSetter_t<ClassType, PropertyType> setter,
     reflection_api::helper::Getter_t<ClassType, PropertyType> getter,
-    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    table<ReferencePropertyType, ReferenceColumns...> reference_table,
     const query_craft::column_settings settings = query_craft::column_settings::none,
-    const RelationType type = RelationType::ONE_TO_ONE)
+    const relation_type type = relation_type::one_to_one)
 {
-    return ReferenceColumn<ClassType,
+    return reference_column<ClassType,
         PropertyType,
         decltype(setter),
         decltype(getter),
@@ -423,10 +423,10 @@ auto make_reference_column(
     std::string column_name,
     reflection_api::helper::BaseSetter_t<ClassType, PropertyType> setter,
     reflection_api::helper::Getter_t<ClassType, PropertyType> getter,
-    Table<ReferencePropertyType, ReferenceColumns...> reference_table,
-    const RelationType type)
+    table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    const relation_type type)
 {
-    return ReferenceColumn<ClassType,
+    return reference_column<ClassType,
         PropertyType,
         decltype(setter),
         decltype(getter),
@@ -443,4 +443,4 @@ auto make_reference_column(
         type);
 }
 
-} // namespace EntityCraft
+} // namespace entity_craft

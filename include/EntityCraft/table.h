@@ -4,10 +4,10 @@
 #include "QueryCraft/table.h"
 #include "ReflectionApi/entity.h"
 
-namespace EntityCraft {
+namespace entity_craft {
 
 template<typename ClassType, typename... Columns>
-class Table
+class table
 {
 public:
     static ClassType empty_entity()
@@ -16,7 +16,7 @@ public:
     }
 
 public:
-    explicit Table(std::string table_name, std::string scheme, Columns... properties)
+    explicit table(std::string table_name, std::string scheme, Columns... properties)
         : _table_info(std::move(table_name), std::move(scheme))
         , _columns(std::make_tuple<Columns...>(std::move(properties)...))
     {
@@ -30,19 +30,19 @@ public:
         });
     }
 
-    Table(const Table& other)
+    table(const table& other)
         : _table_info(other._table_info)
         , _columns(other._columns)
     {
     }
 
-    Table(Table&& other) noexcept
+    table(table&& other) noexcept
         : _table_info(std::move(other._table_info))
         , _columns(std::move(other._columns))
     {
     }
 
-    Table& operator=(const Table& other)
+    table& operator=(const table& other)
     {
         if(this == &other)
             return *this;
@@ -51,7 +51,7 @@ public:
         return *this;
     }
 
-    Table& operator=(Table&& other) noexcept
+    table& operator=(table&& other) noexcept
     {
         if(this == &other)
             return *this;
@@ -94,7 +94,7 @@ private:
 template<typename ClassType, typename... Properties>
 auto make_table(std::string scheme, std::string table_name, Properties&&... properties)
 {
-    return Table<ClassType, Properties...>(std::move(table_name), std::move(scheme), std::move(properties)...);
+    return table<ClassType, Properties...>(std::move(table_name), std::move(scheme), std::move(properties)...);
 }
 
-} // namespace EntityCraft
+} // namespace entity_craft

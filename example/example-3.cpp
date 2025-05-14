@@ -20,7 +20,7 @@ struct ATableInfo
 
     static auto dto()
     {
-        using namespace EntityCraft;
+        using namespace entity_craft;
         return make_table<A>("", "A",
             make_column(id, &A::id, query_craft::primary_key()),
             make_column(b_id, &A::b_id, query_craft::not_null()),
@@ -72,12 +72,12 @@ struct BTableInfo
 
     static auto dto()
     {
-        using namespace EntityCraft;
+        using namespace entity_craft;
 
         return make_table<B>("", "B",
             make_column(id, &B::id, query_craft::primary_key()),
             make_column(t, &B::t),
-            make_reference_column(ATableInfo::b_id, &B::a, ATableInfo::dto(), RelationType::ONE_TO_MANY));
+            make_reference_column(ATableInfo::b_id, &B::a, ATableInfo::dto(), relation_type::one_to_many));
     }
 
     static query_craft::table table_info()
@@ -118,7 +118,7 @@ private:
 
 int main()
 {
-    using namespace EntityCraft;
+    using namespace entity_craft;
 
     database_adapter::sqlite_settings settings;
     settings.url = R"(./db/example-3.db)";

@@ -4,6 +4,6 @@
 
 #include "EntityCraft/table.h"
 
-namespace EntityCraft {
+namespace entity_craft {
 
 }
