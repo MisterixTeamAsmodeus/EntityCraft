@@ -43,12 +43,12 @@ struct WorkerTableInfo
         using namespace EntityCraft;
 
         return make_table<WorkerInfo>("", "WorkerInfo",
-            make_column(id, static_cast<int WorkerInfo::*>(&WorkerInfo::id), QueryCraft::primary_key()),
+            make_column(id, static_cast<int WorkerInfo::*>(&WorkerInfo::id), query_craft::primary_key()),
             make_column(name, &WorkerInfo::set_name, &WorkerInfo::get_name),
-            make_column(is_active_worker, &WorkerInfo::isActiveWorker, QueryCraft::not_null()));
+            make_column(is_active_worker, &WorkerInfo::isActiveWorker, query_craft::not_null()));
     }
 
-    static QueryCraft::Table table_info()
+    static query_craft::table table_info()
     {
         return dto().table_info();
     }
@@ -58,7 +58,7 @@ struct WorkerStorage
 {
     using Storage = storage_type(WorkerTableInfo::dto());
 
-    explicit WorkerStorage(const std::shared_ptr<DatabaseAdapter::IDataBaseDriver>& adapter)
+    explicit WorkerStorage(const std::shared_ptr<database_adapter::IDataBaseDriver>& adapter)
         : _storage(make_storage(adapter, WorkerTableInfo::dto()))
     {
         create_table();
@@ -95,10 +95,10 @@ int main()
 {
     using namespace EntityCraft;
 
-    DatabaseAdapter::SqliteSettings settings;
+    database_adapter::sqlite_settings settings;
     settings.url = R"(./db/example-1.db)";
 
-    auto worker_storage = WorkerStorage(std::make_shared<DatabaseAdapter::SqliteDatabaseAdapter>(settings));
+    auto worker_storage = WorkerStorage(std::make_shared<database_adapter::sqlite_database_adapter>(settings));
 
     WorkerInfo worker1 { 1, std::make_shared<std::string>("worker1"), true };
     WorkerInfo worker2 { 2, nullptr, false };

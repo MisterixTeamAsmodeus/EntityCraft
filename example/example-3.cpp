@@ -22,9 +22,9 @@ struct ATableInfo
     {
         using namespace EntityCraft;
         return make_table<A>("", "A",
-            make_column(id, &A::id, QueryCraft::primary_key()),
-            make_column(b_id, &A::b_id, QueryCraft::not_null()),
-            make_column(info, &A::info, QueryCraft::not_null()));
+            make_column(id, &A::id, query_craft::primary_key()),
+            make_column(b_id, &A::b_id, query_craft::not_null()),
+            make_column(info, &A::info, query_craft::not_null()));
     }
 };
 
@@ -32,7 +32,7 @@ struct AStorage
 {
     using Storage = storage_type(ATableInfo::dto());
 
-    explicit AStorage(const std::shared_ptr<DatabaseAdapter::IDataBaseDriver>& adapter)
+    explicit AStorage(const std::shared_ptr<database_adapter::IDataBaseDriver>& adapter)
         : _storage(make_storage(adapter, ATableInfo::dto()))
     {
         create_table();
@@ -75,12 +75,12 @@ struct BTableInfo
         using namespace EntityCraft;
 
         return make_table<B>("", "B",
-            make_column(id, &B::id, QueryCraft::primary_key()),
+            make_column(id, &B::id, query_craft::primary_key()),
             make_column(t, &B::t),
             make_reference_column(ATableInfo::b_id, &B::a, ATableInfo::dto(), RelationType::ONE_TO_MANY));
     }
 
-    static QueryCraft::Table table_info()
+    static query_craft::table table_info()
     {
         return dto().table_info();
     }
@@ -90,7 +90,7 @@ struct BStorage
 {
     using Storage = storage_type(BTableInfo::dto());
 
-    explicit BStorage(const std::shared_ptr<DatabaseAdapter::IDataBaseDriver>& adapter)
+    explicit BStorage(const std::shared_ptr<database_adapter::IDataBaseDriver>& adapter)
         : _storage(make_storage(adapter, BTableInfo::dto()))
     {
         create_table();
@@ -120,10 +120,10 @@ int main()
 {
     using namespace EntityCraft;
 
-    DatabaseAdapter::SqliteSettings settings;
+    database_adapter::sqlite_settings settings;
     settings.url = R"(./db/example-3.db)";
 
-    std::shared_ptr<DatabaseAdapter::IDataBaseDriver> adapter = std::make_shared<DatabaseAdapter::SqliteDatabaseAdapter>(settings);
+    std::shared_ptr<database_adapter::IDataBaseDriver> adapter = std::make_shared<database_adapter::sqlite_database_adapter>(settings);
 
     auto b_storage = BStorage(adapter);
     auto a_storage = AStorage(adapter);

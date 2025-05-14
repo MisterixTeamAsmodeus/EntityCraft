@@ -19,7 +19,7 @@ template<typename ClassType, typename... Columns>
 class Storage
 {
 public:
-    Storage(const std::shared_ptr<DatabaseAdapter::IDataBaseDriver>& database, Table<ClassType, Columns...> dto, const bool auto_commit = true)
+    Storage(const std::shared_ptr<database_adapter::IDataBaseDriver>& database, Table<ClassType, Columns...> dto, const bool auto_commit = true)
         : _database(database)
         , _dto(std::move(dto))
         , _auto_commit(auto_commit)
@@ -36,19 +36,19 @@ public:
         _database->disconnect();
     }
 
-    auto condition_group(const QueryCraft::ConditionGroup& condition_group)
+    auto condition_group(const query_craft::condition_group& condition_group)
     {
         _condition_group = condition_group;
         return *this;
     }
 
-    auto sort_columns(const std::vector<QueryCraft::SortColumn>& sort_columns)
+    auto sort_columns(const std::vector<query_craft::sort_column>& sort_columns)
     {
         _sortColumns = sort_columns;
         return *this;
     }
 
-    auto sort_column(const QueryCraft::SortColumn& sort_column)
+    auto sort_column(const query_craft::sort_column& sort_column)
     {
         _sortColumns = { sort_column };
         return *this;
@@ -78,18 +78,18 @@ public:
         _open_transaction = _database->open_transaction(type);
     }
 
-    std::shared_ptr<DatabaseAdapter::ITransaction> get_transaction() const
+    std::shared_ptr<database_adapter::ITransaction> get_transaction() const
     {
         return _open_transaction;
     }
 
-    void set_transaction(const std::shared_ptr<DatabaseAdapter::ITransaction>& transaction)
+    void set_transaction(const std::shared_ptr<database_adapter::ITransaction>& transaction)
     {
         _auto_commit = false;
         _open_transaction = transaction;
     }
 
-    std::shared_ptr<DatabaseAdapter::IDataBaseDriver> database() const
+    std::shared_ptr<database_adapter::IDataBaseDriver> database() const
     {
         return _database;
     }
@@ -118,9 +118,9 @@ public:
 
     std::vector<ClassType> select()
     {
-        const QueryCraft::SqlTable sql_table(_dto.table_info());
+        const query_craft::sql_table sql_table(_dto.table_info());
 
-        std::vector<QueryCraft::ColumnInfo> columns = sql_table.columns();
+        std::vector<query_craft::column_info> columns = sql_table.columns();
 
         _dto.for_each(Visitor::make_reference_column_visitor([&columns](auto& reference_column) {
             auto it = std::remove(columns.begin(), columns.end(), reference_column.column_info());
@@ -132,8 +132,8 @@ public:
             append_join_columns(columns, _dto);
         }
 
-        const auto sql = sql_table.selectRowsSql(
-            _without_relation_entity ? std::vector<QueryCraft::JoinColumn> {} : join_columns(_dto),
+        const auto sql = sql_table.select_sql(
+            _without_relation_entity ? std::vector<query_craft::join_column> {} : join_columns(_dto),
             _condition_group,
             _sortColumns,
             _limit,
@@ -196,14 +196,14 @@ public:
 
         _dto.for_each([this, &value](const auto& column) {
             auto column_info = column.column_info();
-            if(!column_info.hasSettings(QueryCraft::ColumnSettings::PRIMARY_KEY)) {
+            if(!column_info.has_settings(query_craft::column_settings::primary_key)) {
                 return;
             }
 
             auto property = column.property();
 
-            const auto string_property_value = property.converter()
-                                                   ->convertToString(property.value(value));
+            const auto string_property_value = property.property_converter()
+                                                   ->convert_to_string(property.value(value));
             _condition_group = column_info == string_property_value;
         });
 
@@ -222,7 +222,7 @@ public:
     template<typename Begin, typename End>
     void insert(const Begin& begin, const End& end)
     {
-        QueryCraft::SqlTable sql_table(_dto.table_info());
+        query_craft::sql_table sql_table(_dto.table_info());
 
         const bool has_transactional = _open_transaction != nullptr;
 
@@ -230,12 +230,12 @@ public:
             transaction();
         }
 
-        std::vector<QueryCraft::ColumnInfo> columns_for_insert;
+        std::vector<query_craft::column_info> columns_for_insert;
 
         std::for_each(begin, end, [this, &sql_table, &columns_for_insert](const auto& value) {
             // Переменная чтобы только один раз записать названия колонок для вставки
             bool need_update_column_info = columns_for_insert.empty();
-            QueryCraft::SqlTable::Row row;
+            query_craft::sql_table::row row;
             _dto.for_each(Visitor::make_any_column_visitor(
                 [&row, &value, &need_update_column_info, &columns_for_insert](auto& column) {
                     if(need_update_column_info) {
@@ -262,10 +262,10 @@ public:
                     }
                 }));
 
-            sql_table.addRow(row);
+            sql_table.add_row(row);
         });
 
-        const auto sql = sql_table.insertRowSql(columns_for_insert);
+        const auto sql = sql_table.insert_sql(columns_for_insert);
 
         exec(sql);
 
@@ -282,11 +282,11 @@ public:
 
     void update(const ClassType& value)
     {
-        QueryCraft::SqlTable sql_table(_dto.table_info());
+        query_craft::sql_table sql_table(_dto.table_info());
 
-        QueryCraft::ConditionGroup condition_for_update;
-        std::vector<QueryCraft::ColumnInfo> columns_for_update;
-        QueryCraft::SqlTable::Row row;
+        query_craft::condition_group condition_for_update;
+        std::vector<query_craft::column_info> columns_for_update;
+        query_craft::sql_table::row row;
 
         const auto has_transactional = _open_transaction != nullptr;
 
@@ -316,9 +316,9 @@ public:
                 }
             }));
 
-        sql_table.addRow(row);
+        sql_table.add_row(row);
 
-        const auto sql = sql_table.updateRowSql(condition_for_update, columns_for_update);
+        const auto sql = sql_table.update_sql(condition_for_update, columns_for_update);
 
         exec(sql);
 
@@ -364,16 +364,16 @@ public:
         upsert(value.begin(), value.end());
     }
 
-    void remove(const QueryCraft::ConditionInfo& condition)
+    void remove(const query_craft::condition_info& condition)
     {
-        remove(static_cast<QueryCraft::ConditionGroup>(condition));
+        remove(static_cast<query_craft::condition_group>(condition));
     }
 
-    void remove(const QueryCraft::ConditionGroup& condition)
+    void remove(const query_craft::condition_group& condition)
     {
-        const QueryCraft::SqlTable sql_table(_dto.table_info());
+        const query_craft::sql_table sql_table(_dto.table_info());
 
-        const auto sql = sql_table.removeRowSql(condition);
+        const auto sql = sql_table.remove_sql(condition);
 
         exec(sql);
     }
@@ -388,26 +388,26 @@ public:
     template<typename Begin, typename End>
     void remove(const Begin& begin, const End& end)
     {
-        QueryCraft::SqlTable sql_table(_dto.table_info());
+        query_craft::sql_table sql_table(_dto.table_info());
 
-        QueryCraft::ConditionGroup condition_for_remove;
+        query_craft::condition_group condition_for_remove;
 
         std::for_each(begin, end, [this, &condition_for_remove](const auto& value) {
             _dto.for_each(Visitor::make_column_visitor([&value, &condition_for_remove](auto& column) {
                 auto column_info = column.column_info();
 
-                if(!column_info.hasSettings(QueryCraft::ColumnSettings::PRIMARY_KEY))
+                if(!column_info.has_settings(query_craft::column_settings::primary_key))
                     return;
 
                 auto property = column.property();
 
-                const auto string_property_value = property.converter()
-                                                       ->convertToString(property.value(value));
+                const auto string_property_value = property.property_converter()
+                                                       ->convert_to_string(property.value(value));
                 condition_for_remove = column_info == string_property_value;
             }));
         });
 
-        const auto sql = sql_table.removeRowSql(condition_for_remove);
+        const auto sql = sql_table.remove_sql(condition_for_remove);
 
         exec(sql);
     }
@@ -427,36 +427,36 @@ public:
 private:
     static auto action_fill_to_insert()
     {
-        return [](auto& column, QueryCraft::SqlTable::Row& row, const auto& value) {
+        return [](auto& column, query_craft::sql_table::row& row, const auto& value) {
             auto property = column.property();
 
             const auto property_value = property.value(value);
             const auto column_info = column.column_info();
-            if(!column_info.hasSettings(QueryCraft::ColumnSettings::PRIMARY_KEY) && !column_info.hasSettings(QueryCraft::ColumnSettings::NOT_NULL) && column.null_cheker()->isNull(property_value)) {
-                row.emplace_back(QueryCraft::ColumnInfo::nullValue());
+            if(!column_info.has_settings(query_craft::column_settings::primary_key) && !column_info.has_settings(query_craft::column_settings::not_null) && column.null_cheker()->isNull(property_value)) {
+                row.emplace_back(query_craft::column_info::null_value());
             } else {
-                row.emplace_back(property.converter()->convertToString(property_value));
+                row.emplace_back(property.property_converter()->convert_to_string(property_value));
             }
         };
     }
 
     static auto action_fill_to_update()
     {
-        return [](auto& column, auto& value, QueryCraft::ConditionGroup& condition_for_update, std::vector<QueryCraft::ColumnInfo>& columns_for_update, QueryCraft::SqlTable::Row& row) {
+        return [](auto& column, auto& value, query_craft::condition_group& condition_for_update, std::vector<query_craft::column_info>& columns_for_update, query_craft::sql_table::row& row) {
             const auto column_info = column.column_info();
 
             auto property = column.property();
 
             const auto propery_value = property.value(value);
 
-            if(column_info.hasSettings(QueryCraft::ColumnSettings::PRIMARY_KEY)) {
-                condition_for_update = column_info == property.converter()->convertToString(propery_value);
+            if(column_info.has_settings(query_craft::column_settings::primary_key)) {
+                condition_for_update = column_info == property.property_converter()->convert_to_string(propery_value);
             } else {
                 columns_for_update.emplace_back(column_info);
-                if(!column_info.hasSettings(QueryCraft::ColumnSettings::NOT_NULL) && column.null_cheker()->isNull(propery_value)) {
-                    row.emplace_back(QueryCraft::ColumnInfo::nullValue());
+                if(!column_info.has_settings(query_craft::column_settings::not_null) && column.null_cheker()->isNull(propery_value)) {
+                    row.emplace_back(query_craft::column_info::null_value());
                 } else {
-                    row.emplace_back(property.converter()->convertToString(propery_value));
+                    row.emplace_back(property.property_converter()->convert_to_string(propery_value));
                 }
             }
         };
@@ -464,26 +464,26 @@ private:
 
     static auto action_fill_property()
     {
-        return [](auto& column, const DatabaseAdapter::Models::QueryResult::ResultRow& query_result, auto& entity) {
+        return [](auto& column, const database_adapter::models::query_result::result_row& query_result, auto& entity) {
             const auto column_info = column.column_info();
 
             auto property = column.property();
 
             const auto it = query_result.find(column_info.alias());
-            if(it == query_result.end() || it->second == QueryCraft::ColumnInfo::nullValue())
+            if(it == query_result.end() || it->second == query_craft::column_info::null_value())
                 return;
 
             auto property_value = property.empty_property();
-            property.converter()->fillFromString(property_value, it->second);
+            property.property_converter()->fill_from_string(property_value, it->second);
             property.set_value(entity, property_value);
         };
     }
 
     template<typename JoinClassType, typename... JoinClassColumn>
     static JoinClassType fill_class_by_sql(Table<JoinClassType, JoinClassColumn...>& dto,
-        const DatabaseAdapter::Models::QueryResult::ResultRow& query_result,
-        const std::shared_ptr<DatabaseAdapter::IDataBaseDriver>& database,
-        const std::shared_ptr<DatabaseAdapter::ITransaction>& open_transaction)
+        const database_adapter::models::query_result::result_row& query_result,
+        const std::shared_ptr<database_adapter::IDataBaseDriver>& database,
+        const std::shared_ptr<database_adapter::ITransaction>& open_transaction)
     {
         auto entity = dto.empty_entity();
 
@@ -509,11 +509,11 @@ private:
                         reference_storage.set_transaction(open_transaction);
 
                         auto mapped_column = reference_table.table_info().column(reference_column.column_info().name());
-                        QueryCraft::ConditionGroup condition;
+                        query_craft::condition_group condition;
                         dto.for_each(Visitor::make_column_visitor([&condition, &reference_column, &entity, &mapped_column](auto& column) {
-                            if(column.column_info().hasSettings(QueryCraft::ColumnSettings::PRIMARY_KEY)) {
+                            if(column.column_info().has_settings(query_craft::column_settings::primary_key)) {
                                 auto property = column.property();
-                                auto id_value = property.converter()->convertToString(property.value(entity));
+                                auto id_value = property.property_converter()->convert_to_string(property.value(entity));
                                 condition = mapped_column == id_value;
                             }
                         }));
@@ -537,13 +537,13 @@ private:
     }
 
     template<typename JoinClassType, typename... JoinClassColumn>
-    static QueryCraft::ColumnInfo primary_key_column(Table<JoinClassType, JoinClassColumn...>& dto)
+    static query_craft::column_info primary_key_column(Table<JoinClassType, JoinClassColumn...>& dto)
     {
-        QueryCraft::ColumnInfo primary_key;
+        query_craft::column_info primary_key;
 
         dto.for_each([&primary_key](const auto& column) {
             auto column_info = column.column_info();
-            if(column_info.hasSettings(QueryCraft::ColumnSettings::PRIMARY_KEY))
+            if(column_info.has_settings(query_craft::column_settings::primary_key))
                 primary_key = column_info;
         });
 
@@ -551,16 +551,16 @@ private:
     }
 
     template<typename JoinClassType, typename... JoinClassColumn>
-    static std::vector<QueryCraft::JoinColumn> join_columns(Table<JoinClassType, JoinClassColumn...>& dto)
+    static std::vector<query_craft::join_column> join_columns(Table<JoinClassType, JoinClassColumn...>& dto)
     {
-        std::vector<QueryCraft::JoinColumn> joined_columns;
+        std::vector<query_craft::join_column> joined_columns;
 
         dto.for_each(Visitor::make_reference_column_visitor([&joined_columns, &dto](auto& reference_column) {
             auto reference_table = reference_column.reference_table();
 
-            QueryCraft::JoinColumn join_column;
-            join_column.joinType = QueryCraft::JoinColumn::Type::LEFT;
-            join_column.joinedTable = reference_table.table_info();
+            query_craft::join_column join_column;
+            join_column.join_type = query_craft::join_column::type::left;
+            join_column.joined_table = reference_table.table_info();
             switch(reference_column.type()) {
                 case RelationType::ONE_TO_ONE:
                 case RelationType::MANY_TO_ONE: {
@@ -586,7 +586,7 @@ private:
     }
 
     template<typename JoinClassType, typename... JoinClassColumn>
-    static void append_join_columns(std::vector<QueryCraft::ColumnInfo>& columns, Table<JoinClassType, JoinClassColumn...>& dto)
+    static void append_join_columns(std::vector<query_craft::column_info>& columns, Table<JoinClassType, JoinClassColumn...>& dto)
     {
         dto.for_each(Visitor::make_reference_column_visitor([&columns](auto& reference_column) {
             switch(reference_column.type()) {
@@ -610,7 +610,7 @@ private:
 private:
     auto action_insert()
     {
-        return [this](auto& reference_column, QueryCraft::SqlTable::Row& row, const auto& value) {
+        return [this](auto& reference_column, query_craft::sql_table::row& row, const auto& value) {
             auto property = reference_column.property();
 
             const auto reference_property_value = property.value(value);
@@ -618,14 +618,14 @@ private:
             auto reference_table = reference_column.reference_table();
             reference_table.for_each(Visitor::make_column_visitor([&row, &reference_property_value, &reference_column](auto& column) {
                 auto column_info = column.column_info();
-                if(column_info.hasSettings(QueryCraft::ColumnSettings::PRIMARY_KEY)) {
+                if(column_info.has_settings(query_craft::column_settings::primary_key)) {
                     auto property = column.property();
 
                     const auto property_value = property.value(reference_property_value);
-                    if(!reference_column.column_info().hasSettings(QueryCraft::ColumnSettings::NOT_NULL) && column.null_cheker()->isNull(property_value)) {
-                        row.emplace_back(QueryCraft::ColumnInfo::nullValue());
+                    if(!reference_column.column_info().has_settings(query_craft::column_settings::not_null) && column.null_cheker()->isNull(property_value)) {
+                        row.emplace_back(query_craft::column_info::null_value());
                     } else {
-                        row.emplace_back(property.converter()->convertToString(property_value));
+                        row.emplace_back(property.property_converter()->convert_to_string(property_value));
                     }
                 }
             }));
@@ -633,14 +633,14 @@ private:
             auto reference_storage = make_storage(_database, reference_table);
             reference_storage.set_transaction(_open_transaction);
 
-            if(row.back() != QueryCraft::ColumnInfo::nullValue())
+            if(row.back() != query_craft::column_info::null_value())
                 reference_storage.upsert(reference_property_value);
         };
     }
 
     auto action_update()
     {
-        return [this](auto& reference_column, auto& value, QueryCraft::SqlTable::Row& row, std::vector<QueryCraft::ColumnInfo>& columns_for_update) {
+        return [this](auto& reference_column, auto& value, query_craft::sql_table::row& row, std::vector<query_craft::column_info>& columns_for_update) {
             columns_for_update.emplace_back(reference_column.column_info());
             auto property = reference_column.property();
 
@@ -649,14 +649,14 @@ private:
             auto reference_table = reference_column.reference_table();
             reference_table.for_each(Visitor::make_column_visitor([&row, &reference_property_value, &reference_column](auto& column) {
                 auto column_info = column.column_info();
-                if(column_info.hasSettings(QueryCraft::ColumnSettings::PRIMARY_KEY)) {
+                if(column_info.has_settings(query_craft::column_settings::primary_key)) {
                     auto property = column.property();
 
                     const auto property_value = property.value(reference_property_value);
-                    if(!reference_column.column_info().hasSettings(QueryCraft::ColumnSettings::NOT_NULL) && column.null_cheker()->isNull(property_value)) {
-                        row.emplace_back(QueryCraft::ColumnInfo::nullValue());
+                    if(!reference_column.column_info().has_settings(query_craft::column_settings::not_null) && column.null_cheker()->isNull(property_value)) {
+                        row.emplace_back(query_craft::column_info::null_value());
                     } else {
-                        row.emplace_back(property.converter()->convertToString(property_value));
+                        row.emplace_back(property.property_converter()->convert_to_string(property_value));
                     }
                 }
             }));
@@ -664,7 +664,7 @@ private:
             auto reference_storage = make_storage(_database, reference_table);
             reference_storage.set_transaction(_open_transaction);
 
-            if(row.back() != QueryCraft::ColumnInfo::nullValue())
+            if(row.back() != query_craft::column_info::null_value())
                 reference_storage.upsert(reference_property_value);
         };
     }
@@ -678,27 +678,27 @@ private:
         _without_relation_entity = false;
     }
 
-    DatabaseAdapter::Models::QueryResult exec(const std::string& sql) const
+    database_adapter::models::query_result exec(const std::string& sql) const
     {
         return _open_transaction != nullptr ? _open_transaction->exec(sql) : _database->exec(sql);
     }
 
 private:
-    std::shared_ptr<DatabaseAdapter::IDataBaseDriver> _database;
-    std::shared_ptr<DatabaseAdapter::ITransaction> _open_transaction;
+    std::shared_ptr<database_adapter::IDataBaseDriver> _database;
+    std::shared_ptr<database_adapter::ITransaction> _open_transaction;
     Table<ClassType, Columns...> _dto;
     bool _auto_commit;
 
     // Настройки для select
-    QueryCraft::ConditionGroup _condition_group;
-    std::vector<QueryCraft::SortColumn> _sortColumns;
+    query_craft::condition_group _condition_group;
+    std::vector<query_craft::sort_column> _sortColumns;
     size_t _limit = 0;
     size_t _offset = 0;
     bool _without_relation_entity = false;
 };
 
 template<typename ClassType, typename... Columns>
-auto make_storage(const std::shared_ptr<DatabaseAdapter::IDataBaseDriver>& database, Table<ClassType, Columns...> dto, const bool auto_commit = true)
+auto make_storage(const std::shared_ptr<database_adapter::IDataBaseDriver>& database, Table<ClassType, Columns...> dto, const bool auto_commit = true)
 {
     return Storage<ClassType, Columns...>(database, std::move(dto), auto_commit);
 }

@@ -24,7 +24,7 @@ public:
             try {
                 // При отношениях one to many может происходить дублирования колонок при
                 // работе storage они автоматически удаляются и не играют никакой роли
-                _table_info.addColumn(column.mutable_column_info());
+                _table_info.add_column(column.mutable_column_info());
             } catch(...) {
             }
         });
@@ -65,7 +65,7 @@ public:
     template<typename Action>
     void visit_property(const std::string& property_name, Action&& action)
     {
-        ReflectionApi::Helper::perform_if(
+        reflection_api::helper::perform_if(
             _columns,
             [&](const auto& column) {
                 return column.name() == property_name;
@@ -76,18 +76,18 @@ public:
     template<typename Action>
     void for_each(Action&& action)
     {
-        ReflectionApi::Helper::for_each(
+        reflection_api::helper::for_each(
             _columns,
             std::forward<Action>(action));
     }
 
-    QueryCraft::Table table_info() const
+    query_craft::table table_info() const
     {
         return _table_info;
     }
 
 private:
-    QueryCraft::Table _table_info;
+    query_craft::table _table_info;
     std::tuple<Columns...> _columns = {};
 };
 
