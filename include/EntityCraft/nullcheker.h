@@ -1,11 +1,25 @@
 #pragma once
 
+#include "sfinae.h"
+
 #include <memory>
 #include <stdexcept>
 #include <string>
 
 namespace entity_craft {
 namespace helpers {
+
+/**
+ * Шаблонная функция которая обобщает работу с типами у которых есть функция isNull
+ * @tparam T тип данных который нужно проверить на NULL
+ * @return Возвращает true, если объект пустой, иначе false
+ */
+template<typename T,
+    std::enable_if_t<sfinae::has_is_null_v<T>, bool> = true>
+bool is_null(const T& value, int)
+{
+    return value.isNull();
+}
 
 /// Специализация для численных типов
 template<typename T,
