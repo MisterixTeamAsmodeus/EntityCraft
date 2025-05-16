@@ -238,18 +238,18 @@ public:
             bool need_update_column_info = columns_for_insert.empty();
             query_craft::sql_table::row row;
             _dto.for_each(visitor::make_any_column_visitor(
-                [&row, &value, &need_update_column_info, &columns_for_insert](auto& column) {
+                [this, &row, &value, &need_update_column_info, &columns_for_insert](auto& column) {
                     if(need_update_column_info) {
                         columns_for_insert.emplace_back(column.column_info());
                     }
-                    action_fill_to_insert()(column, row, value);
+                    this->action_fill_to_insert()(column, row, value);
                 },
                 [this, &value, &row, &columns_for_insert](auto& reference_column) {
                     switch(reference_column.type()) {
                         case relation_type::many_to_one:
                         case relation_type::one_to_one: {
                             columns_for_insert.emplace_back(reference_column.column_info());
-                            action_insert()(reference_column, row, value);
+                            this->action_insert()(reference_column, row, value);
                             break;
                         }
                         case relation_type::one_to_one_inverted:
@@ -296,14 +296,14 @@ public:
         }
 
         _dto.for_each(visitor::make_any_column_visitor(
-            [&row, &condition_for_update, &columns_for_update, &value](auto& column) {
-                action_fill_to_update()(column, value, condition_for_update, columns_for_update, row);
+            [this, &row, &condition_for_update, &columns_for_update, &value](auto& column) {
+                this->action_fill_to_update()(column, value, condition_for_update, columns_for_update, row);
             },
             [this, &value, &row, &columns_for_update](auto& reference_column) {
                 switch(reference_column.type()) {
                     case relation_type::many_to_one:
                     case relation_type::one_to_one: {
-                        action_update()(reference_column, value, row, columns_for_update);
+                        this->action_update()(reference_column, value, row, columns_for_update);
                         break;
                     }
                     case relation_type::one_to_one_inverted:
@@ -332,7 +332,7 @@ public:
     void update(const Begin& begin, const End& end)
     {
         std::for_each(begin, end, [this](const auto& value) {
-            update(value);
+            this->update(value);
         });
     }
 
@@ -355,7 +355,7 @@ public:
     void upsert(const Begin& begin, const End& end)
     {
         std::for_each(begin, end, [this](const auto& value) {
-            upsert(value);
+            this->upsert(value);
         });
     }
 
@@ -481,63 +481,6 @@ private:
     }
 
     template<typename JoinClassType, typename... JoinClassColumn>
-    static JoinClassType fill_class_by_sql(table<JoinClassType, JoinClassColumn...>& dto,
-        const database_adapter::models::query_result::result_row& query_result,
-        const std::shared_ptr<database_adapter::IDataBaseDriver>& database,
-        const std::shared_ptr<database_adapter::ITransaction>& open_transaction)
-    {
-        auto entity = dto.empty_entity();
-
-        dto.for_each(visitor::make_any_column_visitor(
-            [&entity, &query_result](auto& column) {
-                action_fill_property()(column, query_result, entity);
-            },
-            [&entity, &query_result, &database, &open_transaction, &dto](auto& reference_column) {
-                auto reference_propery = reference_column.property();
-                auto reference_table = reference_column.reference_table();
-
-                switch(reference_column.type()) {
-                    case relation_type::many_to_one:
-                    case relation_type::one_to_one_inverted:
-                    case relation_type::one_to_one: {
-                        auto reference_entity = fill_class_by_sql(reference_table, query_result, database, open_transaction);
-
-                        reference_propery.set_value(entity, reference_entity);
-                        break;
-                    }
-                    case relation_type::one_to_many: {
-                        auto reference_storage = make_storage(database, reference_table);
-                        reference_storage.set_transaction(open_transaction);
-
-                        auto mapped_column = reference_table.table_info().column(reference_column.column_info().name());
-                        query_craft::condition_group condition;
-                        dto.for_each(visitor::make_column_visitor([&condition, &reference_column, &entity, &mapped_column](auto& column) {
-                            if(column.column_info().has_settings(query_craft::column_settings::primary_key)) {
-                                auto property = column.property();
-                                auto id_value = property.property_converter()->convert_to_string(property.value(entity));
-                                condition = mapped_column == id_value;
-                            }
-                        }));
-
-                        reference_storage.condition_group(condition);
-
-                        auto result = reference_storage.select();
-
-                        auto property_value = reference_column.empty_property();
-                        auto inserter = reference_column.inserter();
-                        inserter.convert_to_target(property_value, result);
-
-                        reference_propery.set_value(entity, property_value);
-
-                        break;
-                    }
-                }
-            }));
-
-        return entity;
-    }
-
-    template<typename JoinClassType, typename... JoinClassColumn>
     static query_craft::column_info primary_key_column(table<JoinClassType, JoinClassColumn...>& dto)
     {
         query_craft::column_info primary_key;
@@ -609,6 +552,63 @@ private:
     }
 
 private:
+    template<typename JoinClassType, typename... JoinClassColumn>
+    JoinClassType fill_class_by_sql(table<JoinClassType, JoinClassColumn...>& dto,
+        const database_adapter::models::query_result::result_row& query_result,
+        const std::shared_ptr<database_adapter::IDataBaseDriver>& database,
+        const std::shared_ptr<database_adapter::ITransaction>& open_transaction)
+    {
+        auto entity = dto.empty_entity();
+
+        dto.for_each(visitor::make_any_column_visitor(
+            [this, &entity, &query_result](auto& column) {
+                this->action_fill_property()(column, query_result, entity);
+            },
+            [this, &entity, &query_result, &database, &open_transaction, &dto](auto& reference_column) {
+                auto reference_propery = reference_column.property();
+                auto reference_table = reference_column.reference_table();
+
+                switch(reference_column.type()) {
+                    case relation_type::many_to_one:
+                    case relation_type::one_to_one_inverted:
+                    case relation_type::one_to_one: {
+                        auto reference_entity = this->fill_class_by_sql(reference_table, query_result, database, open_transaction);
+
+                        reference_propery.set_value(entity, reference_entity);
+                        break;
+                    }
+                    case relation_type::one_to_many: {
+                        auto reference_storage = make_storage(database, reference_table);
+                        reference_storage.set_transaction(open_transaction);
+
+                        auto mapped_column = reference_table.table_info().column(reference_column.column_info().name());
+                        query_craft::condition_group condition;
+                        dto.for_each(visitor::make_column_visitor([&condition, &reference_column, &entity, &mapped_column](auto& column) {
+                            if(column.column_info().has_settings(query_craft::column_settings::primary_key)) {
+                                auto property = column.property();
+                                auto id_value = property.property_converter()->convert_to_string(property.value(entity));
+                                condition = mapped_column == id_value;
+                            }
+                        }));
+
+                        reference_storage.condition_group(condition);
+
+                        auto result = reference_storage.select();
+
+                        auto property_value = reference_column.empty_property();
+                        auto inserter = reference_column.inserter();
+                        inserter.convert_to_target(property_value, result);
+
+                        reference_propery.set_value(entity, property_value);
+
+                        break;
+                    }
+                }
+            }));
+
+        return entity;
+    }
+
     auto action_insert()
     {
         return [this](auto& reference_column, query_craft::sql_table::row& row, const auto& value) {
@@ -643,9 +643,9 @@ private:
     {
         return [this](auto& reference_column, auto& value, query_craft::sql_table::row& row, std::vector<query_craft::column_info>& columns_for_update) {
             columns_for_update.emplace_back(reference_column.column_info());
-            auto property = reference_column.property();
+            auto reference_property = reference_column.property();
 
-            const auto reference_property_value = property.value(value);
+            const auto reference_property_value = reference_property.value(value);
 
             auto reference_table = reference_column.reference_table();
             reference_table.for_each(visitor::make_column_visitor([&row, &reference_property_value, &reference_column](auto& column) {
