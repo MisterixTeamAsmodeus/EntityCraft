@@ -25,35 +25,10 @@ public:
 
     ~column() = default;
 
-    column(const column& other)
-        : _column_info(other._column_info)
-        , _reflection_property(other._reflection_property)
-    {
-    }
-
-    column(column&& other) noexcept
-        : _column_info(std::move(other._column_info))
-        , _reflection_property(std::move(other._reflection_property))
-    {
-    }
-
-    column& operator=(const column& other)
-    {
-        if(this == &other)
-            return *this;
-        _column_info = other._column_info;
-        _reflection_property = other._reflection_property;
-        return *this;
-    }
-
-    column& operator=(column&& other) noexcept
-    {
-        if(this == &other)
-            return *this;
-        _column_info = std::move(other._column_info);
-        _reflection_property = std::move(other._reflection_property);
-        return *this;
-    }
+    column(const column& other) = default;
+    column(column&& other) noexcept = default;
+    column& operator=(const column& other) = default;
+    column& operator=(column&& other) noexcept = default;
 
     reflection_api::property<ClassType, PropertyType, Setter, Getter> property() const
     {

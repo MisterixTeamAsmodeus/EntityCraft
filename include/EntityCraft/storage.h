@@ -122,7 +122,12 @@ public:
 
         std::vector<query_craft::column_info> columns = sql_table.columns();
 
-        _dto.for_each(visitor::make_reference_column_visitor([&columns](auto& reference_column) {
+        const auto duplicate_column = _dto.duplicate_column();
+        _dto.for_each(visitor::make_reference_column_visitor([&duplicate_column, &columns](auto& reference_column) {
+            if(std::find(duplicate_column.begin(), duplicate_column.end(), reference_column.column_info()) != duplicate_column.end()) {
+                return;
+            }
+
             auto it = std::remove(columns.begin(), columns.end(), reference_column.column_info());
             if(it != columns.end())
                 columns.erase(it);

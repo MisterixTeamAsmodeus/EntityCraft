@@ -30,6 +30,11 @@ public:
     {
     }
 
+    reference_column(const reference_column& other) = default;
+    reference_column(reference_column&& other) noexcept = default;
+    reference_column& operator=(const reference_column& other) = default;
+    reference_column& operator=(reference_column&& other) noexcept = default;
+
     auto reference_table() const
     {
         return _reference_table;

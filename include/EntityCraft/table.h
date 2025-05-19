@@ -22,45 +22,18 @@ public:
     {
         for_each([this](auto& column) {
             try {
-                // При отношениях one to many может происходить дублирования колонок при
-                // работе storage они автоматически удаляются и не играют никакой роли
+                // При отношениях one to many/one to one inverted может происходить дублирования колонок при
                 _table_info.add_column(column.mutable_column_info());
-            } catch(...) {
+            } catch(const std::exception& /*e*/) {
+                _duplicate_column.emplace_back(column.column_info());
             }
         });
     }
 
-    table(const table& other)
-        : _table_info(other._table_info)
-        , _columns(other._columns)
-    {
-    }
-
-    table(table&& other) noexcept
-        : _table_info(std::move(other._table_info))
-        , _columns(std::move(other._columns))
-    {
-    }
-
-    table& operator=(const table& other)
-    {
-        if(this == &other)
-            return *this;
-        _table_info = other._table_info;
-        _columns = other._columns;
-        return *this;
-    }
-
-    table& operator=(table&& other) noexcept
-    {
-        if(this == &other)
-            return *this;
-
-        _table_info = std::move(other._table_info);
-        _columns = std::move(other._columns);
-
-        return *this;
-    }
+    table(const table& other) = default;
+    table(table&& other) noexcept = default;
+    table& operator=(const table& other) = default;
+    table& operator=(table&& other) noexcept = default;
 
     template<typename Action>
     void visit_property(const std::string& property_name, Action&& action)
@@ -86,9 +59,15 @@ public:
         return _table_info;
     }
 
+    std::vector<query_craft::column_info> duplicate_column() const
+    {
+        return _duplicate_column;
+    }
+
 private:
     query_craft::table _table_info;
     std::tuple<Columns...> _columns = {};
+    std::vector<query_craft::column_info> _duplicate_column;
 };
 
 template<typename ClassType, typename... Properties>
