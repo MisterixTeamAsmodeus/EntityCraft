@@ -50,7 +50,7 @@ public:
 };
 
 template<>
-class null_cheker<std::string> final
+class null_cheker<std::string>
 {
 public:
     ~null_cheker() = default;
@@ -62,7 +62,7 @@ public:
 };
 
 template<typename T>
-class null_cheker<std::shared_ptr<T>> final
+class null_cheker<std::shared_ptr<T>>
 {
 public:
     ~null_cheker() = default;
@@ -74,12 +74,24 @@ public:
 };
 
 template<typename T>
-class null_cheker<std::unique_ptr<T>> final
+class null_cheker<std::unique_ptr<T>>
 {
 public:
     ~null_cheker() = default;
 
     bool is_null(const std::unique_ptr<T>& value) const
+    {
+        return value == nullptr;
+    }
+};
+
+template<typename T>
+class null_cheker<T*>
+{
+public:
+    ~null_cheker() = default;
+
+    bool is_null(T*& value) const
     {
         return value == nullptr;
     }

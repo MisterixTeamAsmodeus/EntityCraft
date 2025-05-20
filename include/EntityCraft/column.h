@@ -95,7 +95,10 @@ auto make_column(
     reflection_api::helper::ConstGetter_t<ClassType, PropertyType> getter,
     const query_craft::column_settings settings = query_craft::column_settings::none)
 {
-    return column<ClassType, PropertyType>(
+    return column<ClassType,
+        PropertyType,
+        reflection_api::helper::Setter_t<ClassType, PropertyType>,
+        reflection_api::helper::ConstGetter_t<ClassType, PropertyType>>(
         query_craft::column_info(
             column_name,
             settings),
@@ -112,7 +115,10 @@ auto make_column(
     reflection_api::helper::MutableGetter_t<ClassType, PropertyType> getter,
     const query_craft::column_settings settings = query_craft::column_settings::none)
 {
-    return column<ClassType, PropertyType>(
+    return column<ClassType,
+        PropertyType,
+        reflection_api::helper::Setter_t<ClassType, PropertyType>,
+        reflection_api::helper::MutableGetter_t<ClassType, PropertyType>>(
         query_craft::column_info(
             column_name,
             settings),
@@ -129,7 +135,10 @@ auto make_column(
     reflection_api::helper::Getter_t<ClassType, PropertyType> getter,
     const query_craft::column_settings settings = query_craft::column_settings::none)
 {
-    return column<ClassType, PropertyType>(
+    return column<ClassType,
+        PropertyType,
+        reflection_api::helper::Setter_t<ClassType, PropertyType>,
+        reflection_api::helper::Getter_t<ClassType, PropertyType>>(
         query_craft::column_info(
             column_name,
             settings),
@@ -144,11 +153,14 @@ auto make_column(
 template<typename ClassType, typename PropertyType>
 auto make_column(
     std::string column_name,
-    reflection_api::helper::BaseSetter_t<ClassType, PropertyType>&& setter,
-    reflection_api::helper::ConstGetter_t<ClassType, PropertyType>&& getter,
+    reflection_api::helper::BaseSetter_t<ClassType, PropertyType> setter,
+    reflection_api::helper::ConstGetter_t<ClassType, PropertyType> getter,
     const query_craft::column_settings settings = query_craft::column_settings::none)
 {
-    return column<ClassType, PropertyType>(
+    return column<ClassType,
+        PropertyType,
+        reflection_api::helper::BaseSetter_t<ClassType, PropertyType>,
+        reflection_api::helper::ConstGetter_t<ClassType, PropertyType>>(
         query_craft::column_info(
             column_name,
             settings),
@@ -165,7 +177,10 @@ auto make_column(
     reflection_api::helper::MutableGetter_t<ClassType, PropertyType> getter,
     const query_craft::column_settings settings = query_craft::column_settings::none)
 {
-    return column<ClassType, PropertyType>(
+    return column<ClassType,
+        PropertyType,
+        reflection_api::helper::BaseSetter_t<ClassType, PropertyType>,
+        reflection_api::helper::MutableGetter_t<ClassType, PropertyType>>(
         query_craft::column_info(
             column_name,
             settings),
@@ -182,7 +197,10 @@ auto make_column(
     reflection_api::helper::Getter_t<ClassType, PropertyType> getter,
     const query_craft::column_settings settings = query_craft::column_settings::none)
 {
-    return column<ClassType, PropertyType>(
+    return column<ClassType,
+        PropertyType,
+        reflection_api::helper::BaseSetter_t<ClassType, PropertyType>,
+        reflection_api::helper::Getter_t<ClassType, PropertyType>>(
         query_craft::column_info(
             column_name,
             settings),

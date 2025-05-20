@@ -257,14 +257,6 @@ public:
                             this->action_insert()(reference_column, row, value);
                             break;
                         }
-                        case relation_type::one_to_one_inverted:
-                        case relation_type::one_to_many: {
-                            auto reference_storage = make_storage(_database, reference_column.reference_table());
-                            reference_storage.set_transaction(_open_transaction);
-                            const auto property_value = reference_column.property().value(value);
-                            reference_storage.upsert(property_value);
-                            break;
-                        }
                     }
                 }));
 
@@ -274,6 +266,23 @@ public:
         const auto sql = sql_table.insert_sql(columns_for_insert);
 
         exec(sql);
+
+        // Вставка зависимых объектов должна происходить после вставки объекта на который происходит ссылка
+        std::for_each(begin, end, [this](const auto& value) {
+            _dto.for_each(visitor::make_reference_column_visitor(
+                [this, &value](auto& reference_column) {
+                    switch(reference_column.type()) {
+                        case relation_type::one_to_one_inverted:
+                        case relation_type::one_to_many: {
+                            auto reference_storage = make_storage(this->_database, reference_column.reference_table());
+                            reference_storage.set_transaction(this->_open_transaction);
+                            const auto property_value = reference_column.property().value(value);
+                            reference_storage.upsert(property_value);
+                            break;
+                        }
+                    }
+                }));
+        });
 
         if(!has_transactional) {
             commit();
@@ -311,14 +320,6 @@ public:
                         this->action_update()(reference_column, value, row, columns_for_update);
                         break;
                     }
-                    case relation_type::one_to_one_inverted:
-                    case relation_type::one_to_many: {
-                        auto reference_storage = make_storage(_database, reference_column.reference_table());
-                        reference_storage.set_transaction(_open_transaction);
-                        const auto property_value = reference_column.property().value(value);
-                        reference_storage.upsert(property_value);
-                        break;
-                    }
                 }
             }));
 
@@ -327,6 +328,21 @@ public:
         const auto sql = sql_table.update_sql(condition_for_update, columns_for_update);
 
         exec(sql);
+
+        // Вставка зависимых объектов должна происходить после вставки объекта на который происходит ссылка
+        _dto.for_each(visitor::make_reference_column_visitor(
+            [this, &value](auto& reference_column) {
+                switch(reference_column.type()) {
+                    case relation_type::one_to_one_inverted:
+                    case relation_type::one_to_many: {
+                        auto reference_storage = make_storage(this->_database, reference_column.reference_table());
+                        reference_storage.set_transaction(this->_open_transaction);
+                        const auto property_value = reference_column.property().value(value);
+                        reference_storage.upsert(property_value);
+                        break;
+                    }
+                }
+            }));
 
         if(!has_transactional) {
             commit();
