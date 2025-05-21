@@ -171,7 +171,18 @@ public:
     template<typename Begin, typename End>
     std::vector<ClassType> select_by_ids(const Begin& begin, const End& end)
     {
-        _condition_group = primary_key_column(_dto).in_list(begin, end);
+        std::vector<std::string> ids;
+
+        std::for_each(begin, end, [this, &ids](const auto& id) {
+            this->dto.for_each([&ids, &id](const auto& column) {
+                auto column_info = column.column_info();
+                if(column_info.has_settings(query_craft::column_settings::primary_key)) {
+                    ids.emplace_back(column.converter().convert_to_string(id));
+                }
+            });
+        });
+
+        _condition_group = primary_key_column(_dto).in_list(ids.begin(), ids.end());
         return get();
     }
 
@@ -206,7 +217,16 @@ public:
     template<typename IdType>
     std::shared_ptr<ClassType> get_by_id(const IdType& id)
     {
-        _condition_group = primary_key_column(_dto) == id;
+        std::string s_id;
+
+        dto.for_each([&s_id, &id](const auto& column) {
+            auto column_info = column.column_info();
+            if(column_info.has_settings(query_craft::column_settings::primary_key)) {
+                s_id = column.converter().convert_to_string(id);
+            }
+        });
+
+        _condition_group = primary_key_column(_dto) == s_id;
         return get();
     }
 
@@ -345,23 +365,6 @@ public:
 
         exec(sql);
 
-        clear_select_settings();
-
-        _dto.for_each([this, &value](const auto& column) {
-            auto column_info = column.column_info();
-            if(!column_info.has_settings(query_craft::column_settings::primary_key)) {
-                return;
-            }
-
-            auto property = column.property();
-
-            const auto string_property_value = property.property_converter()
-                                                   ->convert_to_string(property.value(value));
-            _condition_group = column_info == string_property_value;
-        });
-
-        _without_relation_entity = true;
-
         // Вставка зависимых объектов должна происходить после вставки объекта на который происходит ссылка
         _dto.for_each(visitor::make_reference_column_visitor(
             [this, &value](auto& reference_column) {
@@ -376,6 +379,8 @@ public:
                             break;
                         }
                     }
+
+                    // TODO здесь должна быть логика определения для orphanRemoval = true
                 }
             }));
 
@@ -478,6 +483,9 @@ public:
 
                         const auto property_value = reference_column.property().value(value);
                         reference_storage.remove(property_value);
+                    } else {
+
+                        // TODO здесь должна быть логика зануления ссылок для типов one_to_many и one_to_one_inverted
                     }
                 }));
         });
@@ -725,7 +733,7 @@ private:
 
     auto action_update()
     {
-        return [this](auto& reference_column, auto& value, query_craft::sql_table::row& row, std::vector<query_craft::column_info>& columns_for_update) {
+        return [this](auto& reference_column, const auto& old_value, const auto& value, query_craft::sql_table::row& row, std::vector<query_craft::column_info>& columns_for_update) {
             columns_for_update.emplace_back(reference_column.column_info());
             auto reference_property = reference_column.property();
 
