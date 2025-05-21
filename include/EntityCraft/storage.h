@@ -180,7 +180,7 @@ public:
         std::vector<std::string> ids;
 
         std::for_each(begin, end, [this, &ids](const auto& id) {
-            this->dto.for_each([&ids, &id](const auto& column) {
+            this->_dto.for_each([&ids, &id](const auto& column) {
                 auto column_info = column.column_info();
                 if(column_info.has_settings(query_craft::column_settings::primary_key)) {
                     ids.emplace_back(column.converter()->convert_to_string(id));
@@ -225,7 +225,7 @@ public:
     {
         std::string s_id;
 
-        dto.for_each([&s_id, &id](const auto& column) {
+        _dto.for_each([&s_id, &id](const auto& column) {
             auto column_info = column.column_info();
             if(column_info.has_settings(query_craft::column_settings::primary_key)) {
                 s_id = column.converter()->convert_to_string(id);
@@ -400,7 +400,7 @@ public:
 
                 const auto property_value = reference_column.property().value(value);
 
-                if(reference_column.has_cascade(cascade_type::all) || reference_column.has_cascade(cascade_type::merge)) {
+                if(reference_column.has_cascade(cascade_type::all) || reference_column.has_cascade(cascade_type::merge) || reference_column.has_cascade(cascade_type::merge_orphan)) {
                     bool empty = true;
 
                     if(reference_column.type() == relation_type::one_to_one_inverted) {
