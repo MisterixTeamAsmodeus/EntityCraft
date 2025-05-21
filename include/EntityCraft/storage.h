@@ -177,19 +177,8 @@ public:
     template<typename Begin, typename End>
     std::vector<ClassType> select_by_ids(const Begin& begin, const End& end)
     {
-        std::vector<std::string> ids;
-
-        std::for_each(begin, end, [this, &ids](const auto& id) {
-            this->_dto.for_each([&ids, &id](const auto& column) {
-                auto column_info = column.column_info();
-                if(column_info.has_settings(query_craft::column_settings::primary_key)) {
-                    ids.emplace_back(column.converter()->convert_to_string(id));
-                }
-            });
-        });
-
-        _condition_group = primary_key_column(_dto).in_list(ids.begin(), ids.end());
-        return get();
+        _condition_group = primary_key_column(_dto).in_list(begin, end);
+        return select();
     }
 
     size_t count()
@@ -223,16 +212,7 @@ public:
     template<typename IdType>
     std::shared_ptr<ClassType> get_by_id(const IdType& id)
     {
-        std::string s_id;
-
-        _dto.for_each([&s_id, &id](const auto& column) {
-            auto column_info = column.column_info();
-            if(column_info.has_settings(query_craft::column_settings::primary_key)) {
-                s_id = column.converter()->convert_to_string(id);
-            }
-        });
-
-        _condition_group = primary_key_column(_dto) == s_id;
+        _condition_group = primary_key_column(_dto) == id;
         return get();
     }
 
