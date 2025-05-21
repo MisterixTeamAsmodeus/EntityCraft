@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cascadetype.h"
 #include "column.h"
 #include "relationtype.h"
 #include "table.h"
@@ -23,10 +24,12 @@ public:
     reference_column(query_craft::column_info column_info,
         reflection_api::property<ClassType, PropertyType, Setter, Getter> reflection_property,
         table<ReferencePropertyType, ReferenceColumns...> reference_table,
-        const relation_type type = relation_type::one_to_one)
+        const relation_type type = relation_type::one_to_one,
+        const cascade_type cascade = cascade_type::all)
         : column<ClassType, PropertyType, Setter, Getter>(std::move(column_info), std::move(reflection_property))
         , _reference_table(std::move(reference_table))
         , _type(type)
+        , _cascade(cascade)
     {
     }
 
@@ -56,9 +59,21 @@ public:
         return *this;
     }
 
+    bool has_cascade(const cascade_type cascade) const
+    {
+        auto t = (_cascade | cascade);
+        return t == _cascade;
+    }
+
+    cascade_type cascade() const
+    {
+        return _cascade;
+    }
+
 private:
     table<ReferencePropertyType, ReferenceColumns...> _reference_table;
     relation_type _type;
+    cascade_type _cascade;
 
     type_converter_api::container_converter<PropertyType, ReferencePropertyType> _inserter;
 };
@@ -72,7 +87,8 @@ auto make_reference_column(
     reflection_api::helper::Variable_t<ClassType, PropertyType> variable,
     table<ReferencePropertyType, ReferenceColumns...> reference_table,
     const query_craft::column_settings settings = query_craft::column_settings::none,
-    const relation_type type = relation_type::one_to_one)
+    const relation_type type = relation_type::one_to_one,
+    const cascade_type cascade = cascade_type::all)
 {
     return reference_column<ClassType,
         PropertyType,
@@ -87,7 +103,8 @@ auto make_reference_column(
             column_name,
             variable),
         std::move(reference_table),
-        type);
+        type,
+        cascade);
 }
 
 template<typename ClassType,
@@ -98,7 +115,8 @@ auto make_reference_column(
     std::string column_name,
     reflection_api::helper::Variable_t<ClassType, PropertyType> variable,
     table<ReferencePropertyType, ReferenceColumns...> reference_table,
-    const relation_type type)
+    const relation_type type,
+    const cascade_type cascade = cascade_type::all)
 {
     return reference_column<ClassType,
         PropertyType,
@@ -113,7 +131,8 @@ auto make_reference_column(
             column_name,
             variable),
         std::move(reference_table),
-        type);
+        type,
+        cascade);
 }
 
 template<typename ClassType,
@@ -126,7 +145,8 @@ auto make_reference_column(
     reflection_api::helper::ConstGetter_t<ClassType, PropertyType> getter,
     table<ReferencePropertyType, ReferenceColumns...> reference_table,
     const query_craft::column_settings settings = query_craft::column_settings::none,
-    const relation_type type = relation_type::one_to_one)
+    const relation_type type = relation_type::one_to_one,
+    const cascade_type cascade = cascade_type::all)
 {
     return reference_column<ClassType,
         PropertyType,
@@ -140,7 +160,8 @@ auto make_reference_column(
             setter,
             getter),
         std::move(reference_table),
-        type);
+        type,
+        cascade);
 }
 
 template<typename ClassType,
@@ -152,7 +173,8 @@ auto make_reference_column(
     reflection_api::helper::Setter_t<ClassType, PropertyType> setter,
     reflection_api::helper::ConstGetter_t<ClassType, PropertyType> getter,
     table<ReferencePropertyType, ReferenceColumns...> reference_table,
-    const relation_type type)
+    const relation_type type,
+    const cascade_type cascade = cascade_type::all)
 {
     return reference_column<ClassType,
         PropertyType,
@@ -168,7 +190,8 @@ auto make_reference_column(
             setter,
             getter),
         std::move(reference_table),
-        type);
+        type,
+        cascade);
 }
 
 template<typename ClassType,
@@ -181,7 +204,8 @@ auto make_reference_column(
     reflection_api::helper::MutableGetter_t<ClassType, PropertyType> getter,
     table<ReferencePropertyType, ReferenceColumns...> reference_table,
     const query_craft::column_settings settings = query_craft::column_settings::none,
-    const relation_type type = relation_type::one_to_one)
+    const relation_type type = relation_type::one_to_one,
+    const cascade_type cascade = cascade_type::all)
 {
     return reference_column<ClassType,
         PropertyType,
@@ -195,7 +219,8 @@ auto make_reference_column(
             setter,
             getter),
         std::move(reference_table),
-        type);
+        type,
+        cascade);
 }
 
 template<typename ClassType,
@@ -207,7 +232,8 @@ auto make_reference_column(
     reflection_api::helper::Setter_t<ClassType, PropertyType> setter,
     reflection_api::helper::MutableGetter_t<ClassType, PropertyType> getter,
     table<ReferencePropertyType, ReferenceColumns...> reference_table,
-    const relation_type type)
+    const relation_type type,
+    const cascade_type cascade = cascade_type::all)
 {
     return reference_column<ClassType,
         PropertyType,
@@ -223,7 +249,8 @@ auto make_reference_column(
             setter,
             getter),
         std::move(reference_table),
-        type);
+        type,
+        cascade);
 }
 
 template<typename ClassType,
@@ -236,7 +263,8 @@ auto make_reference_column(
     reflection_api::helper::Getter_t<ClassType, PropertyType> getter,
     table<ReferencePropertyType, ReferenceColumns...> reference_table,
     const query_craft::column_settings settings = query_craft::column_settings::none,
-    const relation_type type = relation_type::one_to_one)
+    const relation_type type = relation_type::one_to_one,
+    const cascade_type cascade = cascade_type::all)
 {
     return reference_column<ClassType,
         PropertyType,
@@ -250,7 +278,8 @@ auto make_reference_column(
             setter,
             getter),
         std::move(reference_table),
-        type);
+        type,
+        cascade);
 }
 
 template<typename ClassType,
@@ -262,7 +291,8 @@ auto make_reference_column(
     reflection_api::helper::Setter_t<ClassType, PropertyType> setter,
     reflection_api::helper::Getter_t<ClassType, PropertyType> getter,
     table<ReferencePropertyType, ReferenceColumns...> reference_table,
-    const relation_type type)
+    const relation_type type,
+    const cascade_type cascade = cascade_type::all)
 {
     return reference_column<ClassType,
         PropertyType,
@@ -278,7 +308,8 @@ auto make_reference_column(
             setter,
             getter),
         std::move(reference_table),
-        type);
+        type,
+        cascade);
 }
 
 //-----------------------------Перегрузки для примитивов, где параметры в setter не по const &-----------------------------------
@@ -293,7 +324,8 @@ auto make_reference_column(
     reflection_api::helper::ConstGetter_t<ClassType, PropertyType> getter,
     table<ReferencePropertyType, ReferenceColumns...> reference_table,
     const query_craft::column_settings settings = query_craft::column_settings::none,
-    const relation_type type = relation_type::one_to_one)
+    const relation_type type = relation_type::one_to_one,
+    const cascade_type cascade = cascade_type::all)
 {
     return reference_column<ClassType,
         PropertyType,
@@ -307,7 +339,8 @@ auto make_reference_column(
             setter,
             getter),
         std::move(reference_table),
-        type);
+        type,
+        cascade);
 }
 
 template<typename ClassType,
@@ -319,7 +352,8 @@ auto make_reference_column(
     reflection_api::helper::BaseSetter_t<ClassType, PropertyType> setter,
     reflection_api::helper::ConstGetter_t<ClassType, PropertyType> getter,
     table<ReferencePropertyType, ReferenceColumns...> reference_table,
-    const relation_type type)
+    const relation_type type,
+    const cascade_type cascade = cascade_type::all)
 {
     return reference_column<ClassType,
         PropertyType,
@@ -335,7 +369,8 @@ auto make_reference_column(
             setter,
             getter),
         std::move(reference_table),
-        type);
+        type,
+        cascade);
 }
 
 template<typename ClassType,
@@ -348,7 +383,8 @@ auto make_reference_column(
     reflection_api::helper::MutableGetter_t<ClassType, PropertyType> getter,
     table<ReferencePropertyType, ReferenceColumns...> reference_table,
     const query_craft::column_settings settings = query_craft::column_settings::none,
-    const relation_type type = relation_type::one_to_one)
+    const relation_type type = relation_type::one_to_one,
+    const cascade_type cascade = cascade_type::all)
 {
     return reference_column<ClassType,
         PropertyType,
@@ -362,7 +398,8 @@ auto make_reference_column(
             setter,
             getter),
         std::move(reference_table),
-        type);
+        type,
+        cascade);
 }
 
 template<typename ClassType,
@@ -374,7 +411,8 @@ auto make_reference_column(
     reflection_api::helper::BaseSetter_t<ClassType, PropertyType> setter,
     reflection_api::helper::MutableGetter_t<ClassType, PropertyType> getter,
     table<ReferencePropertyType, ReferenceColumns...> reference_table,
-    const relation_type type)
+    const relation_type type,
+    const cascade_type cascade = cascade_type::all)
 {
     return reference_column<ClassType,
         PropertyType,
@@ -390,7 +428,8 @@ auto make_reference_column(
             setter,
             getter),
         std::move(reference_table),
-        type);
+        type,
+        cascade);
 }
 
 template<typename ClassType,
@@ -403,7 +442,8 @@ auto make_reference_column(
     reflection_api::helper::Getter_t<ClassType, PropertyType> getter,
     table<ReferencePropertyType, ReferenceColumns...> reference_table,
     const query_craft::column_settings settings = query_craft::column_settings::none,
-    const relation_type type = relation_type::one_to_one)
+    const relation_type type = relation_type::one_to_one,
+    const cascade_type cascade = cascade_type::all)
 {
     return reference_column<ClassType,
         PropertyType,
@@ -417,7 +457,8 @@ auto make_reference_column(
             setter,
             getter),
         std::move(reference_table),
-        type);
+        type,
+        cascade);
 }
 
 template<typename ClassType,
@@ -429,7 +470,8 @@ auto make_reference_column(
     reflection_api::helper::BaseSetter_t<ClassType, PropertyType> setter,
     reflection_api::helper::Getter_t<ClassType, PropertyType> getter,
     table<ReferencePropertyType, ReferenceColumns...> reference_table,
-    const relation_type type)
+    const relation_type type,
+    const cascade_type cascade = cascade_type::all)
 {
     return reference_column<ClassType,
         PropertyType,
@@ -445,7 +487,8 @@ auto make_reference_column(
             setter,
             getter),
         std::move(reference_table),
-        type);
+        type,
+        cascade);
 }
 
 } // namespace entity_craft

@@ -19,6 +19,8 @@ template<typename ClassType, typename... Columns>
 class storage
 {
 public:
+    using class_type = ClassType;
+
     storage(const std::shared_ptr<database_adapter::IDataBaseDriver>& database, table<ClassType, Columns...> dto, const bool auto_commit = true)
         : _database(database)
         , _dto(std::move(dto))
@@ -94,6 +96,11 @@ public:
         return _database;
     }
 
+    auto dto() const
+    {
+        return _dto;
+    }
+
     bool commit()
     {
         if(_open_transaction != nullptr) {
@@ -155,10 +162,17 @@ public:
 
         std::vector<ClassType> res;
         for(const auto& row : result.data()) {
-            res.emplace_back(fill_class_by_sql(_dto, row, _database, _open_transaction));
+            res.emplace_back(fill_class_by_sql(_dto, row, _database, _open_transaction, _without_relation_entity));
         }
 
         return res;
+    }
+
+    template<typename Begin, typename End>
+    std::vector<ClassType> select_by_ids(const Begin& begin, const End& end)
+    {
+        _condition_group = primary_key_column(_dto).in_list(begin, end);
+        return get();
     }
 
     size_t count()
@@ -271,14 +285,16 @@ public:
         std::for_each(begin, end, [this](const auto& value) {
             _dto.for_each(visitor::make_reference_column_visitor(
                 [this, &value](auto& reference_column) {
-                    switch(reference_column.type()) {
-                        case relation_type::one_to_one_inverted:
-                        case relation_type::one_to_many: {
-                            auto reference_storage = make_storage(this->_database, reference_column.reference_table());
-                            reference_storage.set_transaction(this->_open_transaction);
-                            const auto property_value = reference_column.property().value(value);
-                            reference_storage.upsert(property_value);
-                            break;
+                    if(reference_column.has_cascade(cascade_type::all) || reference_column.has_cascade(cascade_type::persist)) {
+                        switch(reference_column.type()) {
+                            case relation_type::one_to_one_inverted:
+                            case relation_type::one_to_many: {
+                                auto reference_storage = make_storage(this->_database, reference_column.reference_table());
+                                reference_storage.set_transaction(this->_open_transaction);
+                                const auto property_value = reference_column.property().value(value);
+                                reference_storage.upsert(property_value);
+                                break;
+                            }
                         }
                     }
                 }));
@@ -329,17 +345,36 @@ public:
 
         exec(sql);
 
+        clear_select_settings();
+
+        _dto.for_each([this, &value](const auto& column) {
+            auto column_info = column.column_info();
+            if(!column_info.has_settings(query_craft::column_settings::primary_key)) {
+                return;
+            }
+
+            auto property = column.property();
+
+            const auto string_property_value = property.property_converter()
+                                                   ->convert_to_string(property.value(value));
+            _condition_group = column_info == string_property_value;
+        });
+
+        _without_relation_entity = true;
+
         // Вставка зависимых объектов должна происходить после вставки объекта на который происходит ссылка
         _dto.for_each(visitor::make_reference_column_visitor(
             [this, &value](auto& reference_column) {
-                switch(reference_column.type()) {
-                    case relation_type::one_to_one_inverted:
-                    case relation_type::one_to_many: {
-                        auto reference_storage = make_storage(this->_database, reference_column.reference_table());
-                        reference_storage.set_transaction(this->_open_transaction);
-                        const auto property_value = reference_column.property().value(value);
-                        reference_storage.upsert(property_value);
-                        break;
+                if(reference_column.has_cascade(cascade_type::all) || reference_column.has_cascade(cascade_type::merge)) {
+                    switch(reference_column.type()) {
+                        case relation_type::one_to_one_inverted:
+                        case relation_type::one_to_many: {
+                            auto reference_storage = make_storage(this->_database, reference_column.reference_table());
+                            reference_storage.set_transaction(this->_open_transaction);
+                            const auto property_value = reference_column.property().value(value);
+                            reference_storage.upsert(property_value);
+                            break;
+                        }
                     }
                 }
             }));
@@ -388,16 +423,18 @@ public:
 
     void remove(const query_craft::condition_info& condition)
     {
-        remove(static_cast<query_craft::condition_group>(condition));
+        clear_select_settings();
+        _condition_group = condition;
+
+        remove(select());
     }
 
     void remove(const query_craft::condition_group& condition)
     {
-        const query_craft::sql_table sql_table(_dto.table_info());
+        clear_select_settings();
+        _condition_group = condition;
 
-        const auto sql = sql_table.remove_sql(condition);
-
-        exec(sql);
+        remove(select());
     }
 
     void remove(const ClassType& value)
@@ -414,24 +451,44 @@ public:
 
         query_craft::condition_group condition_for_remove;
 
+        const auto has_transactional = _open_transaction != nullptr;
+
+        if(!has_transactional) {
+            transaction();
+        }
+
         std::for_each(begin, end, [this, &condition_for_remove](const auto& value) {
-            _dto.for_each(visitor::make_column_visitor([&value, &condition_for_remove](auto& column) {
-                auto column_info = column.column_info();
+            _dto.for_each(visitor::make_any_column_visitor(
+                [&value, &condition_for_remove](auto& column) {
+                    auto column_info = column.column_info();
 
-                if(!column_info.has_settings(query_craft::column_settings::primary_key))
-                    return;
+                    if(!column_info.has_settings(query_craft::column_settings::primary_key))
+                        return;
 
-                auto property = column.property();
+                    auto property = column.property();
 
-                const auto string_property_value = property.property_converter()
-                                                       ->convert_to_string(property.value(value));
-                condition_for_remove = column_info == string_property_value;
-            }));
+                    const auto string_property_value = property.property_converter()
+                                                           ->convert_to_string(property.value(value));
+                    condition_for_remove = column_info == string_property_value;
+                },
+                [this, &value](auto& reference_column) {
+                    if(reference_column.has_cascade(cascade_type::all) || reference_column.has_cascade(cascade_type::remove)) {
+                        auto reference_storage = make_storage(this->_database, reference_column.reference_table());
+                        reference_storage.set_transaction(this->_open_transaction);
+
+                        const auto property_value = reference_column.property().value(value);
+                        reference_storage.remove(property_value);
+                    }
+                }));
         });
 
         const auto sql = sql_table.remove_sql(condition_for_remove);
 
         exec(sql);
+
+        if(!has_transactional) {
+            commit();
+        }
     }
 
     template<typename Container>
@@ -577,7 +634,8 @@ private:
     JoinClassType fill_class_by_sql(table<JoinClassType, JoinClassColumn...>& dto,
         const database_adapter::models::query_result::result_row& query_result,
         const std::shared_ptr<database_adapter::IDataBaseDriver>& database,
-        const std::shared_ptr<database_adapter::ITransaction>& open_transaction)
+        const std::shared_ptr<database_adapter::ITransaction>& open_transaction,
+        bool without_relation_entity)
     {
         auto entity = dto.empty_entity();
 
@@ -585,7 +643,7 @@ private:
             [this, &entity, &query_result](auto& column) {
                 this->action_fill_property()(column, query_result, entity);
             },
-            [this, &entity, &query_result, &database, &open_transaction, &dto](auto& reference_column) {
+            [this, &entity, &query_result, &database, &open_transaction, &dto, &without_relation_entity](auto& reference_column) {
                 auto reference_propery = reference_column.property();
                 auto reference_table = reference_column.reference_table();
 
@@ -593,12 +651,15 @@ private:
                     case relation_type::many_to_one:
                     case relation_type::one_to_one_inverted:
                     case relation_type::one_to_one: {
-                        auto reference_entity = this->fill_class_by_sql(reference_table, query_result, database, open_transaction);
+                        auto reference_entity = this->fill_class_by_sql(reference_table, query_result, database, open_transaction, without_relation_entity);
 
                         reference_propery.set_value(entity, reference_entity);
                         break;
                     }
                     case relation_type::one_to_many: {
+                        if(without_relation_entity)
+                            break;
+
                         auto reference_storage = make_storage(database, reference_table);
                         reference_storage.set_transaction(open_transaction);
 
@@ -652,11 +713,13 @@ private:
                 }
             }));
 
-            auto reference_storage = make_storage(_database, reference_table);
-            reference_storage.set_transaction(_open_transaction);
-
-            if(row.back() != query_craft::column_info::null_value())
-                reference_storage.upsert(reference_property_value);
+            if(reference_column.has_cascade(cascade_type::all) || reference_column.has_cascade(cascade_type::persist)) {
+                if(row.back() != query_craft::column_info::null_value()) {
+                    auto reference_storage = make_storage(_database, reference_table);
+                    reference_storage.set_transaction(_open_transaction);
+                    reference_storage.upsert(reference_property_value);
+                }
+            }
         };
     }
 
@@ -683,11 +746,14 @@ private:
                 }
             }));
 
-            auto reference_storage = make_storage(_database, reference_table);
-            reference_storage.set_transaction(_open_transaction);
+            if(reference_column.has_cascade(cascade_type::all) || reference_column.has_cascade(cascade_type::merge)) {
+                if(row.back() != query_craft::column_info::null_value()) {
+                    auto reference_storage = make_storage(_database, reference_table);
+                    reference_storage.set_transaction(_open_transaction);
 
-            if(row.back() != query_craft::column_info::null_value())
-                reference_storage.upsert(reference_property_value);
+                    reference_storage.upsert(reference_property_value);
+                }
+            }
         };
     }
 
