@@ -716,6 +716,10 @@ private:
                     case relation_type::one_to_one: {
                         auto reference_entity = parse_entity_from_sql(reference_table, query_result, without_relation_entity);
 
+                        if(reference_table.has_reques_callback()) {
+                            reference_table.reques_callback()->post_request_callback(reference_entity, request_callback_type::select, _open_transaction);
+                        }
+
                         reference_propery.set_value(entity, reference_entity);
                         break;
                     }
