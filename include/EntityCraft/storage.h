@@ -158,8 +158,6 @@ public:
             _offset,
             columns);
 
-        clear_select_settings();
-
         const auto result = exec(sql);
 
         if(result.empty()) {
@@ -171,12 +169,17 @@ public:
             res.emplace_back(parse_entity_from_sql(_dto, row, _without_relation_entity));
         }
 
+        clear_select_settings();
+
         return res;
     }
 
     template<typename Begin, typename End>
     std::vector<ClassType> select_by_ids(const Begin& begin, const End& end)
     {
+        if(begin == end)
+            return {};
+
         _condition_group = primary_key_column(_dto).in_list(begin, end);
         return select();
     }
