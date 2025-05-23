@@ -3,6 +3,7 @@
 #include "QueryCraft/conditiongroup.h"
 #include "QueryCraft/table.h"
 #include "ReflectionApi/entity.h"
+#include "requestcallback.h"
 
 namespace entity_craft {
 
@@ -35,23 +36,23 @@ public:
     table& operator=(const table& other) = default;
     table& operator=(table&& other) noexcept = default;
 
-    template<typename Action>
-    void visit_property(const std::string& property_name, Action&& action)
+    template<typename Action_>
+    void visit_property(const std::string& property_name, Action_&& action)
     {
         reflection_api::helper::perform_if(
             _columns,
             [&](const auto& column) {
                 return column.name() == property_name;
             },
-            std::forward<Action>(action));
+            std::forward<Action_>(action));
     }
 
-    template<typename Action>
-    void for_each(Action&& action)
+    template<typename Action_>
+    void for_each(Action_&& action)
     {
         reflection_api::helper::for_each(
             _columns,
-            std::forward<Action>(action));
+            std::forward<Action_>(action));
     }
 
     query_craft::table table_info() const
@@ -64,16 +65,37 @@ public:
         return _duplicate_column;
     }
 
+    std::shared_ptr<request_callback<ClassType>> reques_callback() const
+    {
+        return _reques_callback;
+    }
+
+    auto& set_reques_callback(const std::shared_ptr<request_callback<ClassType>>& reques_callback)
+    {
+        _reques_callback = reques_callback;
+        return *this;
+    }
+
+    bool has_reques_callback() const
+    {
+        return _reques_callback != nullptr;
+    }
+
 private:
     query_craft::table _table_info;
     std::tuple<Columns...> _columns = {};
     std::vector<query_craft::column_info> _duplicate_column;
+
+    std::shared_ptr<request_callback<ClassType>> _reques_callback = nullptr;
 };
 
 template<typename ClassType, typename... Properties>
 auto make_table(std::string scheme, std::string table_name, Properties&&... properties)
 {
-    return table<ClassType, Properties...>(std::move(table_name), std::move(scheme), std::move(properties)...);
+    return table<ClassType, Properties...>(
+        std::move(table_name),
+        std::move(scheme),
+        std::move(properties)...);
 }
 
 } // namespace entity_craft

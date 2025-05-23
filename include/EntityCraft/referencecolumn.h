@@ -48,7 +48,7 @@ public:
         return _type;
     }
 
-    auto inserter() const
+    type_converter_api::container_converter<PropertyType, ReferencePropertyType> inserter() const
     {
         return _inserter;
     }
@@ -61,8 +61,7 @@ public:
 
     bool has_cascade(const cascade_type cascade) const
     {
-        auto t = (_cascade | cascade);
-        return t == _cascade;
+        return (_cascade | cascade) == _cascade;
     }
 
     cascade_type cascade() const

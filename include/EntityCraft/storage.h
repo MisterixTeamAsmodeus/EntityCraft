@@ -31,6 +31,11 @@ public:
             _database->connect();
     }
 
+    storage(const storage& other) = default;
+    storage(storage&& other) noexcept = default;
+    storage& operator=(const storage& other) = default;
+    storage& operator=(storage&& other) noexcept = default;
+
     ~storage()
     {
         if(_open_transaction != nullptr && _auto_commit)
@@ -164,9 +169,22 @@ public:
             return {};
         }
 
+        const bool has_transaction = _open_transaction != nullptr;
+        if(!has_transaction) {
+            transaction();
+        }
+
         std::vector<ClassType> res;
         for(const auto& row : result.data()) {
-            res.emplace_back(parse_entity_from_sql(_dto, row, _without_relation_entity));
+            auto entity = parse_entity_from_sql(_dto, row, _without_relation_entity);
+            if(_dto.has_reques_callback()) {
+                _dto.reques_callback()->post_request_callback(entity, request_callback_type::select, _open_transaction);
+            }
+            res.emplace_back(entity);
+        }
+
+        if(!has_transaction) {
+            commit();
         }
 
         clear_select_settings();
@@ -241,7 +259,7 @@ public:
         return get() != nullptr;
     }
 
-    void insert(const ClassType& value)
+    void insert(ClassType& value)
     {
         std::vector<ClassType> data = { value };
 
@@ -261,7 +279,10 @@ public:
 
         std::vector<query_craft::column_info> columns_for_insert;
 
-        std::for_each(begin, end, [this, &sql_table, &columns_for_insert](const auto& value) {
+        std::for_each(begin, end, [this, &sql_table, &columns_for_insert](auto& value) {
+            if(_dto.has_reques_callback()) {
+                _dto.reques_callback()->pre_request_callback(value, request_callback_type::insert, _open_transaction);
+            }
             prepare_to_insert(columns_for_insert, sql_table, value);
         });
 
@@ -270,7 +291,11 @@ public:
         exec(sql);
 
         // Вставка зависимых объектов должна происходить после вставки объекта на который происходит ссылка
-        std::for_each(begin, end, [this](const auto& value) {
+        std::for_each(begin, end, [this](auto& value) {
+            if(_dto.has_reques_callback()) {
+                _dto.reques_callback()->post_request_callback(value, request_callback_type::insert, _open_transaction);
+            }
+
             // Вставка зависимых объектов должна происходить после вставки объекта на который происходит ссылка
             _dto.for_each(visitor::make_reference_column_visitor([this, &value](auto& reference_column) {
                 if(reference_column.type() != relation_type::one_to_one_inverted && reference_column.type() != relation_type::one_to_many) {
@@ -292,12 +317,12 @@ public:
     }
 
     template<typename Container>
-    void insert(const Container& value)
+    void insert(Container& value)
     {
         insert(value.begin(), value.end());
     }
 
-    void update(const ClassType& value)
+    void update(ClassType& value)
     {
         query_craft::sql_table sql_table(_dto.table_info());
 
@@ -319,6 +344,10 @@ public:
         std::vector<query_craft::column_info> columns_for_update;
         query_craft::sql_table::row row;
 
+        if(_dto.has_reques_callback()) {
+            _dto.reques_callback()->pre_request_callback(value, request_callback_type::update, _open_transaction);
+        }
+
         prepare_to_update(value, condition_for_update, columns_for_update, row);
 
         sql_table.add_row(row);
@@ -326,6 +355,10 @@ public:
         const auto sql = sql_table.update_sql(condition_for_update, columns_for_update);
 
         exec(sql);
+
+        if(_dto.has_reques_callback()) {
+            _dto.reques_callback()->post_request_callback(value, request_callback_type::update, _open_transaction);
+        }
 
         // Вставка зависимых объектов должна происходить после вставки объекта на который происходит ссылка
         _dto.for_each(visitor::make_reference_column_visitor([this, &value](auto& reference_column) {
@@ -349,18 +382,18 @@ public:
     template<typename Begin, typename End>
     void update(const Begin& begin, const End& end)
     {
-        std::for_each(begin, end, [this](const auto& value) {
+        std::for_each(begin, end, [this](auto& value) {
             this->update(value);
         });
     }
 
     template<typename Container>
-    void update(const Container& value)
+    void update(Container& value)
     {
         update(value.begin(), value.end());
     }
 
-    void upsert(const ClassType& value)
+    void upsert(ClassType& value)
     {
         if(contains(value)) {
             update(value);
@@ -372,13 +405,13 @@ public:
     template<typename Begin, typename End>
     void upsert(const Begin& begin, const End& end)
     {
-        std::for_each(begin, end, [this](const auto& value) {
+        std::for_each(begin, end, [this](auto& value) {
             this->upsert(value);
         });
     }
 
     template<typename Container>
-    void upsert(const Container& value)
+    void upsert(Container& value)
     {
         upsert(value.begin(), value.end());
     }
@@ -388,7 +421,8 @@ public:
         clear_select_settings();
         _condition_group = condition;
 
-        remove(select());
+        auto res = select();
+        remove(res);
     }
 
     void remove(const query_craft::condition_group& condition)
@@ -396,10 +430,11 @@ public:
         clear_select_settings();
         _condition_group = condition;
 
-        remove(select());
+        auto res = select();
+        remove(res);
     }
 
-    void remove(const ClassType& value)
+    void remove(ClassType& value)
     {
         std::vector<ClassType> data = { value };
 
@@ -419,7 +454,11 @@ public:
             transaction();
         }
 
-        std::for_each(begin, end, [this, &condition_for_remove](const auto& value) {
+        std::for_each(begin, end, [this, &condition_for_remove](auto& value) {
+            if(_dto.has_reques_callback()) {
+                _dto.reques_callback()->pre_request_callback(value, request_callback_type::remove, _open_transaction);
+            }
+
             _dto.for_each(visitor::make_any_column_visitor(
                 [&value, &condition_for_remove](auto& column) {
                     auto column_info = column.column_info();
@@ -438,7 +477,7 @@ public:
                         auto reference_storage = make_storage(this->_database, reference_column.reference_table());
                         reference_storage.set_transaction(this->_open_transaction);
 
-                        const auto property_value = reference_column.property().value(value);
+                        auto property_value = reference_column.property().value(value);
                         reference_storage.remove(property_value);
                     } else {
                         update_deleted_reference(value, reference_column);
@@ -450,13 +489,21 @@ public:
 
         exec(sql);
 
+        std::for_each(begin, end, [this](auto& value) {
+            if(!_dto.has_reques_callback()) {
+                return;
+            }
+
+            _dto.reques_callback()->post_request_callback(value, request_callback_type::remove, _open_transaction);
+        });
+
         if(!has_transactional) {
             commit();
         }
     }
 
     template<typename Container>
-    void remove(const Container& value)
+    void remove(Container& value)
     {
         remove(value.begin(), value.end());
     }
@@ -817,7 +864,7 @@ private:
         bool cascad)
     {
         auto property = reference_column.property();
-        const auto reference_property_value = property.value(value);
+        auto reference_property_value = property.value(value);
 
         auto reference_table = reference_column.reference_table();
         reference_table.for_each(visitor::make_column_visitor([&row, &reference_property_value, &reference_column](auto& column) {
@@ -860,7 +907,7 @@ private:
         reference_storage.set_transaction(_open_transaction);
 
         bool is_empty_property = false;
-        const auto property_value = reference_column.property().value(value);
+        auto property_value = reference_column.property().value(value);
 
         // Если тип связи one_to_one_inverted необходимо проверить
         // что объект не пустой для избежания ситуции когда будет создана строка с пустым объектом
@@ -895,7 +942,7 @@ private:
         const auto property_value = reference_column.property().value(value);
         const auto old_state = get_old_state(value);
 
-        const auto removed_items = check_need_remove(reference_column.property().value(old_state), property_value, reference_table);
+        auto removed_items = check_need_remove(reference_column.property().value(old_state), property_value, reference_table);
 
         if(removed_items.empty()) {
             return;
