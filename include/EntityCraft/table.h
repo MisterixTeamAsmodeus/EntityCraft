@@ -65,12 +65,12 @@ public:
         return _duplicate_column;
     }
 
-    std::shared_ptr<request_callback<ClassType>> reques_callback() const
+    std::shared_ptr<IRequestCallback<ClassType>> reques_callback() const
     {
         return _reques_callback;
     }
 
-    auto& set_reques_callback(const std::shared_ptr<request_callback<ClassType>>& reques_callback)
+    auto& set_reques_callback(const std::shared_ptr<IRequestCallback<ClassType>>& reques_callback)
     {
         _reques_callback = reques_callback;
         return *this;
@@ -86,7 +86,7 @@ private:
     std::tuple<Columns...> _columns = {};
     std::vector<query_craft::column_info> _duplicate_column;
 
-    std::shared_ptr<request_callback<ClassType>> _reques_callback = nullptr;
+    std::shared_ptr<IRequestCallback<ClassType>> _reques_callback = nullptr;
 };
 
 template<typename ClassType, typename... Properties>
