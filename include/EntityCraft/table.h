@@ -1,9 +1,11 @@
 #pragma once
 
-#include "QueryCraft/conditiongroup.h"
-#include "QueryCraft/table.h"
-#include "ReflectionApi/entity.h"
 #include "requestcallback.h"
+
+#include <ReflectionApi/entity.h>
+
+#include <QueryCraft/conditiongroup.h>
+#include <QueryCraft/table.h>
 
 namespace entity_craft {
 

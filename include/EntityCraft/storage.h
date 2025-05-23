@@ -416,7 +416,7 @@ public:
         upsert(value.begin(), value.end());
     }
 
-    void remove(const query_craft::condition_info& condition)
+    void remove_by_condition(const query_craft::condition_info& condition)
     {
         clear_select_settings();
         _condition_group = condition;
@@ -425,7 +425,7 @@ public:
         remove(res);
     }
 
-    void remove(const query_craft::condition_group& condition)
+    void remove_by_condition(const query_craft::condition_group& condition)
     {
         clear_select_settings();
         _condition_group = condition;
