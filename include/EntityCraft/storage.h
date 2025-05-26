@@ -480,7 +480,7 @@ public:
                         auto property_value = reference_column.property().value(value);
                         reference_storage.remove(property_value);
                     } else {
-                        this - update_deleted_reference(value, reference_column);
+                        this->update_deleted_reference(value, reference_column);
                     }
                 }));
         });
