@@ -283,7 +283,7 @@ public:
             if(_dto.has_reques_callback()) {
                 _dto.reques_callback()->pre_request_callback(value, request_callback_type::insert, _open_transaction);
             }
-            prepare_to_insert(columns_for_insert, sql_table, value);
+            this->prepare_to_insert(columns_for_insert, sql_table, value);
         });
 
         const auto sql = sql_table.insert_sql(columns_for_insert);
@@ -307,7 +307,7 @@ public:
                     return;
                 }
 
-                upsert_relation_property_with_type_one_to_one_inverted_or_one_to_many(reference_column, value);
+                this->upsert_relation_property_with_type_one_to_one_inverted_or_one_to_many(reference_column, value);
             }));
         });
 
@@ -334,9 +334,9 @@ public:
 
         _dto.for_each(visitor::make_reference_column_visitor([this, &value](auto& reference_column) {
             if(reference_column.has_cascade(cascade_type::all) || reference_column.has_cascade(cascade_type::merge_orphan)) {
-                sync_deleted_reference(value, reference_column);
+                this->sync_deleted_reference(value, reference_column);
             } else {
-                update_deleted_reference(value, reference_column);
+                this->update_deleted_reference(value, reference_column);
             }
         }));
 
@@ -371,7 +371,7 @@ public:
                 return;
             }
 
-            upsert_relation_property_with_type_one_to_one_inverted_or_one_to_many(reference_column, value);
+            this->upsert_relation_property_with_type_one_to_one_inverted_or_one_to_many(reference_column, value);
         }));
 
         if(!has_transactional) {
@@ -480,7 +480,7 @@ public:
                         auto property_value = reference_column.property().value(value);
                         reference_storage.remove(property_value);
                     } else {
-                        update_deleted_reference(value, reference_column);
+                        this - update_deleted_reference(value, reference_column);
                     }
                 }));
         });
@@ -714,7 +714,7 @@ private:
                     case relation_type::many_to_one:
                     case relation_type::one_to_one_inverted:
                     case relation_type::one_to_one: {
-                        auto reference_entity = parse_entity_from_sql(reference_table, query_result, without_relation_entity);
+                        auto reference_entity = this->parse_entity_from_sql(reference_table, query_result, without_relation_entity);
 
                         if(reference_table.has_reques_callback()) {
                             reference_table.reques_callback()->post_request_callback(reference_entity, request_callback_type::select, _open_transaction);
@@ -796,7 +796,7 @@ private:
                 columns_for_update.emplace_back(reference_column.column_info());
 
                 bool cascade = reference_column.has_cascade(cascade_type::all) || reference_column.has_cascade(cascade_type::merge) || reference_column.has_cascade(cascade_type::merge_orphan);
-                upsert_relation_property_with_type_one_to_one_or_many_to_one(reference_column, row, value, cascade);
+                this->upsert_relation_property_with_type_one_to_one_or_many_to_one(reference_column, row, value, cascade);
             }));
     }
 
@@ -848,7 +848,7 @@ private:
                 columns_for_insert.emplace_back(reference_column.column_info());
 
                 bool cascade = reference_column.has_cascade(cascade_type::all) || reference_column.has_cascade(cascade_type::persist);
-                upsert_relation_property_with_type_one_to_one_or_many_to_one(reference_column, row, value, cascade);
+                this->upsert_relation_property_with_type_one_to_one_or_many_to_one(reference_column, row, value, cascade);
             }));
 
         sql_table.add_row(row);
