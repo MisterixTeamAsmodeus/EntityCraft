@@ -269,6 +269,10 @@ public:
     template<typename Begin, typename End>
     void insert(const Begin& begin, const End& end)
     {
+        if(begin == end) {
+            return;
+        }
+
         query_craft::sql_table sql_table(_dto.table_info());
 
         const bool has_transactional = _open_transaction != nullptr;
@@ -444,6 +448,10 @@ public:
     template<typename Begin, typename End>
     void remove(const Begin& begin, const End& end)
     {
+        if(begin == end) {
+            return;
+        }
+
         query_craft::sql_table sql_table(_dto.table_info());
 
         query_craft::condition_group condition_for_remove;
