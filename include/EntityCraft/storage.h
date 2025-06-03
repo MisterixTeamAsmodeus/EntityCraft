@@ -478,7 +478,12 @@ public:
 
                     const auto string_property_value = property.property_converter()
                                                            ->convert_to_string(property.value(value));
-                    condition_for_remove = column_info == string_property_value;
+
+                    if(condition_for_remove.is_valid()) {
+                        condition_for_remove = condition_for_remove || column_info == string_property_value;
+                    } else {
+                        condition_for_remove = column_info == string_property_value;
+                    }
                 },
                 [this, &value](auto& reference_column) {
                     if(reference_column.has_cascade(cascade_type::all) || reference_column.has_cascade(cascade_type::remove)) {
