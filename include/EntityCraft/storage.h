@@ -850,15 +850,18 @@ private:
                     row.emplace_back(property.property_converter()->convert_to_string(property_value));
                 }
             },
-            [this, &value, &row, &columns_for_insert](auto& reference_column) {
+            [this, &value, &row, &columns_for_insert, &need_update_column_info](auto& reference_column) {
                 // Обработка других типов отношений находится дальше,
                 // так как для корректности ссылок нужно сначала вставить объекты на которые будет создаваться ссылка
                 if(reference_column.type() != relation_type::many_to_one && reference_column.type() != relation_type::one_to_one) {
                     return;
                 }
 
-                // Добавляем эту колонку так как при таком типе связи ссылочная информация хранится в текущей таблице а не в ссылочной
-                columns_for_insert.emplace_back(reference_column.column_info());
+                if(need_update_column_info) {
+                    // Добавляем имена колонок для блока INSERT INTO (column1, column2, ...);
+                    // Добавляем эту колонку так как при таком типе связи ссылочная информация хранится в текущей таблице а не в ссылочной
+                    columns_for_insert.emplace_back(reference_column.column_info());
+                }
 
                 bool cascade = reference_column.has_cascade(cascade_type::all) || reference_column.has_cascade(cascade_type::persist);
                 this->upsert_relation_property_with_type_one_to_one_or_many_to_one(reference_column, row, value, cascade);
