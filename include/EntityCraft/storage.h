@@ -282,24 +282,39 @@ public:
         }
 
         std::vector<query_craft::column_info> columns_for_insert;
+        std::vector<query_craft::column_info> columns_for_returning;
 
-        std::for_each(begin, end, [this, &sql_table, &columns_for_insert](auto& value) {
+        std::for_each(begin, end, [this, &sql_table, &columns_for_insert, &columns_for_returning](auto& value) {
             if(_dto.has_reques_callback()) {
                 _dto.reques_callback()->pre_request_callback(value, request_callback_type::insert, _open_transaction);
             }
-            this->prepare_to_insert(columns_for_insert, sql_table, value);
+            this->prepare_to_insert(columns_for_insert, columns_for_returning, sql_table, value);
         });
 
-        const auto sql = sql_table.insert_sql(columns_for_insert);
+        auto sql = sql_table.insert_sql(columns_for_insert, _database->has_returning_statment(), columns_for_returning);
 
-        exec(sql);
+        if(!_database->has_returning_statment()) {
+            std::vector<std::string> columns_name;
+            for(const auto& column : columns_for_insert) {
+                columns_name.emplace_back(column.name());
+            }
+            _database->append_returning(sql, columns_name);
+        }
+        auto result = exec(sql);
+
+        if(result().size() == end - begin) {
+            auto resultIt = result().begin();
+            auto valueIt = begin;
+            while(resultIt != result().end() && valueIt != end) {
+                parse_entity_after_insert(*valueIt, _dto, *resultIt);
+
+                ++resultIt;
+                ++valueIt;
+            }
+        }
 
         // Вставка зависимых объектов должна происходить после вставки объекта на который происходит ссылка
         std::for_each(begin, end, [this](auto& value) {
-            if(_dto.has_reques_callback()) {
-                _dto.reques_callback()->post_request_callback(value, request_callback_type::insert, _open_transaction);
-            }
-
             // Вставка зависимых объектов должна происходить после вставки объекта на который происходит ссылка
             _dto.for_each(visitor::make_reference_column_visitor([this, &value](auto& reference_column) {
                 if(reference_column.type() != relation_type::one_to_one_inverted && reference_column.type() != relation_type::one_to_many) {
@@ -313,6 +328,10 @@ public:
 
                 this->upsert_relation_property_with_type_one_to_one_inverted_or_one_to_many(reference_column, value);
             }));
+
+            if(_dto.has_reques_callback()) {
+                _dto.reques_callback()->post_request_callback(value, request_callback_type::insert, _open_transaction);
+            }
         });
 
         if(!has_transactional) {
@@ -448,10 +467,6 @@ public:
     template<typename Begin, typename End>
     void remove(const Begin& begin, const End& end)
     {
-        if(begin == end) {
-            return;
-        }
-
         query_craft::sql_table sql_table(_dto.table_info());
 
         query_craft::condition_group condition_for_remove;
@@ -612,6 +627,56 @@ private:
         }));
 
         return joined_columns;
+    }
+
+    /**
+     * Функция для заполнения поля класса на основе данных из sql запроса
+     * @param column Колонка по которой нужно заполнить связанное поле
+     * @param query_result Результат запроса
+     * @param entity Сущность в которой находится связанное поле
+     */
+    template<typename Column_, typename Entity_>
+    static void parse_property_after_insert(Column_& column, const database_adapter::models::query_result::result_row& query_result, Entity_& entity)
+    {
+        const auto column_info = column.column_info();
+
+        auto property = column.property();
+
+        const auto it = query_result.find(column_info.name());
+        if(it == query_result.end() || it->second == query_craft::column_info::null_value())
+            return;
+
+        auto property_value = property.empty_property();
+        property.property_converter()->fill_from_string(property_value, it->second);
+        property.set_value(entity, property_value);
+    }
+
+    /**
+     * Заполнить сущность по данным из sql запроса
+     * @param entity Сущность которую нужно дополнить
+     * @param dto DTO для заполнения
+     * @param query_result Результат запроса
+     */
+    template<typename ClassType_, typename... ClassColumn_>
+    static void parse_entity_after_insert(ClassType_& entity, table<ClassType_, ClassColumn_...>& dto, const database_adapter::models::query_result::result_row& query_result)
+    {
+        dto.for_each(visitor::make_any_column_visitor(
+            [&entity, &query_result](auto& column) {
+                parse_property_after_insert(column, query_result, entity);
+            },
+            [&entity, &query_result](auto& reference_column) {
+                if(reference_column.type() != relation_type::many_to_one
+                    || reference_column.type() != relation_type::one_to_one_inverted
+                    || reference_column.type() != relation_type::one_to_one) {
+                    return;
+                }
+
+                auto reference_propery = reference_column.property();
+                auto reference_table = reference_column.reference_table();
+
+                auto reference_entity = parse_entity_after_insert(reference_table, query_result);
+                reference_propery.set_value(entity, reference_entity);
+            }));
     }
 
     /**
@@ -817,19 +882,33 @@ private:
      * Функция для подготовки данных для генерации запросов на вставку
      * Так же функция занимается добавлением объектов с типом связи many_to_one или one_to_one
      * @param columns_for_insert Список колонок которые будут использоваться для генерации INSERT запроса
+     * @param columns_for_returning Список колонок которые необходимо вернуть после вставки
      * @param sql_table Представление таблицы в которые будут добавлены данные для вставки
      * @param value Значение типа из которого будут браться значение связанных полей
      */
-    void prepare_to_insert(std::vector<query_craft::column_info>& columns_for_insert, query_craft::sql_table& sql_table, const ClassType& value)
+    void prepare_to_insert(std::vector<query_craft::column_info>& columns_for_insert,
+        std::vector<query_craft::column_info>& columns_for_returning,
+        query_craft::sql_table& sql_table, const ClassType& value)
     {
         // Переменная чтобы только один раз записать названия колонок для вставки
-        bool need_update_column_info = columns_for_insert.empty();
+        bool need_update_column_for_insert = columns_for_insert.empty();
+        bool need_update_column_returning = columns_for_returning.empty();
 
         query_craft::sql_table::row row;
 
         _dto.for_each(visitor::make_any_column_visitor(
-            [this, &row, &value, &need_update_column_info, &columns_for_insert](auto& column) {
-                if(need_update_column_info) {
+            [this, &row, &value, &need_update_column_for_insert, &columns_for_insert, &need_update_column_returning, &columns_for_returning](auto& column) {
+                const auto column_info = column.column_info();
+
+                if(need_update_column_returning) {
+                    columns_for_returning.emplace_back(column.column_info());
+                }
+
+                if(column_info.has_settings(query_craft::column_settings::auto_increment)) {
+                    return;
+                }
+
+                if(need_update_column_for_insert) {
                     // Добавляем имена колонок для блока INSERT INTO (column1, column2, ...);
                     columns_for_insert.emplace_back(column.column_info());
                 }
@@ -837,7 +916,6 @@ private:
                 auto property = column.property();
 
                 const auto property_value = property.value(value);
-                const auto column_info = column.column_info();
 
                 if(!column_info.has_settings(query_craft::column_settings::primary_key)
                     && !column_info.has_settings(query_craft::column_settings::not_null)
@@ -850,14 +928,14 @@ private:
                     row.emplace_back(property.property_converter()->convert_to_string(property_value));
                 }
             },
-            [this, &value, &row, &columns_for_insert, &need_update_column_info](auto& reference_column) {
+            [this, &value, &row, &columns_for_insert, &need_update_column_for_insert](auto& reference_column) {
                 // Обработка других типов отношений находится дальше,
                 // так как для корректности ссылок нужно сначала вставить объекты на которые будет создаваться ссылка
                 if(reference_column.type() != relation_type::many_to_one && reference_column.type() != relation_type::one_to_one) {
                     return;
                 }
 
-                if(need_update_column_info) {
+                if(need_update_column_for_insert) {
                     // Добавляем имена колонок для блока INSERT INTO (column1, column2, ...);
                     // Добавляем эту колонку так как при таком типе связи ссылочная информация хранится в текущей таблице а не в ссылочной
                     columns_for_insert.emplace_back(reference_column.column_info());

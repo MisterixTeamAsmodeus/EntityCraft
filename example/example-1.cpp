@@ -43,7 +43,7 @@ struct WorkerTableInfo
         using namespace entity_craft;
 
         return make_table<WorkerInfo>("", "WorkerInfo",
-            make_column(id, static_cast<int WorkerInfo::*>(&WorkerInfo::id), query_craft::primary_key()),
+            make_column(id, static_cast<int WorkerInfo::*>(&WorkerInfo::id), query_craft::primary_key() | query_craft::column_settings::auto_increment),
             make_column(name, &WorkerInfo::set_name, &WorkerInfo::get_name),
             make_column(is_active_worker, &WorkerInfo::isActiveWorker, query_craft::not_null()));
     }
@@ -84,7 +84,7 @@ struct WorkerStorage
 private:
     void create_table() const
     {
-        _storage.database()->exec("CREATE TABLE IF NOT exists WorkerInfo ( id int, name varchar, isActiveWorker bool);");
+        _storage.database()->exec("CREATE TABLE IF NOT exists WorkerInfo ( id integer primary key autoincrement, name varchar, isActiveWorker bool);");
     }
 
 private:
@@ -100,9 +100,9 @@ int main()
 
     auto worker_storage = WorkerStorage(std::make_shared<database_adapter::sqlite_database_adapter>(settings));
 
-    WorkerInfo worker1 { 1, std::make_shared<std::string>("worker1"), true };
-    WorkerInfo worker2 { 2, nullptr, false };
-    WorkerInfo worker3 { 3, std::make_shared<std::string>("worker2"), true };
+    WorkerInfo worker1 { 0, std::make_shared<std::string>("worker1"), true };
+    WorkerInfo worker2 { 0, nullptr, false };
+    WorkerInfo worker3 { 0, std::make_shared<std::string>("worker2"), true };
 
     std::vector<WorkerInfo> workers = {
         worker1,
