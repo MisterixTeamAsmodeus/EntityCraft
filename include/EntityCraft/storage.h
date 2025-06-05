@@ -302,7 +302,7 @@ public:
         }
         auto result = exec(sql);
 
-        if(result().size() == end - begin) {
+        if(result().size() == static_cast<size_t>(end - begin)) {
             auto resultIt = result().begin();
             auto valueIt = begin;
             while(resultIt != result().end() && valueIt != end) {
@@ -673,8 +673,9 @@ private:
 
                 auto reference_propery = reference_column.property();
                 auto reference_table = reference_column.reference_table();
+                auto reference_entity = reference_table.empty_entity();
 
-                auto reference_entity = parse_entity_after_insert(reference_table, query_result);
+                parse_entity_after_insert(reference_entity, reference_table, query_result);
                 reference_propery.set_value(entity, reference_entity);
             }));
     }
