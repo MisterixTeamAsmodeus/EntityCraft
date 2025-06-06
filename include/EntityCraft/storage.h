@@ -264,6 +264,8 @@ public:
         std::vector<ClassType> data = { value };
 
         insert(data.begin(), data.end());
+
+        value = data.front();
     }
 
     template<typename Begin, typename End>
@@ -462,6 +464,8 @@ public:
         std::vector<ClassType> data = { value };
 
         remove(data.begin(), data.end());
+
+        value = data.front();
     }
 
     template<typename Begin, typename End>
