@@ -546,6 +546,21 @@ public:
         remove(data.begin(), data.end());
     }
 
+    template<typename IdType>
+    void remove_by_id(const IdType& id)
+    {
+        remove_by_condition(primary_key_column(_dto) == id);
+    }
+
+    template<typename Begin, typename End>
+    void remove_by_ids(const Begin& begin, const End& end)
+    {
+        if(begin == end)
+            return;
+
+        remove_by_condition(primary_key_column(_dto).in_list(begin, end));
+    }
+
 private:
     /**
      * Получить информацию о колонке с флагом primary_key
