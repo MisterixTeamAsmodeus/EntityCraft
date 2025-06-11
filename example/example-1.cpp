@@ -114,6 +114,10 @@ int main()
 
     worker_storage().insert(workers.begin(), workers.end());
 
+    worker1 = workers[0];
+    worker2 = workers[1];
+    worker3 = workers[2];
+
     std::cout << "count in database = " << worker_storage().select().size() << "\n";
 
     worker_storage().remove(worker3);
