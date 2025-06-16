@@ -163,7 +163,8 @@ int main()
     using namespace entity_craft;
 
     database_adapter::sqlite_settings settings;
-    settings.url = R"(./db/example-6.db)";
+    settings.url = "example-6.db";
+    std::remove(settings.url.c_str());
 
     std::shared_ptr<database_adapter::IDataBaseDriver> adapter = std::make_shared<database_adapter::sqlite_database_adapter>(settings);
 

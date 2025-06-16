@@ -1,6 +1,8 @@
 #include <EntityCraft/entitycraft.h>
 #include <SqliteAdapter/sqlitedatabaseadapter.h>
 
+#include <fstream>
+
 struct Id
 {
     int id;
@@ -96,7 +98,8 @@ int main()
     using namespace entity_craft;
 
     database_adapter::sqlite_settings settings;
-    settings.url = R"(./db/example-1.db)";
+    settings.url = "example-1.db";
+    std::remove(settings.url.c_str());
 
     auto worker_storage = WorkerStorage(std::make_shared<database_adapter::sqlite_database_adapter>(settings));
 
@@ -143,8 +146,6 @@ int main()
 
     std::cout << "Workers in database:\n";
     std::cout << "count in database = " << worker_storage().select().size() << "\n";
-
-    worker_storage().remove();
 
     return 0;
 }
