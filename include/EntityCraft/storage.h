@@ -33,8 +33,6 @@ public:
 
     storage(const storage& other) = default;
     storage(storage&& other) noexcept = default;
-    storage& operator=(const storage& other) = default;
-    storage& operator=(storage&& other) noexcept = default;
 
     ~storage()
     {
@@ -46,42 +44,45 @@ public:
         }
     }
 
+    storage& operator=(const storage& other) = default;
+    storage& operator=(storage&& other) noexcept = default;
+
     void set_need_disconnect(const bool need_disconnect)
     {
         _need_disconnect = need_disconnect;
     }
 
-    auto condition_group(const query_craft::condition_group& condition_group)
+    storage& condition_group(const query_craft::condition_group& condition_group)
     {
         _condition_group = condition_group;
         return *this;
     }
 
-    auto sort_columns(const std::vector<query_craft::sort_column>& sort_columns)
+    storage& sort_columns(const std::vector<query_craft::sort_column>& sort_columns)
     {
         _sortColumns = sort_columns;
         return *this;
     }
 
-    auto sort_column(const query_craft::sort_column& sort_column)
+    storage& sort_column(const query_craft::sort_column& sort_column)
     {
         _sortColumns = { sort_column };
         return *this;
     }
 
-    auto limit(const size_t limit)
+    storage& limit(const size_t limit)
     {
         _limit = limit;
         return *this;
     }
 
-    auto offset(const size_t offset)
+    storage& offset(const size_t offset)
     {
         _offset = offset;
-        return *this;
+        return this;
     }
 
-    auto without_relation_entity(const bool without_relation_entity = true)
+    storage& without_relation_entity(const bool without_relation_entity = true)
     {
         _without_relation_entity = without_relation_entity;
         return *this;
@@ -114,7 +115,7 @@ public:
         return _open_transaction != nullptr ? _open_transaction->exec(sql) : _database->exec(sql);
     }
 
-    auto dto() const
+    table<ClassType, Columns...> dto() const
     {
         return _dto;
     }

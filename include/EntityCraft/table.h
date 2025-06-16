@@ -35,6 +35,9 @@ public:
 
     table(const table& other) = default;
     table(table&& other) noexcept = default;
+
+    ~table() = default;
+
     table& operator=(const table& other) = default;
     table& operator=(table&& other) noexcept = default;
 
@@ -72,7 +75,7 @@ public:
         return _reques_callback;
     }
 
-    auto& set_reques_callback(const std::shared_ptr<IRequestCallback<ClassType>>& reques_callback)
+    table& set_reques_callback(const std::shared_ptr<IRequestCallback<ClassType>>& reques_callback)
     {
         _reques_callback = reques_callback;
         return *this;
