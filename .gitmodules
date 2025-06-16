@@ -1,12 +1,9 @@
-[submodule "include/external/DatabaseAdapter"]
-	path = include/external/DatabaseAdapter
-	url = https://github.com/MisterixTeamAsmodeus/DatabaseAdapter.git
 [submodule "include/external/ReflectionApi"]
 	path = include/external/ReflectionApi
 	url = https://github.com/MisterixTeamAsmodeus/ReflectionApi.git
 [submodule "include/external/QueryCraft"]
 	path = include/external/QueryCraft
 	url = https://github.com/MisterixTeamAsmodeus/QueryCraft.git
-[submodule "external/SqliteAdapter"]
-	path = external/SqliteAdapter
+[submodule "include/external/SqliteAdapter"]
+	path = include/external/SqliteAdapter
 	url = https://github.com/MisterixTeamAsmodeus/SqliteAdapter.git

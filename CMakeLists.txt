@@ -8,10 +8,6 @@ project(${entity_craft_project_name} LANGUAGES CXX)
 file(GLOB_RECURSE HEADER_FILES include/*.h)
 file(GLOB_RECURSE SOURCE_FILES src/*.cpp)
 
-if(NOT TARGET DatabaseAdapter)
-    add_subdirectory(include/external/DatabaseAdapter)
-endif()
-
 if(NOT TARGET ReflectionApi)
     add_subdirectory(include/external/ReflectionApi)
 endif()
