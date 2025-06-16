@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.8)
 
 set(entity_craft_project_name EntityCraft)
 option(ENTITY_CRAFT_EXAMPLE "Add EntityCraft examples file as executable (on|off)" OFF )
@@ -17,7 +17,7 @@ if(NOT TARGET QueryCraft)
 endif()
 
 if(NOT TARGET SqliteAdapter)
-    add_subdirectory(external/SqliteAdapter)
+    add_subdirectory(include/external/SqliteAdapter)
 endif()
 
 add_library(${PROJECT_NAME} STATIC ${HEADER_FILES} ${SOURCE_FILES})
@@ -33,11 +33,6 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
 )
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_14)
-
-set_target_properties(${PROJECT_NAME}
-        PROPERTIES
-        OUTPUT_NAME ${PROJECT_NAME}
-)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
