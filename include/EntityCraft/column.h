@@ -51,7 +51,7 @@ public:
         return _reflection_property.property_converter();
     }
 
-    column& set_converter(const std::shared_ptr<type_converter_api::type_converter<PropertyType>>& converter)
+    column set_converter(const std::shared_ptr<type_converter_api::type_converter<PropertyType>>& converter)
     {
         _reflection_property.set_converter(converter);
         return *this;
@@ -62,7 +62,7 @@ public:
         return _null_cheker;
     }
 
-    column& set_null_cheker(const std::shared_ptr<entity_craft::null_cheker<PropertyType>>& null_cheker)
+    column set_null_cheker(const std::shared_ptr<entity_craft::null_cheker<PropertyType>>& null_cheker)
     {
         _null_cheker = null_cheker;
         return *this;
