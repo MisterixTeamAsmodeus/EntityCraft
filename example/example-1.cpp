@@ -138,11 +138,7 @@ int main()
         std::cout << "\n";
     }
 
-    if(worker_storage().commit()) {
-        std::cout << "commit succsesful\n";
-    } else {
-        std::cout << "commit error\n";
-    }
+    worker_storage().commit();
 
     std::cout << "Workers in database:\n";
     std::cout << "count in database = " << worker_storage().select().size() << "\n";

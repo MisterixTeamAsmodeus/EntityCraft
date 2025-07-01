@@ -112,23 +112,33 @@ public:
         return _dto;
     }
 
-    bool commit()
+    void commit()
     {
-        if(_open_transaction != nullptr) {
-            const auto res = _open_transaction->commit();
-            _open_transaction = nullptr;
-            return res;
+        if(_open_transaction == nullptr) {
+            return;
         }
-
-        return false;
+        _open_transaction->commit();
+        _open_transaction = nullptr;
     }
 
     void rollback()
     {
-        if(_open_transaction != nullptr) {
-            _open_transaction->rollback();
-            _open_transaction = nullptr;
+        if(_open_transaction == nullptr) {
+            return;
         }
+
+        _open_transaction->rollback();
+        _open_transaction = nullptr;
+    }
+
+    void rollback_to_save_point(const std::string& save_point)
+    {
+        if(_open_transaction == nullptr) {
+            return;
+        }
+
+        _open_transaction->rollback_to_save_point(save_point);
+        _open_transaction = nullptr;
     }
 
     std::vector<ClassType> select()

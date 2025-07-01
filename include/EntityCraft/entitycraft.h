@@ -7,6 +7,4 @@
 
 #include <DatabaseAdapter/databaseadapter.h>
 #include <ReflectionApi/reflectionapi.h>
-#include <SqliteAdapter/sqliteadapter.h>
-
 #include <QueryCraft/querycraft.h>
