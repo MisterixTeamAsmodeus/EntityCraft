@@ -27,8 +27,9 @@ public:
         , _dto(std::move(dto))
         , _auto_commit(auto_commit)
     {
-        if(!_database->is_open())
-            _database->connect();
+        if(!_database->is_open()) {
+            throw std::invalid_argument("database driver is close");
+        }
     }
 
     storage(const storage& other) = default;
@@ -38,19 +39,10 @@ public:
     {
         if(_open_transaction != nullptr && _auto_commit)
             _open_transaction->commit();
-
-        if(_need_disconnect) {
-            _database->disconnect();
-        }
     }
 
     storage& operator=(const storage& other) = default;
     storage& operator=(storage&& other) noexcept = default;
-
-    void set_need_disconnect(const bool need_disconnect)
-    {
-        _need_disconnect = need_disconnect;
-    }
 
     storage& condition_group(const query_craft::condition_group& condition_group)
     {
@@ -131,15 +123,12 @@ public:
         return false;
     }
 
-    bool rollback()
+    void rollback()
     {
         if(_open_transaction != nullptr) {
-            const auto res = _open_transaction->rollback();
+            _open_transaction->rollback();
             _open_transaction = nullptr;
-            return res;
         }
-
-        return false;
     }
 
     std::vector<ClassType> select()
@@ -369,6 +358,9 @@ public:
             if(reference_column.has_cascade(cascade_type::all) || reference_column.has_cascade(cascade_type::merge_orphan)) {
                 this->sync_deleted_reference(value, reference_column);
             } else {
+                if(reference_column.type() != relation_type::one_to_one_inverted && reference_column.type() != relation_type::one_to_many) {
+                    return;
+                }
                 this->update_deleted_reference(value, reference_column);
             }
         }));
@@ -515,12 +507,14 @@ public:
                 [this, &value](auto& reference_column) {
                     if(reference_column.has_cascade(cascade_type::all) || reference_column.has_cascade(cascade_type::remove)) {
                         auto reference_storage = make_storage(this->_database, reference_column.reference_table());
-                        reference_storage.set_need_disconnect(false);
                         reference_storage.set_transaction(this->_open_transaction);
 
                         auto property_value = reference_column.property().value(value);
                         reference_storage.remove(property_value);
                     } else {
+                        if(reference_column.type() != relation_type::one_to_one_inverted && reference_column.type() != relation_type::one_to_many) {
+                            return;
+                        }
                         this->update_deleted_reference(value, reference_column);
                     }
                 }));
@@ -835,7 +829,6 @@ private:
                             break;
 
                         auto reference_storage = make_storage(_database, reference_table);
-                        reference_storage.set_need_disconnect(false);
                         reference_storage.set_transaction(_open_transaction);
 
                         auto mapped_column = reference_table.table_info().column(reference_column.column_info().name());
@@ -1017,7 +1010,6 @@ private:
         // Если установлены права на каскадную вставку добавляем объект если у него не пустой primary_key
         if(cascad && row.back() != query_craft::column_info::null_value()) {
             auto reference_storage = make_storage(_database, reference_table);
-            reference_storage.set_need_disconnect(false);
             reference_storage.set_transaction(_open_transaction);
             reference_storage.upsert(reference_property_value);
         }
@@ -1033,7 +1025,6 @@ private:
     {
         auto reference_table = reference_column.reference_table();
         auto reference_storage = make_storage(_database, reference_table);
-        reference_storage.set_need_disconnect(false);
         reference_storage.set_transaction(_open_transaction);
 
         bool is_empty_property = false;
@@ -1067,7 +1058,6 @@ private:
     {
         auto reference_table = reference_column.reference_table();
         auto reference_storage = make_storage(this->_database, reference_table);
-        reference_storage.set_need_disconnect(false);
         reference_storage.set_transaction(this->_open_transaction);
 
         const auto property_value = reference_column.property().value(value);
@@ -1092,7 +1082,6 @@ private:
     {
         auto reference_table = reference_column.reference_table();
         auto reference_storage = make_storage(_database, reference_table);
-        reference_storage.set_need_disconnect(false);
         reference_storage.set_transaction(_open_transaction);
 
         const auto property_value = reference_column.property().value(value);
@@ -1161,7 +1150,6 @@ private:
     std::shared_ptr<database_adapter::ITransaction> _open_transaction;
     table<ClassType, Columns...> _dto;
     bool _auto_commit;
-    bool _need_disconnect = true;
 
     // Настройки для select
     query_craft::condition_group _condition_group;

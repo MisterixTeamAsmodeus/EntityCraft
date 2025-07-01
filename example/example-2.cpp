@@ -1,6 +1,5 @@
-#include "SqliteAdapter/sqlitedatabaseadapter.h"
-
 #include <EntityCraft/entitycraft.h>
+#include <SqliteAdapter/sqliteadapter.h>
 
 #include <ostream>
 #include <string>
@@ -123,9 +122,6 @@ int main()
 
     auto a_storage = AStorage(adapter);
     auto b_storage = BStorage(adapter);
-
-    a_storage().remove();
-    b_storage().remove();
 
     A a;
     a.id = 1;
