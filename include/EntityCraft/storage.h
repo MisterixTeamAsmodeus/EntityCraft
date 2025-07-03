@@ -417,9 +417,26 @@ public:
     template<typename Begin, typename End>
     void update(const Begin& begin, const End& end)
     {
-        std::for_each(begin, end, [this](auto& value) {
-            this->update(value);
-        });
+        const auto has_transactional = _open_transaction != nullptr;
+
+        if(!has_transactional) {
+            transaction();
+        }
+
+        try {
+            std::for_each(begin, end, [this](auto& value) {
+                this->update(value);
+            });
+
+            if(!has_transactional) {
+                commit();
+            }
+
+        } catch(database_adapter::sql_exception) {
+            if(!has_transactional) {
+                rollback();
+            }
+        }
     }
 
     template<typename Container>
@@ -440,9 +457,26 @@ public:
     template<typename Begin, typename End>
     void upsert(const Begin& begin, const End& end)
     {
-        std::for_each(begin, end, [this](auto& value) {
-            this->upsert(value);
-        });
+        const auto has_transactional = _open_transaction != nullptr;
+
+        if(!has_transactional) {
+            transaction();
+        }
+
+        try {
+            std::for_each(begin, end, [this](auto& value) {
+                this->upsert(value);
+            });
+
+            if(!has_transactional) {
+                commit();
+            }
+
+        } catch(database_adapter::sql_exception) {
+            if(!has_transactional) {
+                rollback();
+            }
+        }
     }
 
     template<typename Container>
