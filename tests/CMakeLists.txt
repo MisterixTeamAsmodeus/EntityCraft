@@ -9,7 +9,7 @@ file(GLOB_RECURSE SOURCE_FILES *.cpp)
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 
 if (NOT TARGET GTest::gtest_main)
-    add_subdirectory(googletest)
+    add_subdirectory(libs/googletest)
 endif ()
 
 add_executable(
