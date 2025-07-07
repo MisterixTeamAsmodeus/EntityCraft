@@ -1,29 +1,24 @@
 cmake_minimum_required(VERSION 3.8)
 
-set(entity_craft_project_name EntityCraft)
 option(ENTITY_CRAFT_EXAMPLE "Add EntityCraft examples file as executable (on|off)" OFF )
+option(ENTITY_CRAFT_TEST "Включить тесты для EntityCraft" OFF)
+option(ENTITY_CRAFT_QT "Включить поддержку Qt типов в библиотеки" OFF)
+option(ENTITY_CRAFT_ENABLE_SQLITE "Включить драйвер для Sqlite3" OFF)
 
-project(${entity_craft_project_name} LANGUAGES CXX)
+project(EntityCraft LANGUAGES CXX)
 
 file(GLOB_RECURSE HEADER_FILES include/*.h)
 file(GLOB_RECURSE SOURCE_FILES src/*.cpp)
 
-if(NOT TARGET ReflectionApi)
-    add_subdirectory(include/external/ReflectionApi)
-endif()
-
-if(NOT TARGET QueryCraft)
-    add_subdirectory(include/external/QueryCraft)
-endif()
-
-if(NOT TARGET SqliteAdapter)
-    add_subdirectory(include/external/SqliteAdapter)
-endif()
+add_subdirectory(libs/ReflectionApi)
+add_subdirectory(libs/QueryCraft)
+add_subdirectory(libs/driver/DatabaseAdapter)
+add_subdirectory(libs/TypeConverterApi)
 
 add_library(${PROJECT_NAME} STATIC ${HEADER_FILES} ${SOURCE_FILES})
 
 target_include_directories(${PROJECT_NAME} PUBLIC
-        include/external
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
@@ -50,5 +45,12 @@ install(DIRECTORY include
 )
 
 if(${ENTITY_CRAFT_EXAMPLE})
+    add_subdirectory(libs/driver/SqliteAdapter)
     add_subdirectory(example)
+elseif (${ENTITY_CRAFT_ENABLE_SQLITE})
+    add_subdirectory(libs/driver/SqliteAdapter)
+endif ()
+
+if(${ENTITY_CRAFT_TEST})
+    add_subdirectory(tests)
 endif ()
