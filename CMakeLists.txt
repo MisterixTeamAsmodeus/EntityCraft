@@ -44,11 +44,15 @@ install(DIRECTORY include
         DESTINATION include
 )
 
+if (${ENTITY_CRAFT_ENABLE_SQLITE})
+    add_subdirectory(libs/driver/SqliteAdapter)
+endif ()
+
 if(${ENTITY_CRAFT_EXAMPLE})
-    add_subdirectory(libs/driver/SqliteAdapter)
+    if (NOT TARGET SqliteAdapter)
+        add_subdirectory(libs/driver/SqliteAdapter)
+    endif ()
     add_subdirectory(example)
-elseif (${ENTITY_CRAFT_ENABLE_SQLITE})
-    add_subdirectory(libs/driver/SqliteAdapter)
 endif ()
 
 if(${ENTITY_CRAFT_TEST})

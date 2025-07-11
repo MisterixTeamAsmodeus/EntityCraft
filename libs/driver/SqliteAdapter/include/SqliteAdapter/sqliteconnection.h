@@ -1,7 +1,7 @@
 #pragma once
 
 #include <DatabaseAdapter/iconnection.h>
-#include <sqlite-amalgamation/sqlite3.h>
+#include <sqlite3.h>
 
 namespace database_adapter {
 
