@@ -28,6 +28,19 @@ public:
      * @throws Выбрасывает исключение sql_exception в случае ошибки выполнения запроса
      */
     virtual models::query_result exec(const std::string& query) = 0;
+
+    /**
+     * Выполняет подготовку запроса для возможности динамической подстановки параметров
+     * @param query Запрос который необходимо подготовить
+     */
+    virtual void prepare(const std::string& query) = 0;
+
+    /**
+     * Выполнить подготовленный запрос с подставленными значениями
+     * @return Результат выполнения SQL-запроса.
+     * @throws Выбрасывает исключение sql_exception в случае ошибки выполнения запроса
+     */
+    virtual models::query_result exec_prepared(const std::vector<std::string>& params) = 0;
 };
 
 } // namespace database_adapter

@@ -300,15 +300,7 @@ public:
             this->prepare_to_insert(columns_for_insert, columns_for_returning, sql_table, value);
         });
 
-        auto sql = sql_table.insert_sql(columns_for_insert, _database->has_returning_statment(), columns_for_returning);
-
-        if(!_database->has_returning_statment()) {
-            std::vector<std::string> columns_name;
-            for(const auto& column : columns_for_insert) {
-                columns_name.emplace_back(column.name());
-            }
-            _database->append_returning(sql, columns_name);
-        }
+        const auto sql = sql_table.insert_sql(columns_for_insert, true, columns_for_returning);
         auto result = exec(sql);
 
         if(result().size() == static_cast<size_t>(end - begin)) {

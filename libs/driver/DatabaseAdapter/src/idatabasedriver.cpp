@@ -29,13 +29,13 @@ std::shared_ptr<ITransaction> IDataBaseDriver::open_base_transaction() const
     return open_transaction(-1);
 }
 
-bool IDataBaseDriver::has_returning_statment()
+void IDataBaseDriver::prepare(const std::string& query)
 {
-    return true;
+    _connection->prepare(query);
 }
 
-void IDataBaseDriver::append_returning(std::string& sql, const std::vector<std::string>& returning_columns)
+models::query_result IDataBaseDriver::exec_prepared(const std::vector<std::string>& params)
 {
+    return _connection->exec_prepared(params);
 }
-
 } // namespace database_adapter

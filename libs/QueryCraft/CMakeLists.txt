@@ -8,7 +8,7 @@ file(GLOB_RECURSE SOURCE_FILES src/*.cpp)
 add_library(${PROJECT_NAME} STATIC ${HEADER_FILES} ${SOURCE_FILES})
 
 target_include_directories(${PROJECT_NAME} PUBLIC
-        include/external
+    ${CMAKE_CURRENT_SOURCE_DIR}/../
 )
 
 target_link_libraries(${PROJECT_NAME} PUBLIC

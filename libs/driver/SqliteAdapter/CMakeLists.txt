@@ -14,11 +14,13 @@ set(ENTITYCRAFT_SQLITE3_MODULES_LOCATION_EXTERNAL EXTERNAL)
 if(ENTITYCRAFT_SQLITE3_MODULES_LOCATION STREQUAL ENTITYCRAFT_SQLITE3_MODULES_LOCATION_CUSTOM)
     message("Finding SQLite3 in location=CUSTOM")
     message("SQLite3_INCLUDE_DIRS = ${SQLite3_INCLUDE_DIRS}")
+    set(SQLite3_LIBRARIES SQLite3)
+    message("SQLite3_LIBRARIES = ${SQLite3_LIBRARIES}")
 elseif(ENTITYCRAFT_SQLITE3_MODULES_LOCATION STREQUAL ENTITYCRAFT_SQLITE3_MODULES_LOCATION_INSTALLED)
     message("Finding SQLite3 in location=INSTALLED")
     find_package(SQLite3 REQUIRED)
     message("SQLite3_INCLUDE_DIRS = ${SQLite3_INCLUDE_DIRS}")
-
+    message("SQLite3_LIBRARIES = ${SQLite3_LIBRARIES}")
 elseif (ENTITYCRAFT_SQLITE3_MODULES_LOCATION STREQUAL ENTITYCRAFT_SQLITE3_MODULES_LOCATION_EXTERNAL)
     message("Finding SQLite3 in location=EXTERNAL")
     include(FetchContent)
@@ -31,10 +33,12 @@ elseif (ENTITYCRAFT_SQLITE3_MODULES_LOCATION STREQUAL ENTITYCRAFT_SQLITE3_MODULE
             GIT_TAG "15d0ff10ebc7e7225eced1de84bb52137000899b" # origin/master at Apr 1, 2022
             GIT_PROGRESS ON
     )
-    FetchContent_Populate(SQLite)
+    FetchContent_MakeAvailable(SQLite)
 
     set(SQLite3_INCLUDE_DIRS ${sqlite_SOURCE_DIR})
     message("SQLite3_INCLUDE_DIRS = ${SQLite3_INCLUDE_DIRS}")
+    set(SQLite3_LIBRARIES SQLite3)
+    message("SQLite3_LIBRARIES = ${SQLite3_LIBRARIES}")
 else()
     message(FATAL_ERROR "Unknown location to find SQLite3 '${ENTITYCRAFT_SQLITE3_MODULES_LOCATION}'")
 endif()
@@ -51,17 +55,16 @@ target_include_directories(${PROJECT_NAME} PUBLIC
         $<INSTALL_INTERFACE:include>
 )
 
-target_include_directories(${PROJECT_NAME} PRIVATE
+target_include_directories(${PROJECT_NAME} PUBLIC
         ${SQLite3_INCLUDE_DIRS}
 )
-
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
         DatabaseAdapter
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-        SQLite3
+        ${SQLite3_LIBRARIES}
 )
 
 install(TARGETS ${PROJECT_NAME}

@@ -20,12 +20,17 @@ public:
     bool is_valid() override;
     models::query_result exec(const std::string& query) override;
 
+    void prepare(const std::string& query) override;
+    models::query_result exec_prepared(const std::vector<std::string>& params) override;
+
 private:
     void connect(const sqlite_settings& settings);
     void disconnect() const;
 
 private:
     sqlite3* _connection = nullptr;
+
+    sqlite3_stmt* prepared = nullptr;
 };
 
 } // namespace database_adapter

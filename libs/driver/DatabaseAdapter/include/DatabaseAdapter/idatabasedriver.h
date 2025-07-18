@@ -52,19 +52,6 @@ public:
     virtual std::shared_ptr<ITransaction> open_transaction(int type) const = 0;
 
     /**
-     * Возвращает флаг который сообщает о том что данная база данных поддреживает returning после insert
-     */
-    virtual bool has_returning_statment();
-
-    /**
-     * Функция которая модифицирует запрос на всавку чтобы она возвращала требуемые поля после вставки
-     * @param sql Запрос который необходимо модифицировать
-     * @param returning_columns Список колонок которые необходимо вернуть
-     * @note Для баз данных в которых нет поддержки returning
-     */
-    virtual void append_returning(std::string& sql, const std::vector<std::string>& returning_columns);
-
-    /**
      * @brief Проверяет, открыто ли соединение с базой данных.
      * @return true, если соединение открыто, иначе false.
      */
@@ -86,6 +73,10 @@ public:
      * @return Указатель на открытую транзакцию. Если транзакция не была открыта возвращается nullptr.
      */
     std::shared_ptr<ITransaction> open_base_transaction() const;
+
+    void prepare(const std::string& query);
+
+    models::query_result exec_prepared(const std::vector<std::string>& params);
 
 protected:
     std::shared_ptr<IConnection> _connection;
