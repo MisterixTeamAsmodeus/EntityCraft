@@ -32,15 +32,16 @@ public:
     /**
      * Выполняет подготовку запроса для возможности динамической подстановки параметров
      * @param query Запрос который необходимо подготовить
+     * @param name Именование подготовленного запроса если поддерживается базой
      */
-    virtual void prepare(const std::string& query) = 0;
+    virtual void prepare(const std::string& query, const std::string& name = "") = 0;
 
     /**
      * Выполнить подготовленный запрос с подставленными значениями
      * @return Результат выполнения SQL-запроса.
      * @throws Выбрасывает исключение sql_exception в случае ошибки выполнения запроса
      */
-    virtual models::query_result exec_prepared(const std::vector<std::string>& params) = 0;
+    virtual models::query_result exec_prepared(const std::vector<std::string>& params, const std::string& name = "") = 0;
 };
 
 } // namespace database_adapter

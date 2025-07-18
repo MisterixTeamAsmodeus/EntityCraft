@@ -1,6 +1,6 @@
 #pragma once
 
-#include "model/queryresult.h"
+#include "DatabaseAdapter/model/queryresult.h"
 
 #include <memory>
 #include <string>
@@ -37,7 +37,7 @@ public:
      * Эта функция должна фиксировать все изменения, внесенные в базу данных
      * с момента начала текущей транзакции.
      */
-    virtual void commit() = 0;
+    void commit();
 
     /**
      * @brief Добавляет точку сохранения в текущую транзакцию.
@@ -45,7 +45,7 @@ public:
      * для отката изменений до этой точки в текущей транзакции.
      * @param save_point Имя точки сохранения.
      */
-    virtual void add_save_point(const std::string& save_point) = 0;
+    void add_save_point(const std::string& save_point);
 
     /**
      * @brief Откатывает изменения в базе данных до указанной точки сохранения.
@@ -54,7 +54,7 @@ public:
      * @param save_point Точка сохранения, до которой необходимо откатить изменения.
      * @note Если строка пустая должен произойти откат всех изменений
      */
-    virtual void rollback_to_save_point(const std::string& save_point) = 0;
+    void rollback_to_save_point(const std::string& save_point);
 
     /**
      * Функция для создания транзакции с базовым уровнем изоляции

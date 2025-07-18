@@ -12,5 +12,5 @@ foreach (EXAMPLE_SOURCE_FILE ${EXAMPLE_SOURCE_FILES})
     add_executable(${EXAMPLE_TARGET} ${EXAMPLE_SOURCE_FILE})
 
     target_compile_features(${EXAMPLE_TARGET} PUBLIC cxx_std_14)
-    target_link_libraries(${EXAMPLE_TARGET} PRIVATE QueryCraft)
+    target_link_libraries(${EXAMPLE_TARGET} PRIVATE EntityCraft)
 endforeach ()

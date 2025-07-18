@@ -8,3 +8,11 @@
 #include <DatabaseAdapter/databaseadapter.h>
 #include <ReflectionApi/reflectionapi.h>
 #include <QueryCraft/querycraft.h>
+
+#ifdef ENABLE_SQLITE
+#    include <SqliteAdapter/sqliteadapter.h>
+#endif
+
+#ifdef ENABLE_POSTGRE
+#    include <PostgreAdapter/postgreadapter.h>
+#endif

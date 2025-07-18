@@ -1,5 +1,4 @@
 #include <EntityCraft/entitycraft.h>
-#include <SqliteAdapter/sqliteadapter.h>
 
 #include <fstream>
 
@@ -97,11 +96,11 @@ int main()
 {
     using namespace entity_craft;
 
-    database_adapter::sqlite_settings settings;
+    database_adapter::sqlite::settings settings;
     settings.url = "example-1.db";
     std::remove(settings.url.c_str());
 
-    auto worker_storage = WorkerStorage(std::make_shared<database_adapter::sqlite_database_adapter>(settings));
+    auto worker_storage = WorkerStorage(std::make_shared<database_adapter::sqlite::database_adapter>(settings));
 
     WorkerInfo worker1 { 0, std::make_shared<std::string>("worker1"), true };
     WorkerInfo worker2 { 0, nullptr, false };

@@ -1,10 +1,11 @@
-#include "SqliteAdapter/sqlitedatabaseadapter.h"
+#include "PostgreAdapter/postgredatabaseadapter.h"
 
-#include "SqliteAdapter/sqliteconnection.h"
-#include "SqliteAdapter/sqlitetransaction.h"
+#include "PostgreAdapter/postgreconnection.h"
+#include "PostgreAdapter/postgretransaction.h"
 
 namespace database_adapter {
-namespace sqlite {
+namespace postgre {
+
 
 database_adapter::database_adapter(const models::database_settings& settings)
     : IDataBaseDriver(std::make_shared<connection>(settings))
@@ -27,5 +28,5 @@ std::shared_ptr<ITransaction> database_adapter::open_transaction(const int type)
     }
 }
 
-} // namespace sqlite
+}
 } // namespace database_adapter

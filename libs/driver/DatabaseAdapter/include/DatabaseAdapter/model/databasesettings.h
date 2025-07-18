@@ -9,6 +9,8 @@ namespace models {
  */
 struct database_settings
 {
+    /// @brief Навзание базы данных для подключения
+    std::string database_name {};
     /// @brief Адрес/путь для подключения к базе данных
     std::string url {};
     /// @brief Порт для подключения к базе данных

@@ -4,6 +4,7 @@ option(ENTITY_CRAFT_EXAMPLE "Add EntityCraft examples file as executable (on|off
 option(ENTITY_CRAFT_TEST "Включить тесты для EntityCraft" OFF)
 option(ENTITY_CRAFT_QT "Включить поддержку Qt типов в библиотеки" OFF)
 option(ENTITY_CRAFT_ENABLE_SQLITE "Включить драйвер для Sqlite3" OFF)
+option(ENTITY_CRAFT_ENABLE_POSTGRE "Включить драйвер для PostgreSql" OFF)
 
 project(EntityCraft LANGUAGES CXX)
 
@@ -45,13 +46,33 @@ install(DIRECTORY include
 )
 
 if (${ENTITY_CRAFT_ENABLE_SQLITE})
+    add_definitions(-DENABLE_SQLITE)
     add_subdirectory(libs/driver/SqliteAdapter)
+
+    target_link_libraries(${PROJECT_NAME} PUBLIC
+            SqliteAdapter
+    )
+endif ()
+
+if (${ENTITY_CRAFT_ENABLE_POSTGRE})
+    add_definitions(-DENABLE_POSTGRE)
+    add_subdirectory(libs/driver/PostgeAdapter)
+
+    target_link_libraries(${PROJECT_NAME} PUBLIC
+            PostgreAdapter
+    )
 endif ()
 
 if(${ENTITY_CRAFT_EXAMPLE})
     if (NOT TARGET SqliteAdapter)
+        add_definitions(-DENABLE_SQLITE)
         add_subdirectory(libs/driver/SqliteAdapter)
+
+        target_link_libraries(${PROJECT_NAME} PUBLIC
+                SqliteAdapter
+        )
     endif ()
+
     add_subdirectory(example)
 endif ()
 

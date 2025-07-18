@@ -3,6 +3,6 @@
 #include "sqliteconnection.h"
 #include "sqlitedatabaseadapter.h"
 #include "sqlitetransaction.h"
-#include "transactiontype.h"
+#include "sqlitetransactiontype.h"
 
 #include <DatabaseAdapter/databaseadapter.h>

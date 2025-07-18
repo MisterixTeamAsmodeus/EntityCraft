@@ -1,15 +1,15 @@
 #pragma once
 
-#include "sqliteadapter_global.h"
+#include "postgreadapter_global.h"
 
 #include <DatabaseAdapter/itransaction.h>
 
-class SQLITE_EXPORT database_adapter::ITransaction;
+class POSTGRE_EXPORT database_adapter::ITransaction;
 
 namespace database_adapter {
-namespace sqlite {
+namespace postgre {
 
-class SQLITE_EXPORT transaction final : public ITransaction
+class POSTGRE_EXPORT transaction final : public ITransaction
 {
 public:
     explicit transaction(std::shared_ptr<IConnection> connection);
@@ -18,5 +18,5 @@ public:
     void open_transaction(int type) override;
 };
 
-} // namespace sqlite
+} // namespace postgre
 } // namespace database_adapter

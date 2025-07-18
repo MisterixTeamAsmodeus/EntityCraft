@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(EntityCraft_Example LANGUAGES CXX)
+project(SqliteAdapter_Example LANGUAGES CXX)
 
 file(GLOB_RECURSE EXAMPLE_SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 
 foreach(EXAMPLE_SOURCE_FILE ${EXAMPLE_SOURCE_FILES})
     get_filename_component(EXAMPLE_NAME ${EXAMPLE_SOURCE_FILE} NAME_WE)
 
-    set(EXAMPLE_TARGET "EntityCraft_${EXAMPLE_NAME}")
+    set(EXAMPLE_TARGET "SqliteAdapter_${EXAMPLE_NAME}")
 
     add_executable(${EXAMPLE_TARGET} ${EXAMPLE_SOURCE_FILE})
 

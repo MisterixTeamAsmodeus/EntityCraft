@@ -1,6 +1,6 @@
 #pragma once
 
-#include "model/queryresult.h"
+#include "DatabaseAdapter/model/queryresult.h"
 
 #include <memory>
 #include <string>
@@ -74,9 +74,9 @@ public:
      */
     std::shared_ptr<ITransaction> open_base_transaction() const;
 
-    void prepare(const std::string& query);
+    void prepare(const std::string& query, const std::string& name = "");
 
-    models::query_result exec_prepared(const std::vector<std::string>& params);
+    models::query_result exec_prepared(const std::vector<std::string>& params, const std::string& name = "");
 
 protected:
     std::shared_ptr<IConnection> _connection;

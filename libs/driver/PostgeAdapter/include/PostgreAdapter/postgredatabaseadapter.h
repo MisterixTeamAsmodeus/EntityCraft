@@ -1,14 +1,15 @@
 #pragma once
 
-#include "sqliteadapter_global.h"
+#include "postgreadapter_global.h"
 
 #include <DatabaseAdapter/databaseadapter.h>
 
-class SQLITE_EXPORT database_adapter::IDataBaseDriver;
+class POSTGRE_EXPORT database_adapter::IDataBaseDriver;
 
 namespace database_adapter {
-namespace sqlite {
-class SQLITE_EXPORT database_adapter final : public IDataBaseDriver
+namespace postgre {
+
+class POSTGRE_EXPORT database_adapter final : public IDataBaseDriver
 {
 public:
     explicit database_adapter(const models::database_settings& settings);
@@ -18,5 +19,6 @@ public:
     ~database_adapter() override = default;
     std::shared_ptr<ITransaction> open_transaction(int type) const override;
 };
-} // namespace sqlite
+
+} // namespace postgre
 } // namespace database_adapter
