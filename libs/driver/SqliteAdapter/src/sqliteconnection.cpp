@@ -155,7 +155,7 @@ void connection::connect(const models::database_settings& settings)
     if(sqlite3_open_v2(settings.url.c_str(), &_connection, SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE, nullptr) != SQLITE_OK) {
         sqlite3_close(_connection);
         _connection = nullptr;
-        std::string last_error = "Can't open database: ";
+        std::string last_error = "Can't open database path: " + settings.url + "; ";
         last_error.append(sqlite3_errmsg(_connection));
         throw open_database_exception(std::move(last_error));
     }
