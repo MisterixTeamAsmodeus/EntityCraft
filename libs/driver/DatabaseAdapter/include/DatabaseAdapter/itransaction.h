@@ -79,6 +79,7 @@ public:
      */
     models::query_result exec(const std::string& query);
 
+std::shared_ptr<IConnection> connection() const;
 protected:
     std::shared_ptr<IConnection> _connection;
 };

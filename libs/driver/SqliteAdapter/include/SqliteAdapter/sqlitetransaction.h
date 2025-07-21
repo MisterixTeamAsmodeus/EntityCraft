@@ -1,6 +1,7 @@
 #pragma once
 
 #include "sqliteadapter_global.h"
+#include "sqliteconnectionpool.h"
 
 #include <DatabaseAdapter/itransaction.h>
 
@@ -12,7 +13,7 @@ namespace sqlite {
 class SQLITE_EXPORT transaction final : public ITransaction
 {
 public:
-    explicit transaction(std::shared_ptr<IConnection> connection);
+    explicit transaction(std::shared_ptr<IConnection> connection = connection_pool::instance()->open_connection());
     ~transaction() override = default;
 
     void open_transaction(int type) override;

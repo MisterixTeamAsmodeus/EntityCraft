@@ -8,6 +8,7 @@
 
 namespace database_adapter {
 namespace postgre {
+
 transaction::transaction(std::shared_ptr<IConnection> connection)
     : ITransaction(std::move(connection))
 {

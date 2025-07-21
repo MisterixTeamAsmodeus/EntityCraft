@@ -39,6 +39,11 @@ models::query_result ITransaction::exec(const std::string& query)
     return _connection->exec(query);
 }
 
+std::shared_ptr<IConnection> ITransaction::connection() const
+{
+    return _connection;
+}
+
 void ITransaction::rollback()
 {
     rollback_to_save_point("");

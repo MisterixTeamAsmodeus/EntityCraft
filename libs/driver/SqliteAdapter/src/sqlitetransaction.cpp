@@ -1,11 +1,12 @@
 #include "SqliteAdapter/sqlitetransaction.h"
 
-#include "DatabaseAdapter/exception/sqlexception.h"
 #include "SqliteAdapter/sqliteconnection.h"
+#include "SqliteAdapter/sqliteconnectionpool.h"
 #include "SqliteAdapter/sqlitetransactiontype.h"
 
 namespace database_adapter {
 namespace sqlite {
+
 transaction::transaction(std::shared_ptr<IConnection> connection)
     : ITransaction(std::move(connection))
 {

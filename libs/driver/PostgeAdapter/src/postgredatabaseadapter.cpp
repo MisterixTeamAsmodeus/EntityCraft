@@ -1,11 +1,11 @@
 #include "PostgreAdapter/postgredatabaseadapter.h"
 
 #include "PostgreAdapter/postgreconnection.h"
+#include "PostgreAdapter/postgreconnectionpool.h"
 #include "PostgreAdapter/postgretransaction.h"
 
 namespace database_adapter {
 namespace postgre {
-
 
 database_adapter::database_adapter(const models::database_settings& settings)
     : IDataBaseDriver(std::make_shared<connection>(settings))
@@ -28,5 +28,5 @@ std::shared_ptr<ITransaction> database_adapter::open_transaction(const int type)
     }
 }
 
-}
+} // namespace postgre
 } // namespace database_adapter

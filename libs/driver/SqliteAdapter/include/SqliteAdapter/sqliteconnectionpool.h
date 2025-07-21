@@ -20,10 +20,10 @@ public:
     static std::shared_ptr<connection_pool> instance();
 
 public:
-    connection_pool(settings settings, size_t start_pool_size, size_t max_pool_size, std::chrono::seconds wait_time);
+    connection_pool(settings settings, size_t start_pool_size, size_t max_pool_size, std::chrono::seconds wait_time = std::chrono::seconds(10));
 
-    connection_pool(settings settings, size_t start_pool_size, std::chrono::seconds wait_time);
+    explicit connection_pool(settings settings, size_t start_pool_size = 10, std::chrono::seconds wait_time = std::chrono::seconds(10));
 };
 
-} // namespace postgre
+} // namespace sqlite
 } // namespace database_adapter

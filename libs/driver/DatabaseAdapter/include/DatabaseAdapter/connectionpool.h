@@ -63,7 +63,7 @@ public:
         std::lock_guard<std::mutex> lock_guard(_lock);
 
         for(const auto& connection : _connections) {
-            if(connection.second.use_count() == 1) {
+            if(connection.use_count() == 1) {
                 return connection;
             }
         }
@@ -78,7 +78,7 @@ public:
 
         while(std::chrono::system_clock::now() - start <= _wait_time) {
             for(auto& connection : _connections) {
-                if(connection.second.use_count() == 1) {
+                if(connection.use_count() == 1) {
                     return connection;
                 }
             }
@@ -98,7 +98,7 @@ private:
 
         _connections.reserve(_start_pool_size);
         for(auto i = 0; i < _start_pool_size; i++) {
-            _connections.push_back({ std::chrono::system_clock::now(), std::make_shared<ConnectionType>(_settings) });
+            _connections.push_back(std::make_shared<ConnectionType>(_settings));
         }
     }
 
