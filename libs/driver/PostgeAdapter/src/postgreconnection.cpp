@@ -38,7 +38,8 @@ bool connection::is_valid()
 models::query_result connection::exec(const std::string& query)
 {
     auto* query_result = PQexec(_connection, query.c_str());
-    if(PQresultStatus(query_result) != PGRES_TUPLES_OK) {
+    auto res = PQresultStatus(query_result);
+    if(PQresultStatus(query_result) != PGRES_TUPLES_OK && PQresultStatus(query_result) != PGRES_COMMAND_OK) {
         PQclear(query_result);
 
         std::string last_error = "Failed to execute statement: ";
@@ -100,7 +101,7 @@ models::query_result connection::exec_prepared(const std::vector<std::string>& p
     };
 
     auto* query_result = PQexecPrepared(_connection, name.c_str(), params.size(), transform(params), nullptr, nullptr, 0);
-    if(PQresultStatus(query_result) != PGRES_TUPLES_OK) {
+    if(PQresultStatus(query_result) != PGRES_TUPLES_OK && PQresultStatus(query_result) != PGRES_COMMAND_OK) {
         PQclear(query_result);
 
         std::string last_error = "Failed to execute prepared statement: ";
