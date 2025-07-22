@@ -90,9 +90,10 @@ models::query_result connection::exec_prepared(const std::vector<std::string>& p
             if(params[i] == null) {
                 transform_params[i] = nullptr;
             } else {
-                auto* source_param = params[i].c_str();
                 auto* target_param = new char[params[i].size()];
-                strcpy_s(target_param, sizeof(source_param), source_param);
+                for(int j = 0; j < params[i].size(); j++) {
+                    target_param[j] = params[i].at(j);
+                }
                 transform_params[i] = target_param;
             }
         }
