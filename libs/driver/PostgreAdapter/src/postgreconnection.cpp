@@ -6,6 +6,7 @@
 #include "DatabaseAdapter/model/databasesettings.h"
 
 #include <iostream>
+#include <string>
 #include <sstream>
 
 namespace database_adapter {
@@ -38,7 +39,6 @@ bool connection::is_valid()
 models::query_result connection::exec(const std::string& query)
 {
     auto* query_result = PQexec(_connection, query.c_str());
-    auto res = PQresultStatus(query_result);
     if(PQresultStatus(query_result) != PGRES_TUPLES_OK && PQresultStatus(query_result) != PGRES_COMMAND_OK) {
         PQclear(query_result);
 
