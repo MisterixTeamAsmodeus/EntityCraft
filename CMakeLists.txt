@@ -56,7 +56,7 @@ endif ()
 
 if (${ENTITY_CRAFT_ENABLE_POSTGRE})
     add_definitions(-DENABLE_POSTGRE)
-    add_subdirectory(libs/driver/PostgeAdapter)
+    add_subdirectory(libs/driver/PostgreAdapter)
 
     target_link_libraries(${PROJECT_NAME} PUBLIC
             PostgreAdapter
