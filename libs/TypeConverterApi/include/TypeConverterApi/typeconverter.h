@@ -71,13 +71,17 @@ std::string convert_to_string(const T& value, int)
 template<typename T>
 void fill_from_string(T&, const std::string&, ...)
 {
-    throw std::runtime_error((std::stringstream() << "fill_from_string not implemented for " << typeid(T).name()).str());
+    std::stringstream message;
+    message << "fill_from_string not implemented for " << typeid(T).name();
+    throw std::runtime_error(message.str());
 }
 
 template<typename T>
 std::string convert_to_string(const T&, ...)
 {
-    throw std::runtime_error((std::stringstream() << "convert_to_string not implemented for " << typeid(T).name()).str());
+    std::stringstream message;
+    message << "convert_to_string not implemented for " << typeid(T).name();
+    throw std::runtime_error(message.str());
 }
 
 } // namespace impl

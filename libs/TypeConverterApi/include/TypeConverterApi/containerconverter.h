@@ -31,7 +31,10 @@ void convert_to_target(TargetContainer& relation_property, const CurrentContaine
 template<typename TargetContainer, typename Type, typename CurrentContainer = std::vector<Type>>
 void convert_to_target(TargetContainer&, const CurrentContainer&, ...)
 {
-    throw std::runtime_error((std::stringstream() << "convert_to_target not implemented from " << typeid(TargetContainer).name() << " to " << typeid(CurrentContainer).name()).str());
+    std::stringstream message;
+    message << "convert_to_target not implemented from " << typeid(TargetContainer).name() << " to " << typeid(CurrentContainer).name();
+
+    throw std::runtime_error(message.str());
 }
 } // namespace impl
 
