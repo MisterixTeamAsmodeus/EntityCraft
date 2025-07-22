@@ -3,6 +3,7 @@
 #include "sfinae.h"
 
 #include <sstream>
+#include <typeinfo>
 #include <vector>
 
 namespace type_converter_api {
