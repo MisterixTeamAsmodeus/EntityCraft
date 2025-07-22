@@ -5,6 +5,7 @@
 #include <chrono>
 #include <memory>
 #include <mutex>
+#include <thread>
 #include <vector>
 
 namespace database_adapter {
