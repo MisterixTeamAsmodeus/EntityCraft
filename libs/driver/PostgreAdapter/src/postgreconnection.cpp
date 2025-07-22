@@ -5,8 +5,8 @@
 #include "DatabaseAdapter/idatabasedriver.h"
 #include "DatabaseAdapter/model/databasesettings.h"
 
+#include <cstring>
 #include <iostream>
-#include <string>
 #include <sstream>
 
 namespace database_adapter {
@@ -130,12 +130,13 @@ models::query_result connection::exec_prepared(const std::vector<std::string>& p
 void connection::connect(const settings& settings)
 {
     const auto connection_info = [&settings]() {
-        return (std::stringstream() << "dbname=" << settings.database_name << " "
-                                    << "user=" << settings.login << " "
-                                    << "password=" << settings.password << " "
-                                    << "host=" << settings.url << " "
-                                    << "port=" << settings.port)
-            .str();
+        std::stringstream connection_info;
+        connection_info << "dbname=" << settings.database_name << " "
+                        << "user=" << settings.login << " "
+                        << "password=" << settings.password << " "
+                        << "host=" << settings.url << " "
+                        << "port=" << settings.port;
+        return connection_info.str();
     }();
 
     _connection = PQconnectdb(connection_info.c_str());
