@@ -2,6 +2,8 @@
 
 #include "model/queryresult.h"
 
+#include <vector>
+
 namespace database_adapter {
 namespace models {
 struct database_settings;
