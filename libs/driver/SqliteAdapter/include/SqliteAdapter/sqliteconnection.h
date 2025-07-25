@@ -1,4 +1,5 @@
 #pragma once
+#define SQLITE_API // Гарантирует статическую линковку для sqlite3
 
 #include "sqliteadapter_global.h"
 
