@@ -18,6 +18,7 @@ void convert_to_target(TargetContainer& relation_property, const CurrentContaine
         relation_property << value;
     }
 }
+
 #endif
 
 template<typename TargetContainer, typename Type, typename CurrentContainer = std::vector<Type>,
@@ -39,10 +40,11 @@ void convert_to_target(TargetContainer&, const CurrentContainer&, ...)
 }
 } // namespace impl
 
-template<typename TargetContainer, typename Type, typename CurrentContainer = std::vector<Type>>
+template<typename TargetContainer, typename Type = typename TargetContainer::value_type>
 class container_converter
 {
 public:
+    template<typename CurrentContainer = std::vector<Type>>
     void convert_to_target(TargetContainer& relation_property, const CurrentContainer& result)
     {
         impl::convert_to_target<TargetContainer, Type, CurrentContainer>(relation_property, result, 0);

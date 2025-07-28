@@ -41,7 +41,6 @@ private:
     static std::shared_ptr<ILogger> _logger;
 
 private:
-    bool has_prepared = false;
     PGconn* _connection = nullptr;
 };
 

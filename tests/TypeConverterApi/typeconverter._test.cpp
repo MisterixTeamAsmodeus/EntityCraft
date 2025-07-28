@@ -73,7 +73,7 @@ TEST(TypeConverterTest, EnumToString)
 TEST(QtTypeConverterTest, StringToQDateTime)
 {
     type_converter_api::type_converter<QDateTime> converter;
-    QDateTime value = QDateTime();
+    auto value = QDateTime();
     converter.fill_from_string(value, "2023-10-05T14:30:00.000");
     EXPECT_EQ(value.toString("yyyy-MM-ddTHH:mm:ss.zzz"), "2023-10-05T14:30:00.000");
 }
@@ -82,8 +82,9 @@ TEST(QtTypeConverterTest, StringToQDateTime)
 TEST(QtTypeConverterTest, QDateTimeToString)
 {
     type_converter_api::type_converter<QDateTime> converter;
-    const std::string str = converter.convert_to_string(QDateTime::currentDateTime());
-    EXPECT_TRUE(str.find("yyyy-MM-ddTHH:mm:ss.zzz") != std::string::npos);
+    const auto value = QDateTime::currentDateTime();
+    const auto str = converter.convert_to_string(QDateTime::currentDateTime());
+    EXPECT_TRUE(value.toString("yyyy-MM-ddTHH:mm:ss.zzz").toStdString() == str);
 }
 
 // Test for converting a string to QDate
@@ -99,8 +100,9 @@ TEST(QtTypeConverterTest, StringToQDate)
 TEST(QtTypeConverterTest, QDateToString)
 {
     type_converter_api::type_converter<QDate> converter;
-    const std::string str = converter.convert_to_string(QDate::currentDate());
-    EXPECT_TRUE(str.find("yyyy-MM-dd") != std::string::npos);
+    const auto value = QDate::currentDate();
+    const auto str = converter.convert_to_string(QDate::currentDate());
+    EXPECT_TRUE(value.toString("yyyy-MM-dd").toStdString() == str);
 }
 
 // Test for converting a string to QString
@@ -142,7 +144,7 @@ TEST(QtTypeConverterTest, StringToQJsonObject)
 {
     type_converter_api::type_converter<QJsonObject> converter;
     QJsonObject value;
-    converter.fill_from_string(value, "{\"key\":\"value\"}");
+    converter.fill_from_string(value, R"({"key":"value"})");
     EXPECT_TRUE(value.contains("key"));
     EXPECT_EQ(value["key"].toString(), "value");
 }
@@ -151,8 +153,9 @@ TEST(QtTypeConverterTest, StringToQJsonObject)
 TEST(QtTypeConverterTest, QJsonObjectToString)
 {
     type_converter_api::type_converter<QJsonObject> converter;
-    const std::string str = converter.convert_to_string(QJsonObject({ { "key", "value" } }));
-    EXPECT_TRUE(str.find("\"key\":\"value\"") != std::string::npos);
+    const auto value = QJsonObject({ { "key", "value" } });
+    const std::string str = converter.convert_to_string(value);
+    EXPECT_TRUE(str == "{\n    \"key\": \"value\"\n}\n");
 }
 
 #endif

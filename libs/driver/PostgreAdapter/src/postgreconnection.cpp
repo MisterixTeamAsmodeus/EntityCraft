@@ -99,8 +99,6 @@ void connection::prepare(const std::string& query, const std::string& name)
 
         throw sql_exception(std::move(last_error), query);
     }
-
-    has_prepared = true;
 }
 
 models::query_result connection::exec_prepared(const std::vector<std::string>& params, const std::string& name)

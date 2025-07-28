@@ -28,7 +28,7 @@ public:
         , _auto_commit(auto_commit)
     {
         if(!_database->is_open()) {
-            throw std::invalid_argument("database driver is close");
+            throw std::invalid_argument("Connection is not valid");
         }
     }
 
@@ -172,13 +172,10 @@ public:
 
         const auto result = exec(sql);
 
+        clear_select_settings();
+
         if(result.empty()) {
             return {};
-        }
-
-        const bool has_transaction = _open_transaction != nullptr;
-        if(!has_transaction) {
-            transaction();
         }
 
         std::vector<ClassType> res;
@@ -190,11 +187,7 @@ public:
             res.emplace_back(entity);
         }
 
-        if(!has_transaction) {
-            commit();
-        }
-
-        clear_select_settings();
+        res = merge_result_by_id(res, _dto, type_converter_api::container_converter<std::vector<ClassType>>());
 
         return res;
     }
@@ -602,6 +595,100 @@ public:
 
 private:
     /**
+     * Получить текстовое представление идентификатора заданной сущности
+     * @tparam Entity Тип сущности у которой нужно получить уникальный идентификатор
+     * @tparam Dto Вспомогательный тип для возможности получить информацию о колонках. entity_craft::table
+     * @param entity Сущность у которой нужно получить уникальный идентификатор
+     * @param dto Информация о таблице
+     * @return текстовое представление идентификатора заданной сущности
+     */
+    template<typename Entity, typename Dto>
+    static std::string get_entity_id(Entity& entity, Dto& dto)
+    {
+        std::string id;
+        dto.for_each([&entity, &id](const auto& column) {
+            const auto column_info = column.column_info();
+            if(!column_info.has_settings(query_craft::column_settings::primary_key))
+                return;
+
+            auto column_property = column.property();
+            const auto reference_propery_value = column_property.value(entity);
+            id = column_property.property_converter()->convert_to_string(reference_propery_value);
+        });
+
+        return id;
+    }
+
+    /**
+     * Заглушка для исправления компиляции для типов которые нельзя использовать в отношении one_to_many
+     */
+    template<typename EntityList, typename... Agrs>
+    static EntityList merge_result_by_id(EntityList& input, Agrs... agrs)
+    {
+        return input;
+    }
+
+    /**
+     * Склейка одной сущности и ее связанных сущностей по primary_key
+     * @tparam EntityList Тип для списока сущностей
+     * @tparam Dto Вспомогательный тип для возможности получить информацию о колонках. entity_craft::table
+     * @param input Список сущностей для склейки
+     * @param dto Информация о таблице
+     * @param converter Конвертер для массива данных
+     * @return Список склееных сущностей по primary_key
+     */
+    template<typename EntityList, typename Dto>
+    static EntityList merge_result_by_id(EntityList& input, Dto& dto, type_converter_api::container_converter<EntityList> converter)
+    {
+        auto merge_entity = [](auto& input, auto& dto) {
+            if(input.size() == 1) {
+                return *input.begin();
+            }
+
+            dto.for_each(visitor::make_reference_column_visitor([&input](auto& reference_column) {
+                if(reference_column.type() != relation_type::one_to_many) {
+                    return;
+                }
+
+                auto reference_property = reference_column.property();
+                auto target_array = reference_property.value(*input.begin());
+
+                std::for_each(++input.begin(), input.end(), [&reference_property, &reference_column, &target_array](auto& value) {
+                    auto addition_value = reference_property.value(value);
+                    reference_column.inserter().convert_to_target(target_array, addition_value);
+                });
+
+                target_array = merge_result_by_id(target_array, reference_column.reference_table(), reference_column.inserter());
+
+                reference_property.set_value(*input.begin(), target_array);
+            }));
+
+            return *input.begin();
+        };
+
+        std::unordered_map<std::string, EntityList> mapping;
+        for(const auto& value : input) {
+            const auto value_id = get_entity_id(value, dto);
+            auto it = mapping.find(value_id);
+            if(it == mapping.end()) {
+                mapping.insert({ value_id, { value } });
+            } else {
+                converter.convert_to_target(it->second, EntityList { value });
+            }
+        }
+
+        EntityList res;
+        for(auto& value : mapping) {
+            if(value.second.empty()) {
+                continue;
+            }
+            converter.convert_to_target(res, EntityList { merge_entity(value.second, dto) });
+        }
+
+        return res;
+    }
+
+    /**
      * Получить информацию о колонке с флагом primary_key
      * @param dto Таблица из которой нужно получить информаю
      * @return Информацию о primary_key
@@ -631,17 +718,20 @@ private:
     static void append_join_columns(std::vector<query_craft::column_info>& columns, Dto& dto)
     {
         dto.for_each(visitor::make_reference_column_visitor([&columns](auto& reference_column) {
-            if(reference_column.type() != relation_type::many_to_one
-                && reference_column.type() != relation_type::one_to_one_inverted
-                && reference_column.type() != relation_type::one_to_one) {
-                return;
-            }
-
             auto reference_table = reference_column.reference_table();
-            reference_table.for_each([&columns](const auto& column) {
+            reference_table.for_each(visitor::make_any_column_visitor([&columns](const auto& column) {
                 auto column_info = column.column_info();
-                columns.emplace_back(column_info);
-            });
+                    columns.emplace_back(column_info); },
+                [&columns](const auto& inline_reference_column) {
+                    if(inline_reference_column.type() != relation_type::many_to_one
+                        && inline_reference_column.type() != relation_type::one_to_one_inverted
+                        && inline_reference_column.type() != relation_type::one_to_one) {
+                        return;
+                    }
+
+                    auto column_info = inline_reference_column.column_info();
+                    columns.emplace_back(column_info);
+                }));
 
             append_join_columns(columns, reference_table);
         }));
@@ -670,12 +760,11 @@ private:
                     join_column.condition = reference_column.column_info().equals(primary_key_column(reference_table));
                     break;
                 }
+                case relation_type::one_to_many:
                 case relation_type::one_to_one_inverted: {
                     join_column.condition = primary_key_column(dto).equals(reference_table.table_info().column(reference_column.column_info().name()));
                     break;
                 }
-                default:
-                    return;
             }
 
             joined_columns.emplace_back(join_column);
@@ -843,7 +932,7 @@ private:
             [&entity, &query_result](auto& column) {
                 parse_property_from_sql(column, query_result, entity);
             },
-            [this, &entity, &query_result, &dto, &without_relation_entity](auto& reference_column) {
+            [this, &entity, &query_result, &without_relation_entity](auto& reference_column) {
                 auto reference_propery = reference_column.property();
                 auto reference_table = reference_column.reference_table();
 
@@ -861,31 +950,31 @@ private:
                         break;
                     }
                     case relation_type::one_to_many: {
-                        if(without_relation_entity)
-                            break;
+                        auto reference_entity = this->parse_entity_from_sql(reference_table, query_result, without_relation_entity);
 
-                        auto reference_storage = make_storage(_database, reference_table);
-                        reference_storage.set_transaction(_open_transaction);
+                        if(reference_table.has_reques_callback()) {
+                            reference_table.reques_callback()->post_request_callback(reference_entity, request_callback_type::select, _open_transaction);
+                        }
 
-                        auto mapped_column = reference_table.table_info().column(reference_column.column_info().name());
-                        query_craft::condition_group condition;
-                        dto.for_each(visitor::make_column_visitor([&condition, &reference_column, &entity, &mapped_column](auto& column) {
-                            if(column.column_info().has_settings(query_craft::column_settings::primary_key)) {
-                                auto property = column.property();
-                                auto id_value = property.property_converter()->convert_to_string(property.value(entity));
-                                condition = mapped_column == id_value;
-                            }
-                        }));
+                        // Флаг для проверки на то что связанная сущность существует
+                        bool isValid = true;
+                        reference_table.for_each([&reference_entity, &isValid](const auto& column) {
+                            auto reference_column_info = column.column_info();
+                            if(!reference_column_info.has_settings(query_craft::column_settings::primary_key))
+                                return;
 
-                        reference_storage.condition_group(condition);
+                            const auto reference_propery_value = column.property().value(reference_entity);
+                            isValid = !column.null_cheker()->is_null(reference_propery_value);
+                        });
 
-                        auto result = reference_storage.select();
+                        if(isValid) {
+                            std::vector<decltype(reference_entity)> reference_entity_container;
+                            reference_entity_container.emplace_back(reference_entity);
+                            auto property_value = reference_column.empty_property();
+                            reference_column.inserter().convert_to_target(property_value, reference_entity_container);
 
-                        auto property_value = reference_column.empty_property();
-                        reference_column.inserter().convert_to_target(property_value, result);
-
-                        reference_propery.set_value(entity, property_value);
-
+                            reference_propery.set_value(entity, property_value);
+                        }
                         break;
                     }
                 }
