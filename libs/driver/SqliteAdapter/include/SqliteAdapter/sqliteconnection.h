@@ -4,9 +4,13 @@
 #include "sqliteadapter_global.h"
 
 #include <DatabaseAdapter/iconnection.h>
+#include <DatabaseAdapter/ilogger.h>
 #include <sqlite3.h>
 
+#include <memory>
+
 class SQLITE_EXPORT database_adapter::IConnection;
+class SQLITE_EXPORT database_adapter::ILogger;
 
 namespace database_adapter {
 namespace sqlite {
@@ -18,6 +22,9 @@ using settings = models::database_settings;
 
 class SQLITE_EXPORT connection final : public IConnection
 {
+public:
+    static void set_logger(std::shared_ptr<ILogger>&& logger);
+
 public:
     explicit connection(const settings& settings);
     ~connection() override;
@@ -33,9 +40,12 @@ private:
     void disconnect();
 
 private:
+    static std::shared_ptr<ILogger> _logger;
+
+private:
     sqlite3* _connection = nullptr;
 
-    sqlite3_stmt* prepared = nullptr;
+    std::unordered_map<std::string, sqlite3_stmt*> prepared;
 };
 } // namespace sqlite
 } // namespace database_adapter

@@ -92,9 +92,27 @@ private:
     Storage _storage;
 };
 
+class Logger final : public database_adapter::ILogger
+{
+public:
+    ~Logger() override = default;
+
+    void log_error(const std::string& message) override
+    {
+        std::cout << "LOG_ERROR : " << message << "\n";
+    }
+
+    void log_sql(const std::string& message) override
+    {
+        std::cout << "LOG_DEBUG : " << message << "\n";
+    }
+};
+
 int main()
 {
     using namespace entity_craft;
+
+    database_adapter::sqlite::connection::set_logger(std::make_shared<Logger>());
 
     database_adapter::sqlite::settings settings;
     settings.url = "example-1.db";
