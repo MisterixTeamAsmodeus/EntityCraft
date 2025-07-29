@@ -735,6 +735,23 @@ private:
 
             append_join_columns(columns, reference_table);
         }));
+
+        // Удаление дублирующих колонок
+        std::unordered_map<std::string, query_craft::column_info> columnsByName;
+        for(const auto& column : columns) {
+            if(columnsByName.find(column.full_name()) != columnsByName.end()) {
+                continue;
+            }
+
+            columnsByName.insert({ column.full_name(), column });
+        }
+
+        columns.clear();
+        columns.reserve(columnsByName.size());
+
+        for(const auto& column : columnsByName) {
+            columns.emplace_back(column.second);
+        }
     }
 
     /**
@@ -746,7 +763,6 @@ private:
     static std::vector<query_craft::join_column> join_columns(Dto& dto)
     {
         std::vector<query_craft::join_column> joined_columns;
-
         dto.for_each(visitor::make_reference_column_visitor([&joined_columns, &dto](auto& reference_column) {
             auto reference_table = reference_column.reference_table();
 
@@ -768,9 +784,31 @@ private:
             }
 
             joined_columns.emplace_back(join_column);
-
             auto reference_joined_columns = join_columns(reference_table);
+
             joined_columns.insert(joined_columns.end(), reference_joined_columns.begin(), reference_joined_columns.end());
+        }));
+
+        std::unordered_map<std::string, query_craft::join_column> joined_table_by_name;
+        std::set<std::string> duplicate;
+        for(auto& table : joined_columns) {
+            auto it = joined_table_by_name.find(table.joined_table.table_name());
+            if(it == joined_table_by_name.end()) {
+                joined_table_by_name.insert({ table.joined_table.table_name(), table });
+                continue;
+            }
+
+            duplicate.insert(table.joined_table.table_name());
+            table.condition = table.condition || it->second.condition;
+        }
+
+        joined_columns.erase(std::remove_if(joined_columns.begin(), joined_columns.end(), [&duplicate](const query_craft::join_column& info) {
+            const auto it = duplicate.find(info.joined_table.table_name());
+            if(it == duplicate.end()) {
+                return false;
+            }
+            duplicate.erase(it);
+            return true;
         }));
 
         return joined_columns;
@@ -941,20 +979,17 @@ private:
                     case relation_type::one_to_one_inverted:
                     case relation_type::one_to_one: {
                         auto reference_entity = this->parse_entity_from_sql(reference_table, query_result, without_relation_entity);
+                        // TODo проверка на совпадение ключей для join для множемтвенных включений одной и той же таблицы
 
                         if(reference_table.has_reques_callback()) {
                             reference_table.reques_callback()->post_request_callback(reference_entity, request_callback_type::select, _open_transaction);
                         }
-
                         reference_propery.set_value(entity, reference_entity);
                         break;
                     }
                     case relation_type::one_to_many: {
                         auto reference_entity = this->parse_entity_from_sql(reference_table, query_result, without_relation_entity);
-
-                        if(reference_table.has_reques_callback()) {
-                            reference_table.reques_callback()->post_request_callback(reference_entity, request_callback_type::select, _open_transaction);
-                        }
+                        // TODo проверка на совпадение ключей для join для множемтвенных включений одной и той же таблицы
 
                         // Флаг для проверки на то что связанная сущность существует
                         bool isValid = true;
@@ -968,6 +1003,10 @@ private:
                         });
 
                         if(isValid) {
+                            if(reference_table.has_reques_callback()) {
+                                reference_table.reques_callback()->post_request_callback(reference_entity, request_callback_type::select, _open_transaction);
+                            }
+
                             std::vector<decltype(reference_entity)> reference_entity_container;
                             reference_entity_container.emplace_back(reference_entity);
                             auto property_value = reference_column.empty_property();
