@@ -784,34 +784,33 @@ private:
             }
 
             joined_columns.emplace_back(join_column);
-            auto reference_joined_columns = join_columns(reference_table);
 
+            auto reference_joined_columns = join_columns(reference_table);
             joined_columns.insert(joined_columns.end(), reference_joined_columns.begin(), reference_joined_columns.end());
         }));
 
         std::unordered_map<std::string, query_craft::join_column> joined_table_by_name;
-        std::set<std::string> duplicate;
-        for(auto& table : joined_columns) {
+        for(const auto& table : joined_columns) {
             auto it = joined_table_by_name.find(table.joined_table.table_name());
             if(it == joined_table_by_name.end()) {
                 joined_table_by_name.insert({ table.joined_table.table_name(), table });
                 continue;
             }
 
-            duplicate.insert(table.joined_table.table_name());
-            table.condition = table.condition || it->second.condition;
+            it->second.condition = table.condition || it->second.condition;
         }
 
-        joined_columns.erase(std::remove_if(joined_columns.begin(), joined_columns.end(), [&duplicate](const query_craft::join_column& info) {
-            const auto it = duplicate.find(info.joined_table.table_name());
-            if(it == duplicate.end()) {
-                return false;
+        std::set<std::string> duplicate;
+        std::vector<query_craft::join_column> joined_columns_mapped;
+        joined_columns_mapped.reserve(joined_table_by_name.size());
+        std::for_each(joined_columns.rbegin(), joined_columns.rend(), [&duplicate, &joined_columns_mapped, &joined_table_by_name](const auto& table) {
+            if(duplicate.find(table.joined_table.table_name()) == duplicate.end()) {
+                duplicate.insert(table.joined_table.table_name());
+                joined_columns_mapped.insert(joined_columns_mapped.begin(), joined_table_by_name.at(table.joined_table.table_name()));
             }
-            duplicate.erase(it);
-            return true;
-        }));
+        });
 
-        return joined_columns;
+        return joined_columns_mapped;
     }
 
     /**
