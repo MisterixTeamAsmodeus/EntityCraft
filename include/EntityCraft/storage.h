@@ -623,7 +623,7 @@ private:
      * Заглушка для исправления компиляции для типов которые нельзя использовать в отношении one_to_many
      */
     template<typename EntityList, typename... Agrs>
-    static EntityList merge_result_by_id(EntityList& input, Agrs... agrs)
+    static EntityList merge_result_by_id(EntityList& input, Agrs...)
     {
         return input;
     }
