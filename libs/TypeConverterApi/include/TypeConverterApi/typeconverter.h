@@ -238,39 +238,55 @@ public:
 template<>
 class type_converter<QDateTime>
 {
-    static constexpr auto mask = "yyyy-MM-ddTHH:mm:ss.zzz";
+    static constexpr auto default_mask = "yyyy-MM-dd HH:mm:ss.zzz";
 
 public:
+    explicit type_converter(std::string mask = default_mask)
+        : mask(std::move(mask))
+    {
+    }
+
     virtual ~type_converter() = default;
 
     virtual void fill_from_string(QDateTime& value, const std::string& str) const
     {
-        value = QDateTime::fromString(QString::fromStdString(str), mask);
+        value = QDateTime::fromString(QString::fromStdString(str), mask.c_str());
     }
 
     virtual std::string convert_to_string(const QDateTime& value) const
     {
-        return value.toString(mask).toStdString();
+        return value.toString(mask.c_str()).toStdString();
     }
+
+private:
+    std::string mask;
 };
 
 template<>
 class type_converter<QDate>
 {
-    static constexpr auto mask = "yyyy-MM-dd";
+    static constexpr auto default_mask = "yyyy-MM-dd";
 
 public:
+    explicit type_converter(std::string mask = default_mask)
+        : mask(std::move(mask))
+    {
+    }
+
     virtual ~type_converter() = default;
 
     virtual void fill_from_string(QDate& value, const std::string& str) const
     {
-        value = QDate::fromString(QString::fromStdString(str), mask);
+        value = QDate::fromString(QString::fromStdString(str), mask.c_str());
     }
 
     virtual std::string convert_to_string(const QDate& value) const
     {
-        return value.toString(mask).toStdString();
+        return value.toString(mask.c_str()).toStdString();
     }
+
+private:
+    std::string mask;
 };
 
 template<>

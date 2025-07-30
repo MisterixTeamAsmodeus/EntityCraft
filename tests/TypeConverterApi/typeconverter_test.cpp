@@ -75,7 +75,7 @@ TEST(QtTypeConverterTest, StringToQDateTime)
     type_converter_api::type_converter<QDateTime> converter;
     auto value = QDateTime();
     converter.fill_from_string(value, "2023-10-05T14:30:00.000");
-    EXPECT_EQ(value.toString("yyyy-MM-ddTHH:mm:ss.zzz"), "2023-10-05T14:30:00.000");
+    EXPECT_EQ(value.toString("yyyy-MM-dd HH:mm:ss.zzz"), "2023-10-05 14:30:00.000");
 }
 
 // Test for converting a QDateTime to string
@@ -84,7 +84,7 @@ TEST(QtTypeConverterTest, QDateTimeToString)
     type_converter_api::type_converter<QDateTime> converter;
     const auto value = QDateTime::currentDateTime();
     const auto str = converter.convert_to_string(QDateTime::currentDateTime());
-    EXPECT_TRUE(value.toString("yyyy-MM-ddTHH:mm:ss.zzz").toStdString() == str);
+    EXPECT_TRUE(value.toString("yyyy-MM-dd HH:mm:ss.zzz").toStdString() == str);
 }
 
 // Test for converting a string to QDate

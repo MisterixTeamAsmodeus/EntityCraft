@@ -658,7 +658,8 @@ private:
                     reference_column.inserter().convert_to_target(target_array, addition_value);
                 });
 
-                target_array = merge_result_by_id(target_array, reference_column.reference_table(), reference_column.inserter());
+                auto reference_dto = reference_column.reference_table();
+                target_array = merge_result_by_id(target_array, reference_dto, reference_column.inserter());
 
                 reference_property.set_value(*input.begin(), target_array);
             }));
