@@ -724,12 +724,6 @@ private:
                 auto column_info = column.column_info();
                     columns.emplace_back(column_info); },
                 [&columns](const auto& inline_reference_column) {
-                    if(inline_reference_column.type() != relation_type::many_to_one
-                        && inline_reference_column.type() != relation_type::one_to_one_inverted
-                        && inline_reference_column.type() != relation_type::one_to_one) {
-                        return;
-                    }
-
                     auto column_info = inline_reference_column.column_info();
                     columns.emplace_back(column_info);
                 }));
@@ -970,50 +964,66 @@ private:
             [&entity, &query_result](auto& column) {
                 parse_property_from_sql(column, query_result, entity);
             },
-            [this, &entity, &query_result, &without_relation_entity](auto& reference_column) {
+            [this, &entity, &query_result, &without_relation_entity, &dto](auto& reference_column) {
                 auto reference_propery = reference_column.property();
                 auto reference_table = reference_column.reference_table();
+
+                auto reference_entity = this->parse_entity_from_sql(reference_table, query_result, without_relation_entity);
+
+                // Флаг для проверки на то что связанная сущность существует
+                bool isValid = true;
+                reference_table.for_each([&reference_entity, &isValid](const auto& column) {
+                    auto reference_column_info = column.column_info();
+                    if(!reference_column_info.has_settings(query_craft::column_settings::primary_key))
+                        return;
+
+                    const auto reference_propery_value = column.property().value(reference_entity);
+                    isValid = !column.null_cheker()->is_null(reference_propery_value);
+                });
+                if(!isValid) {
+                    return;
+                }
+
+                std::string target_column_alias;
+                std::string joined_column_alias;
+                switch(reference_column.type()) {
+                    case relation_type::one_to_one:
+                    case relation_type::many_to_one: {
+                        target_column_alias = reference_column.column_info().alias();
+                        joined_column_alias = primary_key_column(reference_table).alias();
+                        break;
+                    }
+                    case relation_type::one_to_many:
+                    case relation_type::one_to_one_inverted: {
+                        target_column_alias = primary_key_column(dto).alias();
+                        joined_column_alias = reference_table.table_info().column(reference_column.column_info().name()).alias();
+                        break;
+                    }
+                }
+
+                // Проверка что сущность была присоединена по нужному ключу
+                if(query_result.at(target_column_alias) != query_result.at(joined_column_alias)) {
+                    return;
+                }
+
+                if(reference_table.has_reques_callback()) {
+                    reference_table.reques_callback()->post_request_callback(reference_entity, request_callback_type::select, _open_transaction);
+                }
 
                 switch(reference_column.type()) {
                     case relation_type::many_to_one:
                     case relation_type::one_to_one_inverted:
                     case relation_type::one_to_one: {
-                        auto reference_entity = this->parse_entity_from_sql(reference_table, query_result, without_relation_entity);
-                        // TODo проверка на совпадение ключей для join для множемтвенных включений одной и той же таблицы
-
-                        if(reference_table.has_reques_callback()) {
-                            reference_table.reques_callback()->post_request_callback(reference_entity, request_callback_type::select, _open_transaction);
-                        }
                         reference_propery.set_value(entity, reference_entity);
                         break;
                     }
                     case relation_type::one_to_many: {
-                        auto reference_entity = this->parse_entity_from_sql(reference_table, query_result, without_relation_entity);
-                        // TODo проверка на совпадение ключей для join для множемтвенных включений одной и той же таблицы
+                        std::vector<decltype(reference_entity)> reference_entity_container;
+                        reference_entity_container.emplace_back(reference_entity);
+                        auto property_value = reference_column.empty_property();
+                        reference_column.inserter().convert_to_target(property_value, reference_entity_container);
 
-                        // Флаг для проверки на то что связанная сущность существует
-                        bool isValid = true;
-                        reference_table.for_each([&reference_entity, &isValid](const auto& column) {
-                            auto reference_column_info = column.column_info();
-                            if(!reference_column_info.has_settings(query_craft::column_settings::primary_key))
-                                return;
-
-                            const auto reference_propery_value = column.property().value(reference_entity);
-                            isValid = !column.null_cheker()->is_null(reference_propery_value);
-                        });
-
-                        if(isValid) {
-                            if(reference_table.has_reques_callback()) {
-                                reference_table.reques_callback()->post_request_callback(reference_entity, request_callback_type::select, _open_transaction);
-                            }
-
-                            std::vector<decltype(reference_entity)> reference_entity_container;
-                            reference_entity_container.emplace_back(reference_entity);
-                            auto property_value = reference_column.empty_property();
-                            reference_column.inserter().convert_to_target(property_value, reference_entity_container);
-
-                            reference_propery.set_value(entity, property_value);
-                        }
+                        reference_propery.set_value(entity, property_value);
                         break;
                     }
                 }
