@@ -15,12 +15,12 @@ std::shared_ptr<connection_pool> connection_pool::instance()
     return pool;
 }
 
-connection_pool::connection_pool(models::database_settings settings, const size_t start_pool_size, const size_t max_pool_size, std::chrono::seconds wait_time)
+connection_pool::connection_pool(database_connection_settings settings, const size_t start_pool_size, const size_t max_pool_size, std::chrono::seconds wait_time)
     : database_adapter::connection_pool<connection>(std::move(settings), start_pool_size, max_pool_size, wait_time)
 {
 }
 
-connection_pool::connection_pool(models::database_settings settings, const size_t start_pool_size, std::chrono::seconds wait_time)
+connection_pool::connection_pool(database_connection_settings settings, const size_t start_pool_size, std::chrono::seconds wait_time)
     : connection_pool(std::move(settings), start_pool_size, start_pool_size, wait_time)
 {
 }

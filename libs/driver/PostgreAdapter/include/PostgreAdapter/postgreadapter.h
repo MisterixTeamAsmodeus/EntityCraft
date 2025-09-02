@@ -1,4 +1,4 @@
-#pragma once
+q#pragma once
 
 #include "postgreconnection.h"
 #include "postgreconnectionpool.h"

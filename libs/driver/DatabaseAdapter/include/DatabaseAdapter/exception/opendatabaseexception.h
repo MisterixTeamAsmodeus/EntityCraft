@@ -5,9 +5,7 @@
 
 namespace database_adapter {
 
-/**
- * Исключение которое информирует о том, что произошла ошибка при подключении к базе данных
- */
+/// @brief Исключение, которое информирует о том, что произошла ошибка при подключении к базе данных
 class open_database_exception final : public std::exception
 {
 public:
@@ -23,7 +21,8 @@ public:
     const char* what() const noexcept override;
 
 private:
-    /// Информация о ошибке подключения к базе данных
+    /// @brief Информация об ошибке подключения к базе данных
     std::string _message;
 };
+
 } // namespace database_adapter

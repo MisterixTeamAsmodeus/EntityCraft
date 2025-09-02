@@ -7,7 +7,7 @@
 namespace database_adapter {
 namespace postgre {
 
-database_adapter::database_adapter(const models::database_settings& settings)
+database_adapter::database_adapter(const database_connection_settings& settings)
     : IDataBaseDriver(std::make_shared<connection>(settings))
 {
 }

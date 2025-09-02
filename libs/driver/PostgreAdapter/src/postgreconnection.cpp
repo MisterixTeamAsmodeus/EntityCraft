@@ -42,7 +42,7 @@ bool connection::is_valid()
     }
 }
 
-models::query_result connection::exec(const std::string& query)
+query_result connection::exec(const std::string& query)
 {
     if(_logger != nullptr) {
         _logger->log_sql(query);
@@ -65,9 +65,9 @@ models::query_result connection::exec(const std::string& query)
     const auto rows = PQntuples(query_result);
     const auto cols = PQnfields(query_result);
 
-    models::query_result result;
+    query_result result;
     for(int i = 0; i < rows; i++) {
-        models::query_result::result_row row;
+        query_result::result_row row;
         for(int j = 0; j < cols; j++) {
             auto* column_value = PQgetvalue(query_result, i, j);
             row.emplace(PQfname(query_result, j), column_value == nullptr ? "" : column_value);
@@ -101,7 +101,7 @@ void connection::prepare(const std::string& query, const std::string& name)
     }
 }
 
-models::query_result connection::exec_prepared(const std::vector<std::string>& params, const std::string& name)
+query_result connection::exec_prepared(const std::vector<std::string>& params, const std::string& name)
 {
     auto transform = [](const std::vector<std::string>& params) {
         auto** transform_params = new char*[params.size()];
@@ -153,9 +153,9 @@ models::query_result connection::exec_prepared(const std::vector<std::string>& p
     const auto rows = PQntuples(query_result);
     const auto cols = PQnfields(query_result);
 
-    models::query_result result;
+    query_result result;
     for(int i = 0; i < rows; i++) {
-        models::query_result::result_row row;
+        query_result::result_row row;
         for(int j = 0; j < cols; j++) {
             auto* column_value = PQgetvalue(query_result, i, j);
             row.emplace(PQfname(query_result, j), column_value == nullptr ? "" : column_value);

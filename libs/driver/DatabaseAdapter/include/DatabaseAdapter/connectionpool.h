@@ -16,7 +16,7 @@ class connection_pool
 public:
     connection_pool() = default;
 
-    explicit connection_pool(models::database_settings settings,
+    explicit connection_pool(database_connection_settings settings,
         const size_t start_pool_size,
         const size_t max_pool_size,
         const std::chrono::seconds wait_time = std::chrono::seconds(10))
@@ -28,7 +28,7 @@ public:
         init_start_conncetions();
     }
 
-    explicit connection_pool(models::database_settings settings,
+    explicit connection_pool(database_connection_settings settings,
         const size_t start_pool_size = 5,
         const std::chrono::seconds wait_time = std::chrono::seconds(10))
         : connection_pool(settings, start_pool_size, start_pool_size, wait_time)
@@ -47,7 +47,7 @@ public:
         _max_pool_size = max_pool_size;
     }
 
-    void set_settings(const models::database_settings& settings)
+    void set_settings(const database_connection_settings& settings)
     {
         _settings = settings;
 
@@ -106,7 +106,7 @@ private:
 private:
     std::mutex _lock;
 
-    models::database_settings _settings;
+    database_connection_settings _settings;
 
     size_t _start_pool_size;
     size_t _max_pool_size;

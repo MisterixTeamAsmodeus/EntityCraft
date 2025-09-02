@@ -5,22 +5,21 @@
 #include <unordered_map>
 
 namespace database_adapter {
-namespace models {
 
 /**
- * @brief Класс для хранения и предоставления результатов SQL-запросов
+ * @brief Класс для хранения и представления результатов SQL-запросов
  */
 class query_result
 {
 public:
     /// @brief Псевдоним для имени столбца результата
-    typedef std::string column_name;
+    using column_name = std::string;
 
     /// @brief Псевдоним для значения столбца результата
-    typedef std::string value;
+    using value = std::string;
 
     /// @brief Псевдоним для строки результата запроса
-    typedef std::unordered_map<column_name, value> result_row;
+    using row = std::unordered_map<column_name, value>;
 
     query_result() = default;
 
@@ -28,31 +27,35 @@ public:
      * @brief Конструктор, который принимает список result_row и инициализирует результат запроса
      * @param result Список result_row для инициализации результата
      */
-    explicit query_result(const std::list<result_row>& result);
+    explicit query_result(const std::list<row>& result);
 
     /**
      * @brief Добавляет новую строку результата в конец списка
      * @param value Строка результата для добавления
      */
-    void add_row(const result_row& value);
+    void add(const row& value);
 
     /**
-     * @brief Возвращает список всех строк результата
-     * @return Список всех строк результата
+     * @brief Возвращает копию результата
+     * @return Возвращает копию списка строк полученных после выполнения запроса
      */
-    std::list<result_row> data() const;
+    std::list<row> data() const;
 
     /**
-     * Перегрузка оператора для удобства использования внутри цикла
-     * @return Список всех строк результата
+     * @brief Возвращает ссылку на результат
+     * @return Возвращает ссылку на список строк полученных после выполнения запроса
      */
-    std::list<result_row>& operator()();
+    std::list<row>& mutable_data();
 
+    /**
+     * @brief Проверка на пустоту полученного результата
+     * @return Возвращает true, если список пустой, иначе false
+     */
     bool empty() const;
 
 private:
     /// @brief Поле, которое хранит список всех строк результатов запроса
-    std::list<result_row> _result = {};
+    std::list<row> _result = {};
 };
-} // namespace models
+
 } // namespace database_adapter

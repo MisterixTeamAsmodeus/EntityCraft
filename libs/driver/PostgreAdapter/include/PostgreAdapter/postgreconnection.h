@@ -16,7 +16,7 @@ namespace postgre {
 /**
  * Define для настроек подключения к PostgreSQL
  */
-using settings = models::database_settings;
+using settings = database_connection_settings;
 
 class POSTGRE_EXPORT connection final : public IConnection
 {
@@ -28,10 +28,10 @@ public:
     ~connection() override;
 
     bool is_valid() override;
-    models::query_result exec(const std::string& query) override;
+    query_result exec(const std::string& query) override;
 
     void prepare(const std::string& query, const std::string& name) override;
-    models::query_result exec_prepared(const std::vector<std::string>& params, const std::string& name) override;
+    query_result exec_prepared(const std::vector<std::string>& params, const std::string& name) override;
 
 private:
     void connect(const settings& settings);

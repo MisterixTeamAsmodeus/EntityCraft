@@ -7,6 +7,7 @@ option(ENTITY_CRAFT_ENABLE_SQLITE "Включить драйвер для Sqlite
 option(ENTITY_CRAFT_ENABLE_POSTGRE "Включить драйвер для PostgreSql" OFF)
 
 project(EntityCraft LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 14)
 
 file(GLOB_RECURSE HEADER_FILES include/*.h)
 file(GLOB_RECURSE SOURCE_FILES src/*.cpp)

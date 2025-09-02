@@ -5,15 +5,16 @@
 
 namespace database_adapter {
 
-/**
- * Исключение которое информирует о том, что при ошибке выполнения SQL-запроса.
- * Оно содержит информацию о ошибке и запрос на котором произошла ошибка
- */
+/// @brief Исключение, которое информирует о том, что при ошибке выполнения SQL-запроса. Оно содержит информацию об ошибке и строку запроса на котором произошла ошибка
 class sql_exception final : public std::exception
 {
 public:
-    explicit sql_exception(std::string message);
-    sql_exception(std::string message, std::string last_query);
+    /**
+     * @brief Конструктор, который принимает информацию об ошибки выполнения SQL запроса
+     * @param message Информационное сообщение об ошибке
+     * @param last_query Запрос на котором произошла ошибка
+     */
+    explicit sql_exception(std::string message, std::string last_query = "");
 
     sql_exception(const sql_exception& other) = default;
     sql_exception(sql_exception&& other) noexcept = default;
@@ -23,12 +24,16 @@ public:
     ~sql_exception() noexcept override = default;
     const char* what() const noexcept override;
 
+    /**
+     * @brief Функция для получения запроса на котором произошла ошибка
+     * @return Возвращает запрос на котором произошла ошибка
+     */
     std::string last_query() const;
 
 private:
-    /// Информация о ошибке выполнения SQL-запроса.
+    /// @brief Информация об ошибке выполнения SQL-запроса.
     std::string _message;
-    /// Текст последнего выполненного SQL-запроса.
+    /// @brief Текст последнего выполненного SQL-запроса.
     std::string _last_query {};
 };
 

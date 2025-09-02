@@ -3,13 +3,11 @@
 #include <string>
 
 namespace database_adapter {
-namespace models {
-/**
- * @brief Класс описывающий настройки для подключения к базе данных
- */
-struct database_settings
+
+/// @brief Класс описывающий настройки для подключения к базе данных
+struct database_connection_settings
 {
-    /// @brief Навзание базы данных для подключения
+    /// @brief Название базы данных для подключения
     std::string database_name {};
     /// @brief Адрес/путь для подключения к базе данных
     std::string url {};
@@ -20,5 +18,5 @@ struct database_settings
     /// @brief Пароль пользователя для авторизации
     std::string password {};
 };
-} // namespace Models
+
 } // namespace DatabaseAdapter

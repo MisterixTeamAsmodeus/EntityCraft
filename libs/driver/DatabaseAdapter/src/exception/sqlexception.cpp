@@ -3,10 +3,6 @@
 #include <utility>
 
 namespace database_adapter {
-sql_exception::sql_exception(std::string message)
-    : _message(std::move(message))
-{
-}
 
 sql_exception::sql_exception(std::string message, std::string last_query)
     : _message(std::move(message))
@@ -23,4 +19,5 @@ std::string sql_exception::last_query() const
 {
     return _last_query;
 }
+
 } // namespace DatabaseAdapter

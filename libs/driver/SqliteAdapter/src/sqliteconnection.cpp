@@ -48,7 +48,7 @@ bool connection::is_valid()
     }
 }
 
-models::query_result connection::exec(const std::string& query)
+query_result connection::exec(const std::string& query)
 {
     using namespace database_adapter;
     sqlite3_stmt* stmt;
@@ -72,9 +72,9 @@ models::query_result connection::exec(const std::string& query)
 
     int rc = sqlite3_step(stmt);
 
-    models::query_result result;
+    query_result result;
     while(rc == SQLITE_ROW) {
-        models::query_result::result_row row;
+        query_result::result_row row;
         for(int i = 0; i < sqlite3_column_count(stmt); i++) {
             auto* column_name = sqlite3_column_name(stmt, i);
             auto* column_value = reinterpret_cast<const char*>(sqlite3_column_text(stmt, i));
@@ -131,7 +131,7 @@ void connection::prepare(const std::string& query, const std::string& name)
     prepared.insert({ name, stmt });
 }
 
-models::query_result connection::exec_prepared(const std::vector<std::string>& params, const std::string& name)
+query_result connection::exec_prepared(const std::vector<std::string>& params, const std::string& name)
 {
     const auto stmt_it = prepared.find(name);
     if(stmt_it == prepared.end()) {
@@ -176,9 +176,9 @@ models::query_result connection::exec_prepared(const std::vector<std::string>& p
 
     int rc = sqlite3_step(stmt);
 
-    models::query_result result;
+    query_result result;
     while(rc == SQLITE_ROW) {
-        models::query_result::result_row row;
+        query_result::result_row row;
         for(int i = 0; i < sqlite3_column_count(stmt); i++) {
             auto* column_name = sqlite3_column_name(stmt, i);
             auto* column_value = reinterpret_cast<const char*>(sqlite3_column_text(stmt, i));
@@ -204,7 +204,7 @@ models::query_result connection::exec_prepared(const std::vector<std::string>& p
     return result;
 }
 
-void connection::connect(const models::database_settings& settings)
+void connection::connect(const database_connection_settings& settings)
 {
     if(_logger != nullptr) {
         _logger->log_sql("Connect to database by path: " + settings.url);

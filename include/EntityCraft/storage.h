@@ -102,7 +102,7 @@ public:
         return _database;
     }
 
-    database_adapter::models::query_result exec(const std::string& sql) const
+    database_adapter::query_result exec(const std::string& sql) const
     {
         return _open_transaction != nullptr ? _open_transaction->exec(sql) : _database->exec(sql);
     }
@@ -815,7 +815,7 @@ private:
      * @param entity Сущность в которой находится связанное поле
      */
     template<typename Column_, typename Entity_>
-    static void parse_property_after_insert(Column_& column, const database_adapter::models::query_result::result_row& query_result, Entity_& entity)
+    static void parse_property_after_insert(Column_& column, const database_adapter::query_result::row& query_result, Entity_& entity)
     {
         const auto column_info = column.column_info();
 
@@ -837,7 +837,7 @@ private:
      * @param query_result Результат запроса
      */
     template<typename ClassType_, typename... ClassColumn_>
-    static void parse_entity_after_insert(ClassType_& entity, table<ClassType_, ClassColumn_...>& dto, const database_adapter::models::query_result::result_row& query_result)
+    static void parse_entity_after_insert(ClassType_& entity, table<ClassType_, ClassColumn_...>& dto, const database_adapter::query_result::row& query_result)
     {
         dto.for_each(visitor::make_any_column_visitor(
             [&entity, &query_result](auto& column) {
@@ -866,7 +866,7 @@ private:
      * @param entity Сущность в которой находится связанное поле
      */
     template<typename Column_, typename Entity_>
-    static void parse_property_from_sql(Column_& column, const database_adapter::models::query_result::result_row& query_result, Entity_& entity)
+    static void parse_property_from_sql(Column_& column, const database_adapter::query_result::row& query_result, Entity_& entity)
     {
         const auto column_info = column.column_info();
 
@@ -955,7 +955,7 @@ private:
      */
     template<typename JoinClassType, typename... JoinClassColumn>
     JoinClassType parse_entity_from_sql(table<JoinClassType, JoinClassColumn...>& dto,
-        const database_adapter::models::query_result::result_row& query_result,
+        const database_adapter::query_result::row& query_result,
         bool without_relation_entity)
     {
         auto entity = dto.empty_entity();
