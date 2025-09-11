@@ -1,35 +1,23 @@
 #pragma once
 
 #include "DatabaseAdapter/model/databasesettings.h"
+#include "iconnection.h"
 
 #include <chrono>
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <utility>
 #include <vector>
 
 namespace database_adapter {
 
-template<typename ConnectionType>
-class connection_pool
+class IConnectionPool
 {
 public:
-    static database_connection_settings connection_settings;
+    IConnectionPool() = default;
 
-    static size_t start_pool_size;
-    static size_t max_pool_size;
-    static std::chrono::seconds wait_time;
-
-    static std::shared_ptr<connection_pool> instance()
-    {
-        static auto pool = std::make_shared<connection_pool>(connection_settings, start_pool_size, max_pool_size, wait_time);
-        return pool;
-    }
-
-public:
-    connection_pool() = default;
-
-    explicit connection_pool(database_connection_settings settings,
+    explicit IConnectionPool(database_connection_settings settings,
         const size_t start_pool_size,
         const size_t max_pool_size,
         const std::chrono::seconds wait_time = std::chrono::seconds(10))
@@ -38,22 +26,21 @@ public:
         , _max_pool_size(max_pool_size)
         , _wait_time(wait_time)
     {
-        init_start_conncetions();
     }
 
-    explicit connection_pool(database_connection_settings settings,
+    explicit IConnectionPool(database_connection_settings settings,
         const size_t start_pool_size = 5,
         const std::chrono::seconds wait_time = std::chrono::seconds(10))
-        : connection_pool(settings, start_pool_size, start_pool_size, wait_time)
+        : IConnectionPool(std::move(settings), start_pool_size, start_pool_size, wait_time)
     {
     }
 
-    connection_pool(const connection_pool& other) = delete;
-    connection_pool(connection_pool&& other) noexcept = delete;
-    connection_pool& operator=(const connection_pool& other) = delete;
-    connection_pool& operator=(connection_pool&& other) noexcept = delete;
+    IConnectionPool(const IConnectionPool& other) = delete;
+    IConnectionPool(IConnectionPool&& other) noexcept = delete;
+    IConnectionPool& operator=(const IConnectionPool& other) = delete;
+    IConnectionPool& operator=(IConnectionPool&& other) noexcept = delete;
 
-    ~connection_pool() = default;
+    virtual ~IConnectionPool() = default;
 
     void set_max_pool_size(const size_t max_pool_size)
     {
@@ -72,9 +59,13 @@ public:
         _wait_time = wait_time;
     }
 
-    std::shared_ptr<ConnectionType> open_connection()
+    std::shared_ptr<IConnection> open_connection()
     {
         std::lock_guard<std::mutex> lock_guard(_lock);
+
+        if(_connections.empty()) {
+            init_start_conncetions();
+        }
 
         for(const auto& connection : _connections) {
             if(connection.use_count() == 1) {
@@ -83,7 +74,7 @@ public:
         }
 
         if(_connections.size() < _max_pool_size) {
-            auto conn = std::make_shared<ConnectionType>(_settings);
+            auto conn = create_connection(_settings);
             _connections.push_back(conn);
             return conn;
         }
@@ -112,29 +103,23 @@ private:
 
         _connections.reserve(_start_pool_size);
         for(auto i = 0; i < _start_pool_size; i++) {
-            _connections.push_back(std::make_shared<ConnectionType>(_settings));
+            _connections.push_back(create_connection(_settings));
         }
     }
+
+protected:
+    virtual std::shared_ptr<IConnection> create_connection(const database_connection_settings& settings) = 0;
 
 private:
     std::mutex _lock;
 
-    database_connection_settings _settings = connection_settings;
+    database_connection_settings _settings {};
 
-    size_t _start_pool_size = start_pool_size;
-    size_t _max_pool_size = max_pool_size;
-    std::chrono::seconds _wait_time = wait_time;
+    size_t _start_pool_size = 2;
+    size_t _max_pool_size = 10;
+    std::chrono::seconds _wait_time = std::chrono::seconds(2);
 
-    std::vector<std::shared_ptr<ConnectionType>> _connections {};
+    std::vector<std::shared_ptr<IConnection>> _connections {};
 };
-
-template<typename ConnectionType>
-database_connection_settings connection_pool<ConnectionType>::connection_settings = {};
-template<typename ConnectionType>
-size_t connection_pool<ConnectionType>::start_pool_size = 10;
-template<typename ConnectionType>
-size_t connection_pool<ConnectionType>::max_pool_size = 10;
-template<typename ConnectionType>
-std::chrono::seconds connection_pool<ConnectionType>::wait_time = std::chrono::seconds(10);
 
 } // namespace database_adapter
