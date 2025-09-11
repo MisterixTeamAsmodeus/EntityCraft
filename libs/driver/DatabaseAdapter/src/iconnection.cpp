@@ -18,7 +18,12 @@ bool IConnection::is_valid()
     }
 }
 
-bool IConnection::open_base_transaction() const
+bool IConnection::is_transaction() const
+{
+    return _has_transaction;
+}
+
+bool IConnection::open_base_transaction()
 {
     return open_transaction(-1);
 }
@@ -26,7 +31,7 @@ bool IConnection::open_base_transaction() const
 void IConnection::commit()
 {
     exec("COMMIT;");
-    has_transaction = false;
+    _has_transaction = false;
 }
 
 void IConnection::add_save_point(const std::string& save_point)
@@ -42,7 +47,7 @@ void IConnection::rollback_to_save_point(const std::string& save_point)
     exec(save_point.empty() ? "ROLLBACK;" : "ROLLBACK TO " + save_point);
 
     if(save_point.empty()) {
-        has_transaction = false;
+        _has_transaction = false;
     }
 }
 

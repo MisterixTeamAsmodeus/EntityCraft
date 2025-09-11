@@ -31,7 +31,7 @@ struct CStorage
 {
     using Storage = storage_type(CTableInfo::dto());
 
-    explicit CStorage(const std::shared_ptr<database_adapter::IDataBaseDriver>& adapter)
+    explicit CStorage(const std::shared_ptr<database_adapter::IConnection>& adapter)
         : _storage(make_storage(adapter, CTableInfo::dto()))
     {
         create_table();
@@ -86,7 +86,7 @@ struct AStorage
 {
     using Storage = storage_type(ATableInfo::dto());
 
-    explicit AStorage(const std::shared_ptr<database_adapter::IDataBaseDriver>& adapter)
+    explicit AStorage(const std::shared_ptr<database_adapter::IConnection>& adapter)
         : _storage(make_storage(adapter, ATableInfo::dto()))
     {
         create_table();
@@ -144,7 +144,7 @@ struct BStorage
 {
     using Storage = storage_type(BTableInfo::dto());
 
-    explicit BStorage(const std::shared_ptr<database_adapter::IDataBaseDriver>& adapter)
+    explicit BStorage(const std::shared_ptr<database_adapter::IConnection>& adapter)
         : _storage(make_storage(adapter, BTableInfo::dto()))
     {
         create_table();
@@ -196,7 +196,7 @@ int main()
     settings.url = "example-3.db";
     std::remove(settings.url.c_str());
 
-    std::shared_ptr<database_adapter::IDataBaseDriver> adapter = std::make_shared<database_adapter::sqlite::database_adapter>(settings);
+    std::shared_ptr<database_adapter::IConnection> adapter = std::make_shared<database_adapter::sqlite::connection>(settings);
 
     auto b_storage = BStorage(adapter);
     auto a_storage = AStorage(adapter);

@@ -1,10 +1,8 @@
 #include "SqliteAdapter/sqliteconnection.h"
 
-#include <DatabaseAdapter/exception/opendatabaseexception.h>
-#include <DatabaseAdapter/exception/sqlexception.h>
-#include <DatabaseAdapter/idatabasedriver.h>
-#include <DatabaseAdapter/ilogger.h>
-#include <DatabaseAdapter/model/databasesettings.h>
+#include "SqliteAdapter/sqlitetransactiontype.h"
+
+#include <DatabaseAdapter/databaseadapter.h>
 
 #include <sstream>
 #include <stdexcept>
@@ -40,12 +38,7 @@ bool connection::is_valid()
     if(_connection == nullptr)
         return false;
 
-    try {
-        exec("select 1");
-        return true;
-    } catch(const sql_exception&) {
-        return false;
-    }
+    return IConnection::is_valid();
 }
 
 query_result connection::exec(const std::string& query)
@@ -74,14 +67,14 @@ query_result connection::exec(const std::string& query)
 
     query_result result;
     while(rc == SQLITE_ROW) {
-        query_result::result_row row;
+        query_result::row row;
         for(int i = 0; i < sqlite3_column_count(stmt); i++) {
             auto* column_name = sqlite3_column_name(stmt, i);
             auto* column_value = reinterpret_cast<const char*>(sqlite3_column_text(stmt, i));
 
             row.emplace(column_name, column_value == nullptr ? "" : column_value);
         }
-        result.add_row(row);
+        result.add(row);
 
         rc = sqlite3_step(stmt);
     }
@@ -163,9 +156,8 @@ query_result connection::exec_prepared(const std::vector<std::string>& params, c
         }());
     }
 
-    auto* null_value = NULL_VALUE;
     for(int i = 0; i < size; i++) {
-        if(params[i] == null_value) {
+        if(params[i] == NULL_VALUE) {
             sqlite3_bind_null(stmt, i);
             continue;
         }
@@ -178,14 +170,14 @@ query_result connection::exec_prepared(const std::vector<std::string>& params, c
 
     query_result result;
     while(rc == SQLITE_ROW) {
-        query_result::result_row row;
+        query_result::row row;
         for(int i = 0; i < sqlite3_column_count(stmt); i++) {
             auto* column_name = sqlite3_column_name(stmt, i);
             auto* column_value = reinterpret_cast<const char*>(sqlite3_column_text(stmt, i));
 
             row.emplace(column_name, column_value == nullptr ? "" : column_value);
         }
-        result.add_row(row);
+        result.add(row);
 
         rc = sqlite3_step(stmt);
     }
@@ -202,6 +194,30 @@ query_result connection::exec_prepared(const std::vector<std::string>& params, c
     }
 
     return result;
+}
+
+bool connection::open_transaction(int type)
+{
+    const auto sql = [&type]() {
+        switch(static_cast<transaction_type>(type)) {
+            case transaction_type::DEFERRED:
+                return "BEGIN DEFERRED;";
+            case transaction_type::IMMEDIATE:
+                return "BEGIN IMMEDIATE;";
+            case transaction_type::EXCLUSIVE:
+                return "BEGIN EXCLUSIVE;";
+            default:
+                return "BEGIN;";
+        }
+    }();
+
+    try {
+        exec(sql);
+        _has_transaction = true;
+        return true;
+    } catch(sql_exception&) {
+        return false;
+    }
 }
 
 void connection::connect(const database_connection_settings& settings)

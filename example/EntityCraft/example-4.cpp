@@ -28,7 +28,7 @@ struct AStorage
 {
     using Storage = storage_type(ATableInfo::dto());
 
-    explicit AStorage(const std::shared_ptr<database_adapter::IDataBaseDriver>& adapter)
+    explicit AStorage(const std::shared_ptr<database_adapter::IConnection>& adapter)
         : _storage(make_storage(adapter, ATableInfo::dto()))
     {
         create_table();
@@ -84,7 +84,7 @@ struct BStorage
 {
     using Storage = storage_type(BTableInfo::dto());
 
-    explicit BStorage(const std::shared_ptr<database_adapter::IDataBaseDriver>& adapter)
+    explicit BStorage(const std::shared_ptr<database_adapter::IConnection>& adapter)
         : _storage(make_storage(adapter, BTableInfo::dto()))
     {
         create_table();
@@ -110,15 +110,33 @@ private:
     Storage _storage;
 };
 
+class Logger final : public database_adapter::ILogger
+{
+public:
+    ~Logger() override = default;
+
+    void log_error(const std::string& message) override
+    {
+        std::cout << "LOG_ERROR : " << message << "\n";
+    }
+
+    void log_sql(const std::string& message) override
+    {
+        std::cout << "LOG_DEBUG : " << message << "\n";
+    }
+};
+
 int main()
 {
     using namespace entity_craft;
+
+    database_adapter::sqlite::connection::set_logger(std::make_shared<Logger>());
 
     database_adapter::sqlite::settings settings;
     settings.url = "example-4.db";
     std::remove(settings.url.c_str());
 
-    auto adapter = std::make_shared<database_adapter::sqlite::database_adapter>(settings);
+    auto adapter = std::make_shared<database_adapter::sqlite::connection>(settings);
 
     auto a_storage = AStorage(adapter);
     auto b_storage = BStorage(adapter);

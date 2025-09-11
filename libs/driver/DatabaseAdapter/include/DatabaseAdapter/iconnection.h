@@ -64,14 +64,14 @@ public:
      * @brief Открывает новую транзакцию с уровнем изоляции по умолчанию.
      * @return Возвращает true, если транзакция была успешно открыта, иначе false
      */
-    bool open_base_transaction() const;
+    bool open_base_transaction();
 
     /**
      * @brief Открывает новую транзакцию с заданным уровнем изоляции.
      * @param type Уровень изоляции транзакции (Зависит от реализации базы данных).
      * @return Возвращает true, если транзакция была успешно открыта, иначе false
      */
-    virtual bool open_transaction(int type) const = 0;
+    virtual bool open_transaction(int type) = 0;
 
     /**
      * @brief Фиксирует изменения в базе данных с момента начала текущей транзакции.
@@ -96,7 +96,7 @@ public:
 
 protected:
     /// @brief Флаг обозначающий имеется ли открытая транзакция или нет.
-    bool has_transaction =false;
+    bool _has_transaction = false;
 };
 
 } // namespace database_adapter

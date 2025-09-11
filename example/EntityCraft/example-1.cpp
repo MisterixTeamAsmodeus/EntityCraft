@@ -59,7 +59,7 @@ struct WorkerStorage
 {
     using Storage = storage_type(WorkerTableInfo::dto());
 
-    explicit WorkerStorage(const std::shared_ptr<database_adapter::IDataBaseDriver>& adapter)
+    explicit WorkerStorage(const std::shared_ptr<database_adapter::IConnection>& adapter)
         : _storage(make_storage(adapter, WorkerTableInfo::dto()))
     {
         create_table();
@@ -118,7 +118,7 @@ int main()
     settings.url = "example-1.db";
     std::remove(settings.url.c_str());
 
-    auto worker_storage = WorkerStorage(std::make_shared<database_adapter::sqlite::database_adapter>(settings));
+    auto worker_storage = WorkerStorage(std::make_shared<database_adapter::sqlite::connection>(settings));
 
     WorkerInfo worker1 { 0, std::make_shared<std::string>("worker1"), true };
     WorkerInfo worker2 { 0, nullptr, false };

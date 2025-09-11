@@ -33,6 +33,8 @@ public:
     void prepare(const std::string& query, const std::string& name) override;
     query_result exec_prepared(const std::vector<std::string>& params, const std::string& name) override;
 
+    bool open_transaction(int type) override;
+
 private:
     void connect(const settings& settings);
     void disconnect();

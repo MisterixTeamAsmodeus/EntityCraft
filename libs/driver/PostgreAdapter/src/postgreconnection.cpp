@@ -1,9 +1,7 @@
 #include "PostgreAdapter/postgreconnection.h"
 
-#include "DatabaseAdapter/exception/opendatabaseexception.h"
-#include "DatabaseAdapter/exception/sqlexception.h"
-#include "DatabaseAdapter/idatabasedriver.h"
-#include "DatabaseAdapter/model/databasesettings.h"
+#include "DatabaseAdapter/databaseadapter.h"
+#include "PostgreAdapter/postgretransactiontype.h"
 
 #include <iostream>
 #include <sstream>
@@ -34,12 +32,7 @@ bool connection::is_valid()
     if(_connection == nullptr)
         return false;
 
-    try {
-        exec("select 1");
-        return true;
-    } catch(const sql_exception&) {
-        return false;
-    }
+    return IConnection::is_valid();
 }
 
 query_result connection::exec(const std::string& query)
@@ -65,14 +58,14 @@ query_result connection::exec(const std::string& query)
     const auto rows = PQntuples(query_result);
     const auto cols = PQnfields(query_result);
 
-    query_result result;
+    database_adapter::query_result result;
     for(int i = 0; i < rows; i++) {
-        query_result::result_row row;
+        query_result::row row;
         for(int j = 0; j < cols; j++) {
             auto* column_value = PQgetvalue(query_result, i, j);
             row.emplace(PQfname(query_result, j), column_value == nullptr ? "" : column_value);
         }
-        result.add_row(row);
+        result.add(row);
     }
 
     PQclear(query_result);
@@ -106,9 +99,8 @@ query_result connection::exec_prepared(const std::vector<std::string>& params, c
     auto transform = [](const std::vector<std::string>& params) {
         auto** transform_params = new char*[params.size()];
 
-        auto null = NULL_VALUE;
         for(int i = 0; i < params.size(); i++) {
-            if(params[i] == null) {
+            if(params[i] == NULL_VALUE) {
                 transform_params[i] = nullptr;
             } else {
                 auto* target_param = new char[params[i].size()];
@@ -153,19 +145,45 @@ query_result connection::exec_prepared(const std::vector<std::string>& params, c
     const auto rows = PQntuples(query_result);
     const auto cols = PQnfields(query_result);
 
-    query_result result;
+    database_adapter::query_result result;
     for(int i = 0; i < rows; i++) {
-        query_result::result_row row;
+        query_result::row row;
         for(int j = 0; j < cols; j++) {
             auto* column_value = PQgetvalue(query_result, i, j);
             row.emplace(PQfname(query_result, j), column_value == nullptr ? "" : column_value);
         }
-        result.add_row(row);
+        result.add(row);
     }
 
     PQclear(query_result);
 
     return result;
+}
+
+bool connection::open_transaction(int type)
+{
+    const auto sql = [&type]() -> std::string {
+        switch(static_cast<transaction_type>(type)) {
+            case transaction_type::READ_UNCOMMITTED:
+                return "BEGIN TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;";
+            case transaction_type::READ_COMMITTED:
+                return "BEGIN TRANSACTION ISOLATION LEVEL READ COMMITTED;";
+            case transaction_type::REPEATABLE_READ:
+                return "BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ;";
+            case transaction_type::SERIALIZABLE:
+                return "BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;";
+            default:
+                return "BEGIN;";
+        }
+    }();
+
+    try {
+        exec(sql);
+        _has_transaction = true;
+        return true;
+    } catch(sql_exception&) {
+        return false;
+    }
 }
 
 void connection::connect(const settings& settings)

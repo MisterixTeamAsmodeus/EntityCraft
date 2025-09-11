@@ -7,7 +7,7 @@ int main()
     database_adapter::sqlite::settings settings;
     settings.url = R"(C:\Users\Alex\Documents\test.db)";
 
-    auto driver = std::make_shared<database_adapter::sqlite::database_adapter>(settings);
+    auto driver = std::make_shared<database_adapter::sqlite::connection>(settings);
 
     try {
         auto res = driver->exec("select * from test_table where id = 2");

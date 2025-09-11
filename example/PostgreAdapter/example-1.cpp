@@ -19,14 +19,14 @@ int main()
     std::cout << "start prepare\n";
     for(int i = 0; i < repeate; i++) {
         try {
-            auto driver = std::make_shared<database_adapter::postgre::database_adapter>(settings);
+            auto driver = std::make_shared<database_adapter::postgre::connection>(settings);
             driver->exec("delete from public.test_table");
         } catch(database_adapter::sql_exception e) {
             std::cout << e.what();
         }
 
         try {
-            auto driver = std::make_shared<database_adapter::postgre::database_adapter>(settings);
+            auto driver = std::make_shared<database_adapter::postgre::connection>(settings);
             for(int i = 1; i <= batch; i++) {
                 auto start = std::chrono::system_clock::now();
                 driver->exec("insert into public.test_table values (" + std::to_string(i) + ", NULL)");
@@ -52,13 +52,13 @@ int main()
     long long time = 0;
     for(int i = 0; i < repeate; i++) {
         try {
-            auto driver = std::make_shared<database_adapter::postgre::database_adapter>(settings);
+            auto driver = std::make_shared<database_adapter::postgre::connection>(settings);
             driver->exec("delete from public.test_table");
         } catch(database_adapter::sql_exception e) {
             std::cout << e.what();
         }
         try {
-            auto driver = std::make_shared<database_adapter::postgre::database_adapter>(settings);
+            auto driver = std::make_shared<database_adapter::postgre::connection>(settings);
             driver->prepare("insert into public.test_table values ($1, NULL)", "test");
             for(int i = 1; i <= batch; i++) {
                 auto start = std::chrono::system_clock::now();

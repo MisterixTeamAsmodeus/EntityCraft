@@ -132,7 +132,7 @@ struct ExaminationStorage
 {
     using Storage = storage_type(ExaminationTable::dto());
 
-    explicit ExaminationStorage(const std::shared_ptr<database_adapter::IDataBaseDriver>& adapter)
+    explicit ExaminationStorage(const std::shared_ptr<database_adapter::IConnection>& adapter)
         : _storage(make_storage(adapter, ExaminationTable::dto()))
     {
         create_table();
@@ -157,15 +157,33 @@ private:
     Storage _storage;
 };
 
+class Logger final : public database_adapter::ILogger
+{
+public:
+    ~Logger() override = default;
+
+    void log_error(const std::string& message) override
+    {
+        std::cout << "LOG_ERROR : " << message << "\n";
+    }
+
+    void log_sql(const std::string& message) override
+    {
+        std::cout << "LOG_DEBUG : " << message << "\n";
+    }
+};
+
 int main()
 {
     using namespace entity_craft;
+
+    database_adapter::sqlite::connection::set_logger(std::make_shared<Logger>());
 
     database_adapter::sqlite::settings settings;
     settings.url = "example-6.db";
     std::remove(settings.url.c_str());
 
-    std::shared_ptr<database_adapter::IDataBaseDriver> adapter = std::make_shared<database_adapter::sqlite::database_adapter>(settings);
+    std::shared_ptr<database_adapter::IConnection> adapter = std::make_shared<database_adapter::sqlite::connection>(settings);
 
     auto storage = ExaminationStorage(adapter);
 

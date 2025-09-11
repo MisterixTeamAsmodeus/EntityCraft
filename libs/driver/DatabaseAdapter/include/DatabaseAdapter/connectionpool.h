@@ -14,6 +14,19 @@ template<typename ConnectionType>
 class connection_pool
 {
 public:
+    static database_connection_settings connection_settings;
+
+    static size_t start_pool_size;
+    static size_t max_pool_size;
+    static std::chrono::seconds wait_time;
+
+    static std::shared_ptr<connection_pool> instance()
+    {
+        static auto pool = std::make_shared<connection_pool>(connection_settings, start_pool_size, max_pool_size, wait_time);
+        return pool;
+    }
+
+public:
     connection_pool() = default;
 
     explicit connection_pool(database_connection_settings settings,
@@ -106,13 +119,22 @@ private:
 private:
     std::mutex _lock;
 
-    database_connection_settings _settings;
+    database_connection_settings _settings = connection_settings;
 
-    size_t _start_pool_size;
-    size_t _max_pool_size;
-    std::chrono::seconds _wait_time;
+    size_t _start_pool_size = start_pool_size;
+    size_t _max_pool_size = max_pool_size;
+    std::chrono::seconds _wait_time = wait_time;
 
-    std::vector<std::shared_ptr<ConnectionType>> _connections;
+    std::vector<std::shared_ptr<ConnectionType>> _connections {};
 };
+
+template<typename ConnectionType>
+database_connection_settings connection_pool<ConnectionType>::connection_settings = {};
+template<typename ConnectionType>
+size_t connection_pool<ConnectionType>::start_pool_size = 10;
+template<typename ConnectionType>
+size_t connection_pool<ConnectionType>::max_pool_size = 10;
+template<typename ConnectionType>
+std::chrono::seconds connection_pool<ConnectionType>::wait_time = std::chrono::seconds(10);
 
 } // namespace database_adapter

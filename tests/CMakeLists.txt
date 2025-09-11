@@ -6,7 +6,7 @@ enable_testing()
 
 file(GLOB_RECURSE SOURCE_FILES *.cpp)
 
-set(ENTITY_CRAFT_GOOGLETEST_MODULES_LOCATION "INSTALLED" CACHE STRING "Location where to find googletest modules. can be [INSTALLED|EXTERNAL]")
+set(ENTITY_CRAFT_GOOGLETEST_MODULES_LOCATION "EXTERNAL" CACHE STRING "Location where to find googletest modules. can be [INSTALLED|EXTERNAL]")
 
 ###################################################################################################
 ## get googletest module in specified location

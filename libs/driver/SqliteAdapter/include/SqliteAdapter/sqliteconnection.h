@@ -32,8 +32,10 @@ public:
     bool is_valid() override;
     query_result exec(const std::string& query) override;
 
-    void prepare(const std::string& query, const std::string& name = "") override;
-    query_result exec_prepared(const std::vector<std::string>& params, const std::string& name = "") override;
+    void prepare(const std::string& query, const std::string& name) override;
+    query_result exec_prepared(const std::vector<std::string>& params, const std::string& name) override;
+
+    bool open_transaction(int type) override;
 
 private:
     void connect(const settings& settings);
