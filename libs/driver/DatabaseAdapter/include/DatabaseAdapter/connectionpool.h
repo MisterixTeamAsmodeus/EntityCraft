@@ -97,8 +97,6 @@ public:
 private:
     void init_start_conncetions()
     {
-        std::lock_guard<std::mutex> lock_guard(_lock);
-
         _connections.clear();
 
         _connections.reserve(_start_pool_size);
