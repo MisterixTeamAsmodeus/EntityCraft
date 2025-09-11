@@ -25,10 +25,10 @@ connection::connection(const settings& settings)
 
 connection::~connection()
 {
-    for(const auto& prepared_pair : prepared) {
+    for(const auto& prepared_pair : _prepared) {
         sqlite3_finalize(prepared_pair.second);
     }
-    prepared.clear();
+    _prepared.clear();
 
     disconnect();
 }
@@ -99,7 +99,7 @@ query_result connection::exec(const std::string& query)
 
 void connection::prepare(const std::string& query, const std::string& name)
 {
-    if(prepared.find(name) == prepared.end())
+    if(_prepared.find(name) == _prepared.end())
         return;
 
     sqlite3_stmt* stmt;
@@ -121,13 +121,13 @@ void connection::prepare(const std::string& query, const std::string& name)
         throw sql_exception(std::move(last_error), query);
     }
 
-    prepared.insert({ name, stmt });
+    _prepared.insert({ name, stmt });
 }
 
 query_result connection::exec_prepared(const std::vector<std::string>& params, const std::string& name)
 {
-    const auto stmt_it = prepared.find(name);
-    if(stmt_it == prepared.end()) {
+    const auto stmt_it = _prepared.find(name);
+    if(stmt_it == _prepared.end()) {
         throw sql_exception("Doesn't have prepared statment");
     }
 
@@ -245,6 +245,10 @@ void connection::disconnect()
 {
     if(!is_valid())
         return;
+
+    if(_logger != nullptr) {
+        _logger->log_sql("Disconnect from database");
+    }
 
     sqlite3_close(_connection);
     _connection = nullptr;

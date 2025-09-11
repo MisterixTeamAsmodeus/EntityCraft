@@ -47,7 +47,7 @@ private:
 private:
     sqlite3* _connection = nullptr;
 
-    std::unordered_map<std::string, sqlite3_stmt*> prepared;
+    std::unordered_map<std::string, sqlite3_stmt*> _prepared;
 };
 } // namespace sqlite
 } // namespace database_adapter

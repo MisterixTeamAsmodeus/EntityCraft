@@ -224,6 +224,10 @@ void connection::disconnect()
     if(!is_valid())
         return;
 
+    if(_logger != nullptr) {
+        _logger->log_sql("Disconnect from database");
+    }
+
     PQfinish(_connection);
     _connection = nullptr;
 }
