@@ -27,7 +27,7 @@ public:
         , _dto(std::move(dto))
         , _auto_commit(auto_commit)
     {
-        if(!_database->is_valid()) {
+        if(_database == nullptr || !_database->is_valid()) {
             throw std::invalid_argument("Connection is not valid");
         }
     }
