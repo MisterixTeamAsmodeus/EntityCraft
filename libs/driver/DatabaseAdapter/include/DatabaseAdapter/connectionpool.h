@@ -6,8 +6,6 @@
 #include <chrono>
 #include <memory>
 #include <mutex>
-#include <thread>
-#include <utility>
 #include <vector>
 
 namespace database_adapter {
@@ -18,22 +16,13 @@ public:
     IConnectionPool() = default;
 
     explicit IConnectionPool(database_connection_settings settings,
-        const size_t start_pool_size,
-        const size_t max_pool_size,
-        const std::chrono::seconds wait_time = std::chrono::seconds(10))
-        : _settings(std::move(settings))
-        , _start_pool_size(start_pool_size)
-        , _max_pool_size(max_pool_size)
-        , _wait_time(wait_time)
-    {
-    }
+        size_t start_pool_size,
+        size_t max_pool_size,
+        std::chrono::seconds wait_time = std::chrono::seconds(10));
 
     explicit IConnectionPool(database_connection_settings settings,
-        const size_t start_pool_size = 5,
-        const std::chrono::seconds wait_time = std::chrono::seconds(10))
-        : IConnectionPool(std::move(settings), start_pool_size, start_pool_size, wait_time)
-    {
-    }
+        size_t start_pool_size = 5,
+        std::chrono::seconds wait_time = std::chrono::seconds(10));
 
     IConnectionPool(const IConnectionPool& other) = delete;
     IConnectionPool(IConnectionPool&& other) noexcept = delete;
@@ -42,68 +31,16 @@ public:
 
     virtual ~IConnectionPool() = default;
 
-    void set_max_pool_size(const size_t max_pool_size)
-    {
-        _max_pool_size = max_pool_size;
-    }
+    void set_max_pool_size(size_t max_pool_size);
 
-    void set_settings(const database_connection_settings& settings)
-    {
-        _settings = settings;
+    void set_settings(const database_connection_settings& settings);
 
-        init_start_conncetions();
-    }
+    void set_wait_time(const std::chrono::seconds& wait_time);
 
-    void set_wait_time(const std::chrono::seconds& wait_time)
-    {
-        _wait_time = wait_time;
-    }
-
-    std::shared_ptr<IConnection> open_connection()
-    {
-        std::lock_guard<std::mutex> lock_guard(_lock);
-
-        if(_connections.empty()) {
-            init_start_conncetions();
-        }
-
-        for(const auto& connection : _connections) {
-            if(connection.use_count() == 1) {
-                return connection;
-            }
-        }
-
-        if(_connections.size() < _max_pool_size) {
-            auto conn = create_connection(_settings);
-            _connections.push_back(conn);
-            return conn;
-        }
-
-        const auto start = std::chrono::system_clock::now();
-
-        while(std::chrono::system_clock::now() - start <= _wait_time) {
-            for(auto& connection : _connections) {
-                if(connection.use_count() == 1) {
-                    return connection;
-                }
-            }
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        }
-
-        return nullptr;
-    }
+    std::shared_ptr<IConnection> open_connection();
 
 private:
-    void init_start_conncetions()
-    {
-        _connections.clear();
-
-        _connections.reserve(_start_pool_size);
-        for(auto i = 0; i < _start_pool_size; i++) {
-            _connections.push_back(create_connection(_settings));
-        }
-    }
+    void init_start_conncetions();
 
 protected:
     virtual std::shared_ptr<IConnection> create_connection(const database_connection_settings& settings) = 0;
