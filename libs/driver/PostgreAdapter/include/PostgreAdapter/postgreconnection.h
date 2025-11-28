@@ -8,8 +8,10 @@
 
 #include <memory>
 
-class POSTGRE_EXPORT database_adapter::IConnection;
-class POSTGRE_EXPORT database_adapter::ILogger;
+namespace database_adapter {
+class POSTGRE_EXPORT IConnection;
+class POSTGRE_EXPORT ILogger;
+}
 
 namespace database_adapter {
 namespace postgre {
@@ -24,7 +26,7 @@ public:
     static void set_logger(std::shared_ptr<ILogger>&& logger);
 
 public:
-    explicit connection(const settings& settings);
+    explicit connection(const settings& settings, bool needCreateDatabaseIfNotExist = false, int retryCount = 4, int retryDeltaSeconds = 2);
     ~connection() override;
 
     bool is_valid() override;

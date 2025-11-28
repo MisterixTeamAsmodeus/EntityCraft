@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <thread>
 
 namespace database_adapter {
 namespace postgre {
@@ -16,9 +17,32 @@ void connection::set_logger(std::shared_ptr<ILogger>&& logger)
     _logger = std::move(logger);
 }
 
-connection::connection(const settings& settings)
+connection::connection(const settings& settings, const bool needCreateDatabaseIfNotExist, const int retryCount, const int retryDeltaSeconds)
     : IConnection(settings)
 {
+    for(int i = 0; i < retryCount; i++) {
+        try {
+            connect(settings);
+        } catch(...){}
+
+        if(is_valid()) {
+            return;
+        }
+
+        std::this_thread::sleep_for(std::chrono::seconds(retryDeltaSeconds));
+    }
+
+    if(!needCreateDatabaseIfNotExist) {
+        return;
+    }
+
+    auto temp_database_settings = settings;
+    temp_database_settings.database_name = "postgres";
+    connect(temp_database_settings);
+
+    exec("CREATE DATABASE \"" + settings.database_name + "\"");
+
+    disconnect();
     connect(settings);
 }
 

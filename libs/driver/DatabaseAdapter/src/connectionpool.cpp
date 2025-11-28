@@ -1,5 +1,8 @@
 #include "DatabaseAdapter/connectionpool.h"
 
+#include <algorithm>
+#include <thread>
+
 namespace database_adapter {
 IConnectionPool::IConnectionPool(database_connection_settings settings, const size_t start_pool_size, const size_t max_pool_size, const std::chrono::seconds wait_time)
     : _settings(std::move(settings))
@@ -36,6 +39,10 @@ std::shared_ptr<IConnection> IConnectionPool::open_connection()
     std::lock_guard<std::mutex> lock_guard(_lock);
 
     _connections.erase(std::remove_if(_connections.begin(), _connections.end(), [](const auto& connection) {
+        if(connection.use_count() != 1) {
+            return false;
+        }
+
         if(!connection->is_valid()) {
             return true;
         }
@@ -45,7 +52,8 @@ std::shared_ptr<IConnection> IConnectionPool::open_connection()
         }
 
         return false;
-    }), _connections.end());
+    }),
+        _connections.end());
 
     if(_connections.empty()) {
         init_start_conncetions();

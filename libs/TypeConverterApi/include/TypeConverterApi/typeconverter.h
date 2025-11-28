@@ -154,9 +154,9 @@ public:
         if(value == nullptr)
             value = std::make_shared<T>();
 
-        std::stringstream stream;
-        stream << str;
-        stream >> *value;
+        T tempValue;
+        type_converter_api::type_converter<T>().fill_from_string(tempValue, str);
+        *value = tempValue;
     }
 
     virtual std::string convert_to_string(const std::shared_ptr<T>& value) const
@@ -164,10 +164,7 @@ public:
         if(value == nullptr)
             return "";
 
-        std::stringstream stream;
-        stream << *value;
-
-        return stream.str();
+        return type_converter_api::type_converter<T>().convert_to_string(*value);
     }
 };
 
@@ -185,9 +182,9 @@ public:
         if(value == nullptr)
             value = std::make_unique<T>();
 
-        std::stringstream stream;
-        stream << str;
-        stream >> *value;
+        T tempValue;
+        type_converter_api::type_converter<T>().fill_from_string(tempValue, str);
+        *value = tempValue;
     }
 
     virtual std::string convert_to_string(const std::unique_ptr<T>& value) const
@@ -195,10 +192,7 @@ public:
         if(value == nullptr)
             return "";
 
-        std::stringstream stream;
-        stream << *value;
-
-        return stream.str();
+        return type_converter_api::type_converter<T>().convert_to_string(*value);
     }
 };
 
@@ -216,9 +210,9 @@ public:
         if(value == nullptr)
             value = new T();
 
-        std::stringstream stream;
-        stream << str;
-        stream >> *value;
+        T tempValue;
+        type_converter_api::type_converter<T>().fill_from_string(tempValue, str);
+        *value = tempValue;
     }
 
     virtual std::string convert_to_string(T*& value) const
@@ -226,10 +220,7 @@ public:
         if(value == nullptr)
             return "";
 
-        std::stringstream stream;
-        stream << *value;
-
-        return stream.str();
+        return type_converter_api::type_converter<T>().convert_to_string(*value);
     }
 };
 

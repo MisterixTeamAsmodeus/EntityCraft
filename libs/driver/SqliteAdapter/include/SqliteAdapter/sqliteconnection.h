@@ -9,8 +9,10 @@
 
 #include <memory>
 
-class SQLITE_EXPORT database_adapter::IConnection;
-class SQLITE_EXPORT database_adapter::ILogger;
+namespace database_adapter {
+class SQLITE_EXPORT IConnection;
+class SQLITE_EXPORT ILogger;
+}
 
 namespace database_adapter {
 namespace sqlite {

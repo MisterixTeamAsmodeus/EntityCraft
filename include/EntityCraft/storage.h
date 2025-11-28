@@ -71,7 +71,7 @@ public:
     storage& offset(const size_t offset)
     {
         _offset = offset;
-        return this;
+        return *this;
     }
 
     storage& without_relation_entity(const bool without_relation_entity = true)
@@ -174,6 +174,57 @@ public:
         return res;
     }
 
+    std::vector<ClassType> select_for_update()
+    {
+        const query_craft::sql_table sql_table(_dto.table_info());
+
+        std::vector<query_craft::column_info> columns = sql_table.columns();
+
+        const auto duplicate_column = _dto.duplicate_column();
+        _dto.for_each(visitor::make_reference_column_visitor([&duplicate_column, &columns](auto& reference_column) {
+            if(std::find(duplicate_column.begin(), duplicate_column.end(), reference_column.column_info()) != duplicate_column.end()
+                || reference_column.type() == relation_type::one_to_many
+                || reference_column.type() == relation_type::one_to_one_inverted) {
+                auto it = std::remove(columns.begin(), columns.end(), reference_column.column_info());
+                if(it != columns.end())
+                    columns.erase(it);
+            }
+        }));
+
+        if(!_without_relation_entity) {
+            append_join_columns(columns, _dto);
+        }
+
+        const auto sql = sql_table.select_for_update_sql(
+            _without_relation_entity ? std::vector<query_craft::join_column> {} : join_columns(_dto),
+            _condition_group,
+            _sortColumns,
+            _limit,
+            _offset,
+            columns);
+
+        const auto result = _database->exec(sql);
+
+        clear_select_settings();
+
+        if(result.empty()) {
+            return {};
+        }
+
+        std::vector<ClassType> res;
+        for(const auto& row : result.data()) {
+            auto entity = parse_entity_from_sql(_dto, row, _without_relation_entity);
+            if(_dto.has_reques_callback()) {
+                _dto.reques_callback()->post_request_callback(entity, request_callback_type::select, _database);
+            }
+            res.emplace_back(entity);
+        }
+
+        res = merge_result_by_id(res, _dto, type_converter_api::container_converter<std::vector<ClassType>>());
+
+        return res;
+    }
+
     template<typename Begin, typename End>
     std::vector<ClassType> select_by_ids(const Begin& begin, const End& end)
     {
@@ -182,6 +233,16 @@ public:
 
         _condition_group = primary_key_column(_dto).in_list(begin, end);
         return select();
+    }
+
+    template<typename Begin, typename End>
+    std::vector<ClassType> select_for_update_by_ids(const Begin& begin, const End& end)
+    {
+        if(begin == end)
+            return {};
+
+        _condition_group = primary_key_column(_dto).in_list(begin, end);
+        return select_for_update();
     }
 
     size_t count()
@@ -202,9 +263,25 @@ public:
         clear_select_settings();
         _condition_group = t;
         _without_relation_entity = t1;
-        _limit = 1;
 
         const auto res = select();
+        if(res.empty()) {
+            return nullptr;
+        }
+
+        return std::make_shared<ClassType>(res.front());
+    }
+
+    std::shared_ptr<ClassType> get_for_update()
+    {
+        const auto t = _condition_group;
+        const auto t1 = _without_relation_entity;
+
+        clear_select_settings();
+        _condition_group = t;
+        _without_relation_entity = t1;
+
+        const auto res = select_for_update();
         if(res.empty()) {
             return nullptr;
         }
@@ -219,11 +296,19 @@ public:
         return get();
     }
 
+    template<typename IdType>
+    std::shared_ptr<ClassType> get_for_update_by_id(const IdType& id)
+    {
+        _condition_group = primary_key_column(_dto) == id;
+        return get_for_update();
+    }
+
     bool contains(const ClassType& value)
     {
         clear_select_settings();
 
-        _dto.for_each([this, &value](const auto& column) {
+        bool is_primary_key_null = false;
+        _dto.for_each([this, &value, &is_primary_key_null](const auto& column) {
             auto column_info = column.column_info();
             if(!column_info.has_settings(query_craft::column_settings::primary_key)) {
                 return;
@@ -231,10 +316,20 @@ public:
 
             auto property = column.property();
 
+            if(column.null_cheker()->is_null(property.value(value))) {
+                is_primary_key_null = true;
+                return;
+            }
+
             const auto string_property_value = property.property_converter()
                                                    ->convert_to_string(property.value(value));
+
             _condition_group = column_info == string_property_value;
         });
+
+        if(is_primary_key_null) {
+            return false;
+        }
 
         _without_relation_entity = true;
 
@@ -269,10 +364,11 @@ public:
         std::vector<query_craft::column_info> columns_for_returning;
 
         std::for_each(begin, end, [this, &sql_table, &columns_for_insert, &columns_for_returning](auto& value) {
+            this->prepare_to_insert(columns_for_insert, columns_for_returning, sql_table, value);
+
             if(_dto.has_reques_callback()) {
                 _dto.reques_callback()->pre_request_callback(value, request_callback_type::insert, _database);
             }
-            this->prepare_to_insert(columns_for_insert, columns_for_returning, sql_table, value);
         });
 
         const auto sql = sql_table.insert_sql(columns_for_insert, true, columns_for_returning);
@@ -291,6 +387,10 @@ public:
 
         // Вставка зависимых объектов должна происходить после вставки объекта на который происходит ссылка
         std::for_each(begin, end, [this](auto& value) {
+            if(_dto.has_reques_callback()) {
+                _dto.reques_callback()->post_request_callback(value, request_callback_type::insert, _database);
+            }
+
             // Вставка зависимых объектов должна происходить после вставки объекта на который происходит ссылка
             _dto.for_each(visitor::make_reference_column_visitor([this, &value](auto& reference_column) {
                 if(reference_column.type() != relation_type::one_to_one_inverted && reference_column.type() != relation_type::one_to_many) {
@@ -304,10 +404,6 @@ public:
 
                 this->upsert_relation_property_with_type_one_to_one_inverted_or_one_to_many(reference_column, value);
             }));
-
-            if(_dto.has_reques_callback()) {
-                _dto.reques_callback()->post_request_callback(value, request_callback_type::insert, _database);
-            }
         });
 
         if(!has_transactional) {
@@ -1069,7 +1165,7 @@ private:
      */
     void prepare_to_insert(std::vector<query_craft::column_info>& columns_for_insert,
         std::vector<query_craft::column_info>& columns_for_returning,
-        query_craft::sql_table& sql_table, const ClassType& value)
+        query_craft::sql_table& sql_table, ClassType& value)
     {
         // Переменная чтобы только один раз записать названия колонок для вставки
         bool need_update_column_for_insert = columns_for_insert.empty();
@@ -1139,13 +1235,20 @@ private:
     void upsert_relation_property_with_type_one_to_one_or_many_to_one(
         ReferenceCoulmn_& reference_column,
         query_craft::sql_table::row& row,
-        const ClassType& value,
+        ClassType& value,
         bool cascad)
     {
         auto property = reference_column.property();
         auto reference_property_value = property.value(value);
-
         auto reference_table = reference_column.reference_table();
+
+        // Если установлены права на каскадную вставку добавляем объект если у него не пустой primary_key
+        if(cascad) {
+            auto reference_storage = make_storage(_database, reference_table, false);
+            reference_storage.upsert(reference_property_value);
+            property.set_value(value, reference_property_value);
+        }
+
         reference_table.for_each(visitor::make_column_visitor([&row, &reference_property_value, &reference_column](auto& column) {
             auto column_info = column.column_info();
             // Добавляем информации для ссылке по primary_key в исходную таблицу
@@ -1153,6 +1256,8 @@ private:
                 return;
             }
             auto reference_property = column.property();
+
+
 
             const auto property_value = reference_property.value(reference_property_value);
             // Если исходная колонка которая содержит ссылку имеет флаг что она может быть null
@@ -1164,12 +1269,6 @@ private:
                 row.emplace_back(reference_property.property_converter()->convert_to_string(property_value));
             }
         }));
-
-        // Если установлены права на каскадную вставку добавляем объект если у него не пустой primary_key
-        if(cascad && row.back() != query_craft::column_info::null_value()) {
-            auto reference_storage = make_storage(_database, reference_table, false);
-            reference_storage.upsert(reference_property_value);
-        }
     }
 
     /**
