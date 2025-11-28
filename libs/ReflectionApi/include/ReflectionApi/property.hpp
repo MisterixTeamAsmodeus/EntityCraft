@@ -1,11 +1,11 @@
 #pragma once
 
-#include "helper/templates.h"
+#include "helper/templates.hpp"
 
 #include <TypeConverterApi/typeconverterapi.h>
 
-#include <stdexcept>
 #include <string>
+#include <type_traits>
 
 namespace reflection_api {
 
@@ -21,8 +21,20 @@ template<typename ClassType,
 class property
 {
 public:
-    /// Создать объект с типом данных находящейся в сущности
-    static PropertyType empty_property()
+    /**
+     * @brief Тип класса в котором находится проперти
+     */
+    using class_type = ClassType;
+    /**
+     * @brief Тип проперти
+     */
+    using property_type = PropertyType;
+
+    /**
+     * @brief Создать объект с типом данных находящейся в сущности
+     * @return Объект с типом данных находящейся в сущности
+     */
+    static constexpr PropertyType empty_property()
     {
         return PropertyType();
     }
@@ -34,7 +46,7 @@ public:
      * @param variable Указатель на член-переменную.
      * @param name Имя переменной.
      */
-    explicit property(std::string name, const helper::Variable_t<ClassType, PropertyType> variable)
+    explicit property(std::string name, const helper::Variable_t<ClassType, PropertyType> variable) noexcept
         : _name(std::move(name))
         , _variable(variable)
     {
@@ -47,7 +59,7 @@ public:
      * @param setter Указатель на член-функцию, устанавливающую значение переменной.
      * @param getter Указатель на член-функцию, получающую значение переменной.
      */
-    explicit property(std::string name, Setter setter, Getter getter)
+    explicit property(std::string name, Setter setter, Getter getter) noexcept
         : _name(std::move(name))
         , _getter(std::move(getter))
         , _setter(std::move(setter))
@@ -68,21 +80,12 @@ public:
      * @param classValue Объект, в котором находится переменная.
      * @param data Новое значение переменной.
      */
-    void set_value(ClassType& classValue, const PropertyType& data)
+    void set_value(ClassType& classValue, const PropertyType& data) const
     {
         if(_variable == nullptr)
             (classValue.*_setter)(data);
         else
             classValue.*_variable = data;
-    }
-
-    /**
-     * @brief Заглушка для работы рефлексии
-     */
-    template<typename Type>
-    void set_value(ClassType& /*classValue*/, const Type& /*data*/)
-    {
-        throw std::invalid_argument("type is not valid");
     }
 
     /**
@@ -97,31 +100,22 @@ public:
     }
 
     /**
-     * @brief Заглушка для работы рефлексии
-     */
-    template<typename Type>
-    PropertyType value(const Type& /*classValue*/) const
-    {
-        throw std::invalid_argument("type is not valid");
-    }
-
-    /**
      * @brief Получает имя переменной.
      *
      * @return Имя переменной.
      */
-    std::string name() const
+    const std::string& name() const noexcept
     {
         return _name;
     }
 
-    /// Получить объект конвертирующий нужный тип данных из сторки и обратно
-    std::shared_ptr<type_converter_api::type_converter<PropertyType>> property_converter() const
+    /// Получить объект конвертирующий нужный тип данных из строки и обратно
+    std::shared_ptr<type_converter_api::type_converter<PropertyType>> property_converter() const noexcept
     {
         return _property_converter;
     }
 
-    /// Установить объект конвертирующий нужный тип данных из сторки и обратно
+    /// Установить объект конвертирующий нужный тип данных из строки и обратно
     property set_converter(const std::shared_ptr<type_converter_api::type_converter<PropertyType>>& converter)
     {
         _property_converter = converter;
@@ -156,6 +150,14 @@ private:
     std::shared_ptr<type_converter_api::type_converter<PropertyType>> _property_converter = std::make_shared<type_converter_api::type_converter<PropertyType>>();
 };
 
+/**
+ * @brief Создание объекта проперти
+ * @tparam ClassType Тип класса в котором находится проперти
+ * @tparam PropertyType Тип проперти
+ * @param name Имя переменной
+ * @param variable Указатель на член-переменную
+ * @return Объект проперти
+ */
 template<typename ClassType, typename PropertyType>
 auto make_property(
     std::string name,
@@ -166,6 +168,15 @@ auto make_property(
         variable);
 }
 
+/**
+ * @brief Создание объекта проперти
+ * @tparam ClassType Тип класса в котором находится проперти
+ * @tparam PropertyType Тип проперти
+ * @param name Имя переменной
+ * @param setter Указатель на член-функцию, устанавливающую значение переменной
+ * @param getter Указатель на член-функцию, получающую значение переменной
+ * @return Объект проперти
+ */
 template<typename ClassType, typename PropertyType>
 auto make_property(
     std::string name,
@@ -181,6 +192,15 @@ auto make_property(
         getter);
 }
 
+/**
+ * @brief Создание объекта проперти
+ * @tparam ClassType Тип класса в котором находится проперти
+ * @tparam PropertyType Тип проперти
+ * @param name Имя переменной
+ * @param setter Указатель на член-функцию, устанавливающую значение переменной
+ * @param getter Указатель на член-функцию, получающую значение переменной
+ * @return Объект проперти
+ */
 template<typename ClassType, typename PropertyType>
 auto make_property(
     std::string name,
@@ -196,6 +216,15 @@ auto make_property(
         getter);
 }
 
+/**
+ * @brief Создание объекта проперти
+ * @tparam ClassType Тип класса в котором находится проперти
+ * @tparam PropertyType Тип проперти
+ * @param name Имя переменной
+ * @param setter Указатель на член-функцию, устанавливающую значение переменной
+ * @param getter Указатель на член-функцию, получающую значение переменной
+ * @return Объект проперти
+ */
 template<typename ClassType, typename PropertyType>
 auto make_property(
     std::string name,
@@ -213,6 +242,15 @@ auto make_property(
 
 //-----------------------------Перегрузки для примитивов, где параметры в setter не по const &-----------------------------------
 
+/**
+ * @brief Создание объекта проперти
+ * @tparam ClassType Тип класса в котором находится проперти
+ * @tparam PropertyType Тип проперти
+ * @param name Имя переменной
+ * @param setter Указатель на член-функцию, устанавливающую значение переменной
+ * @param getter Указатель на член-функцию, получающую значение переменной
+ * @return Объект проперти
+ */
 template<typename ClassType, typename PropertyType>
 auto make_property(
     std::string name,
@@ -228,6 +266,15 @@ auto make_property(
         getter);
 }
 
+/**
+ * @brief Создание объекта проперти
+ * @tparam ClassType Тип класса в котором находится проперти
+ * @tparam PropertyType Тип проперти
+ * @param name Имя переменной
+ * @param setter Указатель на член-функцию, устанавливающую значение переменной
+ * @param getter Указатель на член-функцию, получающую значение переменной
+ * @return Объект проперти
+ */
 template<typename ClassType, typename PropertyType>
 auto make_property(
     std::string name,
@@ -243,6 +290,15 @@ auto make_property(
         getter);
 }
 
+/**
+ * @brief Создание объекта проперти
+ * @tparam ClassType Тип класса в котором находится проперти
+ * @tparam PropertyType Тип проперти
+ * @param name Имя переменной
+ * @param setter Указатель на член-функцию, устанавливающую значение переменной
+ * @param getter Указатель на член-функцию, получающую значение переменной
+ * @return Объект проперти
+ */
 template<typename ClassType, typename PropertyType>
 auto make_property(
     std::string name,

@@ -12,7 +12,7 @@ foreach(EXAMPLE_SOURCE_FILE ${EXAMPLE_SOURCE_FILES})
     add_executable(${EXAMPLE_TARGET} ${EXAMPLE_SOURCE_FILE})
 
     target_compile_features(${EXAMPLE_TARGET} PUBLIC cxx_std_14)
-    target_link_libraries(${EXAMPLE_TARGET} PRIVATE EntityCraft)
+    target_link_libraries(${EXAMPLE_TARGET} PRIVATE EntityCraft SqliteAdapter)
 
     add_custom_command(TARGET ${EXAMPLE_TARGET} POST_BUILD
             COMMAND ${CMAKE_COMMAND} -E echo "POST_BUILD COPY LIB FROM $<TARGET_FILE:SqliteAdapter> TO $<TARGET_FILE_DIR:${EXAMPLE_TARGET}>"

@@ -38,7 +38,7 @@ using Getter_t = PropertyType (ClassType::*)();
  *
  * @tparam ClassType Тип класса, к которому принадлежат члены-функции.
  * @tparam PropertyType Тип значения членов-функции.
- * @tparam Params Тип параметра, который принимает член-функция. По умолчанию это const ColumnType &.
+ * @tparam Params Тип параметра, который принимает член-функция. По умолчанию это const PropertyType &.
  */
 template<typename ClassType, typename PropertyType, typename Params = const PropertyType&>
 using Setter_t = void (ClassType::*)(const Params&);
@@ -48,7 +48,7 @@ using Setter_t = void (ClassType::*)(const Params&);
  *
  * @tparam ClassType Тип класса, к которому принадлежат члены-функции.
  * @tparam PropertyType Тип значения членов-функции.
- * @tparam Params Тип параметра, который принимает член-функция. По умолчанию это ColumnType.
+ * @tparam Params Тип параметра, который принимает член-функция. По умолчанию это PropertyType.
  */
 template<typename ClassType, typename PropertyType, typename Params = PropertyType>
 using BaseSetter_t = void (ClassType::*)(Params);
@@ -64,3 +64,4 @@ using Variable_t = PropertyType ClassType::*;
 
 } // namespace Helper
 } // namespace reflection_api
+

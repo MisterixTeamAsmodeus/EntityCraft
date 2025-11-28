@@ -1,8 +1,8 @@
 #pragma once
 
-#include "entity.h"
-#include "helper/templates.h"
-#include "property.h"
+#include "entity.hpp"
+#include "helper/templates.hpp"
+#include "property.hpp"
 
 namespace reflection_api {
 
@@ -47,7 +47,7 @@ public:
     reference_property& operator=(reference_property&& other) noexcept = default;
 
     /// Получить связанную сущность
-    entity<PropertyType, ReferenceProperties...> reference_entity() const
+    entity<PropertyType, ReferenceProperties...> reference_entity() const noexcept
     {
         return _reference_entity;
     }
@@ -198,3 +198,4 @@ auto make_reference_property(
 }
 
 } // namespace reflection_api
+
