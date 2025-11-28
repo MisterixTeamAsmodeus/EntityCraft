@@ -9,8 +9,10 @@
 
 #include <memory>
 
-class SQLITE_EXPORT database_adapter::IConnection;
-class SQLITE_EXPORT database_adapter::ILogger;
+namespace database_adapter {
+class SQLITE_EXPORT IConnection;
+class SQLITE_EXPORT ILogger;
+}
 
 namespace database_adapter {
 namespace sqlite {
@@ -32,8 +34,10 @@ public:
     bool is_valid() override;
     query_result exec(const std::string& query) override;
 
-    void prepare(const std::string& query, const std::string& name = "") override;
-    query_result exec_prepared(const std::vector<std::string>& params, const std::string& name = "") override;
+    void prepare(const std::string& query, const std::string& name) override;
+    query_result exec_prepared(const std::vector<std::string>& params, const std::string& name) override;
+
+    bool open_transaction(int type) override;
 
 private:
     void connect(const settings& settings);
@@ -45,7 +49,7 @@ private:
 private:
     sqlite3* _connection = nullptr;
 
-    std::unordered_map<std::string, sqlite3_stmt*> prepared;
+    std::unordered_map<std::string, sqlite3_stmt*> _prepared;
 };
 } // namespace sqlite
 } // namespace database_adapter

@@ -198,6 +198,45 @@ public:
         size_t offset = 0,
         const std::vector<column_info>& columns = {}) const;
 
+    /**
+     * Генерация SQL-запроса для выборки строк из таблицы c блокировкой.
+     *
+     * @param join_columns   Информация о join соединениях
+     * @param condition     Условие для выбора строк.
+     * @param sort_columns   Информация о колонках необходимых для сортировок
+     * @param limit         Лимит выборки.
+     * @param offset        Смещение выборки.
+     * @param columns       Столбцы для выборки. По умолчанию все столбцы.
+     * @return SQL-запрос для выборки.
+     * @note Перегрузка для передачи параметров через initializer_list, так как бывают ситуации когда он не может не явно кастануть к vector
+     */
+    std::string select_for_update_args_sql(
+        const std::initializer_list<join_column>& join_columns = {},
+        const condition_group& condition = {},
+        const std::initializer_list<sort_column>& sort_columns = {},
+        size_t limit = 0,
+        size_t offset = 0,
+        const std::initializer_list<column_info>& columns = {}) const;
+
+    /**
+     * Генерация SQL-запроса для выборки строк из таблицы c блокировкой.
+     *
+     * @param join_columns   Информация о join соединениях
+     * @param condition     Условие для выбора строк.
+     * @param sort_columns   Информация о колонках необходимых для сортировок
+     * @param limit         Лимит выборки.
+     * @param offset        Смещение выборки.
+     * @param columns       Столбцы для выборки. По умолчанию все столбцы.
+     * @return SQL-запрос для выборки.
+     */
+    std::string select_for_update_sql(
+        const std::vector<join_column>& join_columns = {},
+        const condition_group& condition = {},
+        const std::vector<sort_column>& sort_columns = {},
+        size_t limit = 0,
+        size_t offset = 0,
+        const std::vector<column_info>& columns = {}) const;
+
 private:
     /// Вектор, содержащий строки таблицы.
     /// Каждая строка представляется в виде вектора значений столбцов.

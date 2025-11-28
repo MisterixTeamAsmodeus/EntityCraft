@@ -278,4 +278,27 @@ std::string sql_table::select_sql(
     return sql_stream.str();
 }
 
+std::string sql_table::select_for_update_args_sql(const std::initializer_list<join_column>& join_columns, const condition_group& condition, const std::initializer_list<sort_column>& sort_columns, size_t limit, size_t offset, const std::initializer_list<column_info>& columns) const
+{
+    return select_for_update_sql(
+        std::vector<join_column>(join_columns),
+        condition,
+        std::vector<sort_column>(sort_columns),
+        limit,
+        offset,
+        std::vector<column_info>(columns));
+}
+
+std::string sql_table::select_for_update_sql(const std::vector<join_column>& join_columns,
+    const condition_group& condition,
+    const std::vector<sort_column>& sort_columns,
+    const size_t limit,
+    const size_t offset,
+    const std::vector<column_info>& columns) const
+{
+    auto str = select_sql(join_columns, condition, sort_columns, limit, offset, columns);
+    str.replace(str.rfind(";"), 1, " FOR UPDATE;");
+    return str;
+}
+
 } // namespace query_craft

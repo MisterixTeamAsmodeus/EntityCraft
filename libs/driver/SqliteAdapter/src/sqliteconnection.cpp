@@ -1,10 +1,8 @@
 #include "SqliteAdapter/sqliteconnection.h"
 
-#include <DatabaseAdapter/exception/opendatabaseexception.h>
-#include <DatabaseAdapter/exception/sqlexception.h>
-#include <DatabaseAdapter/idatabasedriver.h>
-#include <DatabaseAdapter/ilogger.h>
-#include <DatabaseAdapter/model/databasesettings.h>
+#include "SqliteAdapter/sqlitetransactiontype.h"
+
+#include <DatabaseAdapter/databaseadapter.h>
 
 #include <sstream>
 #include <stdexcept>
@@ -27,10 +25,10 @@ connection::connection(const settings& settings)
 
 connection::~connection()
 {
-    for(const auto& prepared_pair : prepared) {
+    for(const auto& prepared_pair : _prepared) {
         sqlite3_finalize(prepared_pair.second);
     }
-    prepared.clear();
+    _prepared.clear();
 
     disconnect();
 }
@@ -40,12 +38,7 @@ bool connection::is_valid()
     if(_connection == nullptr)
         return false;
 
-    try {
-        exec("select 1");
-        return true;
-    } catch(const sql_exception&) {
-        return false;
-    }
+    return IConnection::is_valid();
 }
 
 query_result connection::exec(const std::string& query)
@@ -74,14 +67,14 @@ query_result connection::exec(const std::string& query)
 
     query_result result;
     while(rc == SQLITE_ROW) {
-        query_result::result_row row;
+        query_result::row row;
         for(int i = 0; i < sqlite3_column_count(stmt); i++) {
             auto* column_name = sqlite3_column_name(stmt, i);
             auto* column_value = reinterpret_cast<const char*>(sqlite3_column_text(stmt, i));
 
             row.emplace(column_name, column_value == nullptr ? "" : column_value);
         }
-        result.add_row(row);
+        result.add(row);
 
         rc = sqlite3_step(stmt);
     }
@@ -106,7 +99,7 @@ query_result connection::exec(const std::string& query)
 
 void connection::prepare(const std::string& query, const std::string& name)
 {
-    if(prepared.find(name) == prepared.end())
+    if(_prepared.find(name) == _prepared.end())
         return;
 
     sqlite3_stmt* stmt;
@@ -128,13 +121,13 @@ void connection::prepare(const std::string& query, const std::string& name)
         throw sql_exception(std::move(last_error), query);
     }
 
-    prepared.insert({ name, stmt });
+    _prepared.insert({ name, stmt });
 }
 
 query_result connection::exec_prepared(const std::vector<std::string>& params, const std::string& name)
 {
-    const auto stmt_it = prepared.find(name);
-    if(stmt_it == prepared.end()) {
+    const auto stmt_it = _prepared.find(name);
+    if(stmt_it == _prepared.end()) {
         throw sql_exception("Doesn't have prepared statment");
     }
 
@@ -163,9 +156,8 @@ query_result connection::exec_prepared(const std::vector<std::string>& params, c
         }());
     }
 
-    auto* null_value = NULL_VALUE;
     for(int i = 0; i < size; i++) {
-        if(params[i] == null_value) {
+        if(params[i] == NULL_VALUE) {
             sqlite3_bind_null(stmt, i);
             continue;
         }
@@ -178,14 +170,14 @@ query_result connection::exec_prepared(const std::vector<std::string>& params, c
 
     query_result result;
     while(rc == SQLITE_ROW) {
-        query_result::result_row row;
+        query_result::row row;
         for(int i = 0; i < sqlite3_column_count(stmt); i++) {
             auto* column_name = sqlite3_column_name(stmt, i);
             auto* column_value = reinterpret_cast<const char*>(sqlite3_column_text(stmt, i));
 
             row.emplace(column_name, column_value == nullptr ? "" : column_value);
         }
-        result.add_row(row);
+        result.add(row);
 
         rc = sqlite3_step(stmt);
     }
@@ -202,6 +194,30 @@ query_result connection::exec_prepared(const std::vector<std::string>& params, c
     }
 
     return result;
+}
+
+bool connection::open_transaction(int type)
+{
+    const auto sql = [&type]() {
+        switch(static_cast<transaction_type>(type)) {
+            case transaction_type::DEFERRED:
+                return "BEGIN DEFERRED;";
+            case transaction_type::IMMEDIATE:
+                return "BEGIN IMMEDIATE;";
+            case transaction_type::EXCLUSIVE:
+                return "BEGIN EXCLUSIVE;";
+            default:
+                return "BEGIN;";
+        }
+    }();
+
+    try {
+        exec(sql);
+        _has_transaction = true;
+        return true;
+    } catch(sql_exception&) {
+        return false;
+    }
 }
 
 void connection::connect(const database_connection_settings& settings)
@@ -229,6 +245,10 @@ void connection::disconnect()
 {
     if(!is_valid())
         return;
+
+    if(_logger != nullptr) {
+        _logger->log_sql("Disconnect from database");
+    }
 
     sqlite3_close(_connection);
     _connection = nullptr;

@@ -22,12 +22,12 @@ class storage
 public:
     using class_type = ClassType;
 
-    storage(const std::shared_ptr<database_adapter::IDataBaseDriver>& database, table<ClassType, Columns...> dto, const bool auto_commit = true)
+    storage(const std::shared_ptr<database_adapter::IConnection>& database, table<ClassType, Columns...> dto, const bool auto_commit = true)
         : _database(database)
         , _dto(std::move(dto))
         , _auto_commit(auto_commit)
     {
-        if(!_database->is_open()) {
+        if(_database == nullptr || !_database->is_valid()) {
             throw std::invalid_argument("Connection is not valid");
         }
     }
@@ -37,8 +37,8 @@ public:
 
     ~storage()
     {
-        if(_open_transaction != nullptr && _auto_commit)
-            _open_transaction->commit();
+        if(_database->is_transaction() && _auto_commit)
+            _database->commit();
     }
 
     storage& operator=(const storage& other) = default;
@@ -71,7 +71,7 @@ public:
     storage& offset(const size_t offset)
     {
         _offset = offset;
-        return this;
+        return *this;
     }
 
     storage& without_relation_entity(const bool without_relation_entity = true)
@@ -83,28 +83,18 @@ public:
     void transaction(const int type = -1)
     {
         _auto_commit = true;
-        _open_transaction = _database->open_transaction(type);
+        _database->open_transaction(type);
     }
 
-    std::shared_ptr<database_adapter::ITransaction> get_transaction() const
-    {
-        return _open_transaction;
-    }
-
-    void set_transaction(const std::shared_ptr<database_adapter::ITransaction>& transaction)
+    void set_transaction(const std::shared_ptr<database_adapter::IConnection>& transaction)
     {
         _auto_commit = false;
-        _open_transaction = transaction;
+        _database = transaction;
     }
 
-    std::shared_ptr<database_adapter::IDataBaseDriver> database() const
+    std::shared_ptr<database_adapter::IConnection> database() const
     {
         return _database;
-    }
-
-    database_adapter::query_result exec(const std::string& sql) const
-    {
-        return _open_transaction != nullptr ? _open_transaction->exec(sql) : _database->exec(sql);
     }
 
     table<ClassType, Columns...> dto() const
@@ -114,31 +104,23 @@ public:
 
     void commit()
     {
-        if(_open_transaction == nullptr) {
-            return;
+        if(_database->is_transaction()) {
+            _database->commit();
         }
-        _open_transaction->commit();
-        _open_transaction = nullptr;
     }
 
     void rollback()
     {
-        if(_open_transaction == nullptr) {
-            return;
+        if(_database->is_transaction()) {
+            _database->rollback();
         }
-
-        _open_transaction->rollback();
-        _open_transaction = nullptr;
     }
 
     void rollback_to_save_point(const std::string& save_point)
     {
-        if(_open_transaction == nullptr) {
-            return;
+        if(_database->is_transaction()) {
+            _database->rollback_to_save_point(save_point);
         }
-
-        _open_transaction->rollback_to_save_point(save_point);
-        _open_transaction = nullptr;
     }
 
     std::vector<ClassType> select()
@@ -149,13 +131,13 @@ public:
 
         const auto duplicate_column = _dto.duplicate_column();
         _dto.for_each(visitor::make_reference_column_visitor([&duplicate_column, &columns](auto& reference_column) {
-            if(std::find(duplicate_column.begin(), duplicate_column.end(), reference_column.column_info()) != duplicate_column.end()) {
-                return;
+            if(std::find(duplicate_column.begin(), duplicate_column.end(), reference_column.column_info()) != duplicate_column.end()
+                || reference_column.type() == relation_type::one_to_many
+                || reference_column.type() == relation_type::one_to_one_inverted) {
+                auto it = std::remove(columns.begin(), columns.end(), reference_column.column_info());
+                if(it != columns.end())
+                    columns.erase(it);
             }
-
-            auto it = std::remove(columns.begin(), columns.end(), reference_column.column_info());
-            if(it != columns.end())
-                columns.erase(it);
         }));
 
         if(!_without_relation_entity) {
@@ -170,7 +152,7 @@ public:
             _offset,
             columns);
 
-        const auto result = exec(sql);
+        const auto result = _database->exec(sql);
 
         clear_select_settings();
 
@@ -182,7 +164,58 @@ public:
         for(const auto& row : result.data()) {
             auto entity = parse_entity_from_sql(_dto, row, _without_relation_entity);
             if(_dto.has_reques_callback()) {
-                _dto.reques_callback()->post_request_callback(entity, request_callback_type::select, _open_transaction);
+                _dto.reques_callback()->post_request_callback(entity, request_callback_type::select, _database);
+            }
+            res.emplace_back(entity);
+        }
+
+        res = merge_result_by_id(res, _dto, type_converter_api::container_converter<std::vector<ClassType>>());
+
+        return res;
+    }
+
+    std::vector<ClassType> select_for_update()
+    {
+        const query_craft::sql_table sql_table(_dto.table_info());
+
+        std::vector<query_craft::column_info> columns = sql_table.columns();
+
+        const auto duplicate_column = _dto.duplicate_column();
+        _dto.for_each(visitor::make_reference_column_visitor([&duplicate_column, &columns](auto& reference_column) {
+            if(std::find(duplicate_column.begin(), duplicate_column.end(), reference_column.column_info()) != duplicate_column.end()
+                || reference_column.type() == relation_type::one_to_many
+                || reference_column.type() == relation_type::one_to_one_inverted) {
+                auto it = std::remove(columns.begin(), columns.end(), reference_column.column_info());
+                if(it != columns.end())
+                    columns.erase(it);
+            }
+        }));
+
+        if(!_without_relation_entity) {
+            append_join_columns(columns, _dto);
+        }
+
+        const auto sql = sql_table.select_for_update_sql(
+            _without_relation_entity ? std::vector<query_craft::join_column> {} : join_columns(_dto),
+            _condition_group,
+            _sortColumns,
+            _limit,
+            _offset,
+            columns);
+
+        const auto result = _database->exec(sql);
+
+        clear_select_settings();
+
+        if(result.empty()) {
+            return {};
+        }
+
+        std::vector<ClassType> res;
+        for(const auto& row : result.data()) {
+            auto entity = parse_entity_from_sql(_dto, row, _without_relation_entity);
+            if(_dto.has_reques_callback()) {
+                _dto.reques_callback()->post_request_callback(entity, request_callback_type::select, _database);
             }
             res.emplace_back(entity);
         }
@@ -200,6 +233,16 @@ public:
 
         _condition_group = primary_key_column(_dto).in_list(begin, end);
         return select();
+    }
+
+    template<typename Begin, typename End>
+    std::vector<ClassType> select_for_update_by_ids(const Begin& begin, const End& end)
+    {
+        if(begin == end)
+            return {};
+
+        _condition_group = primary_key_column(_dto).in_list(begin, end);
+        return select_for_update();
     }
 
     size_t count()
@@ -220,9 +263,25 @@ public:
         clear_select_settings();
         _condition_group = t;
         _without_relation_entity = t1;
-        _limit = 1;
 
         const auto res = select();
+        if(res.empty()) {
+            return nullptr;
+        }
+
+        return std::make_shared<ClassType>(res.front());
+    }
+
+    std::shared_ptr<ClassType> get_for_update()
+    {
+        const auto t = _condition_group;
+        const auto t1 = _without_relation_entity;
+
+        clear_select_settings();
+        _condition_group = t;
+        _without_relation_entity = t1;
+
+        const auto res = select_for_update();
         if(res.empty()) {
             return nullptr;
         }
@@ -237,11 +296,19 @@ public:
         return get();
     }
 
+    template<typename IdType>
+    std::shared_ptr<ClassType> get_for_update_by_id(const IdType& id)
+    {
+        _condition_group = primary_key_column(_dto) == id;
+        return get_for_update();
+    }
+
     bool contains(const ClassType& value)
     {
         clear_select_settings();
 
-        _dto.for_each([this, &value](const auto& column) {
+        bool is_primary_key_null = false;
+        _dto.for_each([this, &value, &is_primary_key_null](const auto& column) {
             auto column_info = column.column_info();
             if(!column_info.has_settings(query_craft::column_settings::primary_key)) {
                 return;
@@ -249,10 +316,20 @@ public:
 
             auto property = column.property();
 
+            if(column.null_cheker()->is_null(property.value(value))) {
+                is_primary_key_null = true;
+                return;
+            }
+
             const auto string_property_value = property.property_converter()
                                                    ->convert_to_string(property.value(value));
+
             _condition_group = column_info == string_property_value;
         });
+
+        if(is_primary_key_null) {
+            return false;
+        }
 
         _without_relation_entity = true;
 
@@ -277,7 +354,7 @@ public:
 
         query_craft::sql_table sql_table(_dto.table_info());
 
-        const bool has_transactional = _open_transaction != nullptr;
+        const bool has_transactional = _database->is_transaction();
 
         if(!has_transactional) {
             transaction();
@@ -287,19 +364,20 @@ public:
         std::vector<query_craft::column_info> columns_for_returning;
 
         std::for_each(begin, end, [this, &sql_table, &columns_for_insert, &columns_for_returning](auto& value) {
-            if(_dto.has_reques_callback()) {
-                _dto.reques_callback()->pre_request_callback(value, request_callback_type::insert, _open_transaction);
-            }
             this->prepare_to_insert(columns_for_insert, columns_for_returning, sql_table, value);
+
+            if(_dto.has_reques_callback()) {
+                _dto.reques_callback()->pre_request_callback(value, request_callback_type::insert, _database);
+            }
         });
 
         const auto sql = sql_table.insert_sql(columns_for_insert, true, columns_for_returning);
-        auto result = exec(sql);
+        auto result = _database->exec(sql);
 
-        if(result().size() == static_cast<size_t>(end - begin)) {
-            auto resultIt = result().begin();
+        if(result.mutable_data().size() == static_cast<size_t>(end - begin)) {
+            auto resultIt = result.mutable_data().begin();
             auto valueIt = begin;
-            while(resultIt != result().end() && valueIt != end) {
+            while(resultIt != result.mutable_data().end() && valueIt != end) {
                 parse_entity_after_insert(*valueIt, _dto, *resultIt);
 
                 ++resultIt;
@@ -309,6 +387,10 @@ public:
 
         // Вставка зависимых объектов должна происходить после вставки объекта на который происходит ссылка
         std::for_each(begin, end, [this](auto& value) {
+            if(_dto.has_reques_callback()) {
+                _dto.reques_callback()->post_request_callback(value, request_callback_type::insert, _database);
+            }
+
             // Вставка зависимых объектов должна происходить после вставки объекта на который происходит ссылка
             _dto.for_each(visitor::make_reference_column_visitor([this, &value](auto& reference_column) {
                 if(reference_column.type() != relation_type::one_to_one_inverted && reference_column.type() != relation_type::one_to_many) {
@@ -322,10 +404,6 @@ public:
 
                 this->upsert_relation_property_with_type_one_to_one_inverted_or_one_to_many(reference_column, value);
             }));
-
-            if(_dto.has_reques_callback()) {
-                _dto.reques_callback()->post_request_callback(value, request_callback_type::insert, _open_transaction);
-            }
         });
 
         if(!has_transactional) {
@@ -343,7 +421,7 @@ public:
     {
         query_craft::sql_table sql_table(_dto.table_info());
 
-        const auto has_transactional = _open_transaction != nullptr;
+        const auto has_transactional = _database->is_transaction();
 
         if(!has_transactional) {
             transaction();
@@ -365,7 +443,7 @@ public:
         query_craft::sql_table::row row;
 
         if(_dto.has_reques_callback()) {
-            _dto.reques_callback()->pre_request_callback(value, request_callback_type::update, _open_transaction);
+            _dto.reques_callback()->pre_request_callback(value, request_callback_type::update, _database);
         }
 
         prepare_to_update(value, condition_for_update, columns_for_update, row);
@@ -374,10 +452,10 @@ public:
 
         const auto sql = sql_table.update_sql(condition_for_update, columns_for_update);
 
-        exec(sql);
+        _database->exec(sql);
 
         if(_dto.has_reques_callback()) {
-            _dto.reques_callback()->post_request_callback(value, request_callback_type::update, _open_transaction);
+            _dto.reques_callback()->post_request_callback(value, request_callback_type::update, _database);
         }
 
         // Вставка зависимых объектов должна происходить после вставки объекта на который происходит ссылка
@@ -402,7 +480,7 @@ public:
     template<typename Begin, typename End>
     void update(const Begin& begin, const End& end)
     {
-        const auto has_transactional = _open_transaction != nullptr;
+        const auto has_transactional = _database->is_transaction();
 
         if(!has_transactional) {
             transaction();
@@ -442,7 +520,7 @@ public:
     template<typename Begin, typename End>
     void upsert(const Begin& begin, const End& end)
     {
-        const auto has_transactional = _open_transaction != nullptr;
+        const auto has_transactional = _database->is_transaction();
 
         if(!has_transactional) {
             transaction();
@@ -504,7 +582,7 @@ public:
 
         query_craft::condition_group condition_for_remove;
 
-        const auto has_transactional = _open_transaction != nullptr;
+        const auto has_transactional = _database->is_transaction();
 
         if(!has_transactional) {
             transaction();
@@ -512,7 +590,7 @@ public:
 
         std::for_each(begin, end, [this, &condition_for_remove](auto& value) {
             if(_dto.has_reques_callback()) {
-                _dto.reques_callback()->pre_request_callback(value, request_callback_type::remove, _open_transaction);
+                _dto.reques_callback()->pre_request_callback(value, request_callback_type::remove, _database);
             }
 
             _dto.for_each(visitor::make_any_column_visitor(
@@ -535,8 +613,7 @@ public:
                 },
                 [this, &value](auto& reference_column) {
                     if(reference_column.has_cascade(cascade_type::all) || reference_column.has_cascade(cascade_type::remove)) {
-                        auto reference_storage = make_storage(this->_database, reference_column.reference_table());
-                        reference_storage.set_transaction(this->_open_transaction);
+                        auto reference_storage = make_storage(this->_database, reference_column.reference_table(), false);
 
                         auto property_value = reference_column.property().value(value);
                         reference_storage.remove(property_value);
@@ -551,14 +628,14 @@ public:
 
         const auto sql = sql_table.remove_sql(condition_for_remove);
 
-        exec(sql);
+        _database->exec(sql);
 
         std::for_each(begin, end, [this](auto& value) {
             if(!_dto.has_reques_callback()) {
                 return;
             }
 
-            _dto.reques_callback()->post_request_callback(value, request_callback_type::remove, _open_transaction);
+            _dto.reques_callback()->post_request_callback(value, request_callback_type::remove, _database);
         });
 
         if(!has_transactional) {
@@ -724,8 +801,11 @@ private:
                 auto column_info = column.column_info();
                     columns.emplace_back(column_info); },
                 [&columns](const auto& inline_reference_column) {
-                    auto column_info = inline_reference_column.column_info();
-                    columns.emplace_back(column_info);
+                    if(inline_reference_column.type() != relation_type::one_to_many
+                        && inline_reference_column.type() != relation_type::one_to_one_inverted) {
+                        auto column_info = inline_reference_column.column_info();
+                        columns.emplace_back(column_info);
+                    }
                 }));
 
             append_join_columns(columns, reference_table);
@@ -1007,7 +1087,7 @@ private:
                 }
 
                 if(reference_table.has_reques_callback()) {
-                    reference_table.reques_callback()->post_request_callback(reference_entity, request_callback_type::select, _open_transaction);
+                    reference_table.reques_callback()->post_request_callback(reference_entity, request_callback_type::select, _database);
                 }
 
                 switch(reference_column.type()) {
@@ -1085,7 +1165,7 @@ private:
      */
     void prepare_to_insert(std::vector<query_craft::column_info>& columns_for_insert,
         std::vector<query_craft::column_info>& columns_for_returning,
-        query_craft::sql_table& sql_table, const ClassType& value)
+        query_craft::sql_table& sql_table, ClassType& value)
     {
         // Переменная чтобы только один раз записать названия колонок для вставки
         bool need_update_column_for_insert = columns_for_insert.empty();
@@ -1155,13 +1235,20 @@ private:
     void upsert_relation_property_with_type_one_to_one_or_many_to_one(
         ReferenceCoulmn_& reference_column,
         query_craft::sql_table::row& row,
-        const ClassType& value,
+        ClassType& value,
         bool cascad)
     {
         auto property = reference_column.property();
         auto reference_property_value = property.value(value);
-
         auto reference_table = reference_column.reference_table();
+
+        // Если установлены права на каскадную вставку добавляем объект если у него не пустой primary_key
+        if(cascad) {
+            auto reference_storage = make_storage(_database, reference_table, false);
+            reference_storage.upsert(reference_property_value);
+            property.set_value(value, reference_property_value);
+        }
+
         reference_table.for_each(visitor::make_column_visitor([&row, &reference_property_value, &reference_column](auto& column) {
             auto column_info = column.column_info();
             // Добавляем информации для ссылке по primary_key в исходную таблицу
@@ -1169,6 +1256,8 @@ private:
                 return;
             }
             auto reference_property = column.property();
+
+
 
             const auto property_value = reference_property.value(reference_property_value);
             // Если исходная колонка которая содержит ссылку имеет флаг что она может быть null
@@ -1180,13 +1269,6 @@ private:
                 row.emplace_back(reference_property.property_converter()->convert_to_string(property_value));
             }
         }));
-
-        // Если установлены права на каскадную вставку добавляем объект если у него не пустой primary_key
-        if(cascad && row.back() != query_craft::column_info::null_value()) {
-            auto reference_storage = make_storage(_database, reference_table);
-            reference_storage.set_transaction(_open_transaction);
-            reference_storage.upsert(reference_property_value);
-        }
     }
 
     /**
@@ -1198,8 +1280,7 @@ private:
     void upsert_relation_property_with_type_one_to_one_inverted_or_one_to_many(ReferenceCoulmn_& reference_column, const ClassType& value)
     {
         auto reference_table = reference_column.reference_table();
-        auto reference_storage = make_storage(_database, reference_table);
-        reference_storage.set_transaction(_open_transaction);
+        auto reference_storage = make_storage(_database, reference_table, false);
 
         bool is_empty_property = false;
         auto property_value = reference_column.property().value(value);
@@ -1231,8 +1312,7 @@ private:
     void sync_deleted_reference(const ClassType& value, ReferenceCoulmn_& reference_column)
     {
         auto reference_table = reference_column.reference_table();
-        auto reference_storage = make_storage(this->_database, reference_table);
-        reference_storage.set_transaction(this->_open_transaction);
+        auto reference_storage = make_storage(this->_database, reference_table, false);
 
         const auto property_value = reference_column.property().value(value);
         const auto old_state = get_old_state(value);
@@ -1255,8 +1335,7 @@ private:
     void update_deleted_reference(const Value_& value, ReferenceCoulmn_& reference_column)
     {
         auto reference_table = reference_column.reference_table();
-        auto reference_storage = make_storage(_database, reference_table);
-        reference_storage.set_transaction(_open_transaction);
+        auto reference_storage = make_storage(_database, reference_table, false);
 
         const auto property_value = reference_column.property().value(value);
         const auto old_state = get_old_state(value);
@@ -1320,8 +1399,7 @@ private:
     }
 
 private:
-    std::shared_ptr<database_adapter::IDataBaseDriver> _database;
-    std::shared_ptr<database_adapter::ITransaction> _open_transaction;
+    std::shared_ptr<database_adapter::IConnection> _database;
     table<ClassType, Columns...> _dto;
     bool _auto_commit;
 
@@ -1334,7 +1412,7 @@ private:
 };
 
 template<typename ClassType, typename... Columns>
-auto make_storage(const std::shared_ptr<database_adapter::IDataBaseDriver>& database, table<ClassType, Columns...> dto, const bool auto_commit = true)
+auto make_storage(const std::shared_ptr<database_adapter::IConnection>& database, table<ClassType, Columns...> dto, const bool auto_commit = true)
 {
     return storage<ClassType, Columns...>(database, std::move(dto), auto_commit);
 }

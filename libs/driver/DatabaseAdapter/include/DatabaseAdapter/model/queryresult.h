@@ -59,3 +59,5 @@ private:
 };
 
 } // namespace database_adapter
+
+#define NULL_VALUE "NULL"
