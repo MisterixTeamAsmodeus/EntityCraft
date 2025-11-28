@@ -2,7 +2,7 @@
 
 #include "SqliteAdapter/sqlitetransactiontype.h"
 
-#include <DatabaseAdapter/databaseadapter.h>
+#include <DatabaseAdapter/databaseadapter.hpp>
 
 #include <sstream>
 #include <stdexcept>

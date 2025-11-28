@@ -1,6 +1,6 @@
 #include "PostgreAdapter/postgreconnection.h"
 
-#include "DatabaseAdapter/databaseadapter.h"
+#include "DatabaseAdapter/databaseadapter.hpp"
 #include "PostgreAdapter/postgretransactiontype.h"
 
 #include <iostream>

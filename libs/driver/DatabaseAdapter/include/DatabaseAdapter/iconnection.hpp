@@ -1,7 +1,10 @@
 #pragma once
 
-#include "model/queryresult.h"
+#include "model/queryresult.hpp"
+#include "transaction_isolation.hpp"
 
+#include <mutex>
+#include <string>
 #include <vector>
 
 namespace database_adapter {
@@ -18,7 +21,7 @@ public:
      * @brief Конструктор, который принимает в себя информацию о подключении к базе данных
      * @param settings Информация о подключении к базе данных
      * @note Во время вызова конструктора должно происходить подключение к базе данных
-     * @throws open_database_exception Выбрасывает исключение в случае ошибки подключения к базе
+     * @throws open_database_exception Выбрасывает исключение в случае ошибки подключения к базе или невалидных настроек
      */
     explicit IConnection(const database_connection_settings& settings);
 
@@ -34,6 +37,7 @@ public:
     /**
      * @brief Проверка открыта ли транзакция в текущем соединении
      * @return Возвращает true, если в текущем соединении имеется активная транзакция, иначе false.
+     * @note Потокобезопасный метод
      */
     bool is_transaction() const;
 
@@ -41,7 +45,7 @@ public:
      * @brief Выполняет SQL-запрос к базе данных. Эта функция должна выполнить указанный SQL-запрос к базе данных и вернуть результат в виде объекта QueryResult.
      * @param query SQL-запрос.
      * @return Результат выполнения SQL-запроса.
-     * @throws sql_exception Выбрасывает исключение в случае ошибки выполнения запроса
+     * @throws sql_exception Выбрасывает исключение в случае ошибки выполнения запроса или если запрос пустой
      */
     virtual query_result exec(const std::string& query) = 0;
 
@@ -67,34 +71,62 @@ public:
     bool open_base_transaction();
 
     /**
-     * @brief Открывает новую транзакцию с заданным уровнем изоляции.
-     * @param type Уровень изоляции транзакции (Зависит от реализации базы данных).
+     * @brief Алиас для open_base_transaction(). Открывает новую транзакцию с уровнем изоляции по умолчанию.
      * @return Возвращает true, если транзакция была успешно открыта, иначе false
      */
-    virtual bool open_transaction(int type) = 0;
+    bool begin_transaction();
+
+    /**
+     * @brief Открывает новую транзакцию с заданным уровнем изоляции (типобезопасная версия).
+     * @param level Уровень изоляции транзакции
+     * @return Возвращает true, если транзакция была успешно открыта, иначе false
+     */
+    virtual bool open_transaction(transaction_isolation_level level) = 0;
 
     /**
      * @brief Фиксирует изменения в базе данных с момента начала текущей транзакции.
+     * @throws sql_exception Выбрасывает исключение если нет активной транзакции
+     * @note Потокобезопасный метод
      */
     void commit();
 
     /**
      * @brief Добавляет точку сохранения в текущую транзакцию.
-     * @param save_point Имя точки сохранения.
+     * @param save_point Имя точки сохранения. Должно содержать только буквы, цифры и подчеркивания.
+     * @throws sql_exception Выбрасывает исключение если имя savepoint невалидно или нет активной транзакции
+     * @note Потокобезопасный метод
      */
     void add_save_point(const std::string& save_point);
 
     /**
      * @brief Откатывает изменения в базе данных до указанной точки сохранения.
-     * @param save_point Точка сохранения, до которой необходимо откатить изменения.
+     * @param save_point Точка сохранения, до которой необходимо откатить изменения. Должно содержать только буквы, цифры и подчеркивания.
      * @note Если строка пустая произойдёт откат всех изменений
+     * @throws sql_exception Выбрасывает исключение если имя savepoint невалидно (когда не пустое) или нет активной транзакции
+     * @note Потокобезопасный метод
      */
     void rollback_to_save_point(const std::string& save_point);
 
-    /// @brief Откатить все в текущей транзакции.
+    /**
+     * @brief Откатить все в текущей транзакции.
+     * @throws sql_exception Выбрасывает исключение если нет активной транзакции
+     * @note Потокобезопасный метод
+     */
     void rollback();
 
 protected:
+    /**
+     * @brief Валидирует SQL-запрос перед выполнением
+     * @param query SQL-запрос для валидации
+     * @throws sql_exception Выбрасывает исключение если запрос пустой или содержит только пробелы
+     * @note Этот метод должен вызываться в производных классах перед выполнением запроса
+     */
+    void validate_query(const std::string& query) const;
+
+protected:
+    /// @brief Мьютекс для защиты внутреннего состояния соединения от одновременного доступа из разных потоков
+    mutable std::mutex _mutex;
+
     /// @brief Флаг обозначающий имеется ли открытая транзакция или нет.
     bool _has_transaction = false;
 };

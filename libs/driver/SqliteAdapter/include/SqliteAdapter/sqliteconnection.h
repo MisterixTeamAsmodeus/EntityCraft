@@ -3,8 +3,8 @@
 
 #include "sqliteadapter_global.h"
 
-#include <DatabaseAdapter/iconnection.h>
-#include <DatabaseAdapter/ilogger.h>
+#include <DatabaseAdapter/iconnection.hpp>
+#include <DatabaseAdapter/ilogger.hpp>
 #include <sqlite3.h>
 
 #include <memory>

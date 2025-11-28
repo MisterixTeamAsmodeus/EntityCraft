@@ -1,8 +1,12 @@
-cmake_minimum_required(VERSION 3.8)
-
 project(EnityCraft_Test LANGUAGES CXX)
 
 enable_testing()
+
+set(HEADERS_FILES ${HEADERS_FILES}
+        DatabaseAdapter/mock/databaseadapter.hpp
+        DatabaseAdapter/mock/mock_connection.hpp
+        DatabaseAdapter/mock/mock_connection_pool.hpp
+)
 
 set(SOURCE_FILES ${SOURCE_FILES}
         ReflectionApi/entity_test.cpp
@@ -16,6 +20,13 @@ set(SOURCE_FILES ${SOURCE_FILES}
         TypeConverterApi/typeconverter_qt_test.cpp
         TypeConverterApi/typeconverter_strings_test.cpp
         TypeConverterApi/utilities_test.cpp
+
+        DatabaseAdapter/query_result_test.cpp
+        DatabaseAdapter/exception_test.cpp
+        DatabaseAdapter/validation_test.cpp
+        DatabaseAdapter/connection_test.cpp
+        DatabaseAdapter/transaction_guard_test.cpp
+        DatabaseAdapter/connectionpool_test.cpp
 
 )
 
@@ -84,13 +95,16 @@ endif()
 
 add_executable(
     ${PROJECT_NAME}
+    ${HEADERS_FILES}
     ${SOURCE_FILES}
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-        GTest::gtest_main    # Google Test + main()
+        gtest_main           # Google Test + main()
+        gmock                # Google Mock
         ReflectionApi
         TypeConverterApi
+        DatabaseAdapter
 )
 
 cmake_policy(SET CMP0084 NEW)

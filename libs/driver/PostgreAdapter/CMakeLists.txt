@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.8)
-
 project(PostgreAdapter LANGUAGES CXX)
 
 set(ENTITY_CRAFT_POSTGRE_MODULES_LOCATION "INSTALLED" CACHE STRING "Location where to find libpq modules. can be [INSTALLED|CUSTOM]")

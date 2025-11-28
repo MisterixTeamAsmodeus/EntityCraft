@@ -3,7 +3,7 @@
 #include "postgreadapter_global.h"
 #include "postgreconnection.h"
 
-#include <DatabaseAdapter/connectionpool.h>
+#include <DatabaseAdapter/connectionpool.hpp>
 
 namespace database_adapter {
 namespace postgre {

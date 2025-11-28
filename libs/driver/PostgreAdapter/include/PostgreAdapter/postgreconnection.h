@@ -2,8 +2,8 @@
 
 #include "postgreadapter_global.h"
 
-#include <DatabaseAdapter/iconnection.h>
-#include <DatabaseAdapter/ilogger.h>
+#include <DatabaseAdapter/iconnection.hpp>
+#include <DatabaseAdapter/ilogger.hpp>
 #include <libpq-fe.h>
 
 #include <memory>

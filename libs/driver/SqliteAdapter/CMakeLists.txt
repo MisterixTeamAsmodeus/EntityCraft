@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.8)
-
 project(SqliteAdapter LANGUAGES CXX)
 
 set(ENTITY_CRAFT_SQLITE3_MODULES_LOCATION "INSTALLED" CACHE STRING "Location where to find SQLite3 modules. can be [INSTALLED|CUSTOM|EXTERNAL]")

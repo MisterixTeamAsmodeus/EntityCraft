@@ -4,4 +4,4 @@
 #include "sqliteconnectionpool.h"
 #include "sqlitetransactiontype.h"
 
-#include <DatabaseAdapter/databaseadapter.h>
+#include <DatabaseAdapter/databaseadapter.hpp>

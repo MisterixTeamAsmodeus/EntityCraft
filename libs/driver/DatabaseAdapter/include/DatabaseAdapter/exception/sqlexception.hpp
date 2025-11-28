@@ -13,8 +13,9 @@ public:
      * @brief Конструктор, который принимает информацию об ошибки выполнения SQL запроса
      * @param message Информационное сообщение об ошибке
      * @param last_query Запрос на котором произошла ошибка
+     * @param error_code Код ошибки (опционально, по умолчанию 0)
      */
-    explicit sql_exception(std::string message, std::string last_query = "");
+    explicit sql_exception(std::string message, std::string last_query = "", int error_code = 0);
 
     sql_exception(const sql_exception& other) = default;
     sql_exception(sql_exception&& other) noexcept = default;
@@ -30,11 +31,19 @@ public:
      */
     std::string last_query() const;
 
+    /**
+     * @brief Функция для получения кода ошибки
+     * @return Возвращает код ошибки
+     */
+    int error_code() const;
+
 private:
     /// @brief Информация об ошибке выполнения SQL-запроса.
     std::string _message;
     /// @brief Текст последнего выполненного SQL-запроса.
     std::string _last_query {};
+    /// @brief Код ошибки базы данных
+    int _error_code = 0;
 };
 
 } // namespace database_adapter

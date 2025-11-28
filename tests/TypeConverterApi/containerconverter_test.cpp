@@ -12,7 +12,7 @@
 // Тесты для container_converter
 
 // Тесты конвертации между последовательными контейнерами с одинаковыми типами элементов
-TEST(TypeConverterApi, TypeConverterApi_VectorToVector)
+TEST(TypeConverterApi, ContainerConverter_VectorToVector)
 {
     std::vector<int> source = {1, 2, 3, 4, 5};
     std::vector<int> target;
@@ -25,7 +25,7 @@ TEST(TypeConverterApi, TypeConverterApi_VectorToVector)
     EXPECT_EQ(target[4], 5);
 }
 
-TEST(TypeConverterApi, TypeConverterApi_VectorToList)
+TEST(TypeConverterApi, ContainerConverter_VectorToList)
 {
     std::vector<int> source = {1, 2, 3};
     std::list<int> target;
@@ -40,7 +40,7 @@ TEST(TypeConverterApi, TypeConverterApi_VectorToList)
     EXPECT_EQ(*it++, 3);
 }
 
-TEST(TypeConverterApi, TypeConverterApi_VectorToDeque)
+TEST(TypeConverterApi, ContainerConverter_VectorToDeque)
 {
     std::vector<int> source = {10, 20, 30};
     std::deque<int> target;
@@ -54,7 +54,7 @@ TEST(TypeConverterApi, TypeConverterApi_VectorToDeque)
     EXPECT_EQ(target[2], 30);
 }
 
-TEST(TypeConverterApi, TypeConverterApi_ListToVector)
+TEST(TypeConverterApi, ContainerConverter_ListToVector)
 {
     std::list<int> source = {5, 6, 7};
     std::vector<int> target;
@@ -68,7 +68,7 @@ TEST(TypeConverterApi, TypeConverterApi_ListToVector)
     EXPECT_EQ(target[2], 7);
 }
 
-TEST(TypeConverterApi, TypeConverterApi_DequeToVector)
+TEST(TypeConverterApi, ContainerConverter_DequeToVector)
 {
     std::deque<int> source = {100, 200, 300};
     std::vector<int> target;
@@ -83,7 +83,7 @@ TEST(TypeConverterApi, TypeConverterApi_DequeToVector)
 }
 
 // Тесты конвертации с изменением типов элементов
-TEST(TypeConverterApi, TypeConverterApi_VectorIntToVectorLong)
+TEST(TypeConverterApi, ContainerConverter_VectorIntToVectorLong)
 {
     std::vector<int> source = {1, 2, 3, 4, 5};
     std::vector<long> target;
@@ -96,7 +96,7 @@ TEST(TypeConverterApi, TypeConverterApi_VectorIntToVectorLong)
     EXPECT_EQ(target[4], 5L);
 }
 
-TEST(TypeConverterApi, TypeConverterApi_VectorIntToListLong)
+TEST(TypeConverterApi, ContainerConverter_VectorIntToListLong)
 {
     std::vector<int> source = {10, 20, 30};
     std::list<long> target;
@@ -111,7 +111,7 @@ TEST(TypeConverterApi, TypeConverterApi_VectorIntToListLong)
     EXPECT_EQ(*it++, 30L);
 }
 
-TEST(TypeConverterApi, TypeConverterApi_VectorIntToVectorString)
+TEST(TypeConverterApi, ContainerConverter_VectorIntToVectorString)
 {
     std::vector<int> source = {42, 100, 999};
     std::vector<std::string> target;
@@ -125,7 +125,7 @@ TEST(TypeConverterApi, TypeConverterApi_VectorIntToVectorString)
     EXPECT_EQ(target[2], "999");
 }
 
-TEST(TypeConverterApi, TypeConverterApi_VectorStringToVectorInt)
+TEST(TypeConverterApi, ContainerConverter_VectorStringToVectorInt)
 {
     std::vector<std::string> source = {"1", "2", "3"};
     std::vector<int> target;
@@ -140,7 +140,7 @@ TEST(TypeConverterApi, TypeConverterApi_VectorStringToVectorInt)
 }
 
 // Тесты для ассоциативных контейнеров
-TEST(TypeConverterApi, TypeConverterApi_VectorToSet)
+TEST(TypeConverterApi, ContainerConverter_VectorToSet)
 {
     std::vector<int> source = {3, 1, 2, 1, 3}; // Дубликаты для проверки
     std::set<int> target;
@@ -155,7 +155,7 @@ TEST(TypeConverterApi, TypeConverterApi_VectorToSet)
     EXPECT_NE(target.find(3), target.end());
 }
 
-TEST(TypeConverterApi, TypeConverterApi_ListToSet)
+TEST(TypeConverterApi, ContainerConverter_ListToSet)
 {
     std::list<int> source = {5, 3, 1, 4, 2};
     std::set<int> target;
@@ -169,7 +169,7 @@ TEST(TypeConverterApi, TypeConverterApi_ListToSet)
 }
 
 // Тесты для метода convert()
-TEST(TypeConverterApi, TypeConverterApi_ConvertMethod_VectorToList)
+TEST(TypeConverterApi, ContainerConverter_ConvertMethod_VectorToList)
 {
     std::vector<int> source = {1, 2, 3};
     
@@ -183,7 +183,7 @@ TEST(TypeConverterApi, TypeConverterApi_ConvertMethod_VectorToList)
     EXPECT_EQ(*it++, 3);
 }
 
-TEST(TypeConverterApi, TypeConverterApi_ConvertMethod_VectorIntToVectorLong)
+TEST(TypeConverterApi, ContainerConverter_ConvertMethod_VectorIntToVectorLong)
 {
     std::vector<int> source = {100, 200, 300};
     
@@ -197,7 +197,7 @@ TEST(TypeConverterApi, TypeConverterApi_ConvertMethod_VectorIntToVectorLong)
 }
 
 // Тесты для пустых контейнеров
-TEST(TypeConverterApi, TypeConverterApi_EmptyVectorToVector)
+TEST(TypeConverterApi, ContainerConverter_EmptyVectorToVector)
 {
     std::vector<int> source;
     std::vector<int> target;
@@ -208,7 +208,7 @@ TEST(TypeConverterApi, TypeConverterApi_EmptyVectorToVector)
     EXPECT_TRUE(target.empty());
 }
 
-TEST(TypeConverterApi, TypeConverterApi_EmptyVectorToList)
+TEST(TypeConverterApi, ContainerConverter_EmptyVectorToList)
 {
     std::vector<int> source;
     std::list<int> target;
@@ -219,7 +219,7 @@ TEST(TypeConverterApi, TypeConverterApi_EmptyVectorToList)
     EXPECT_TRUE(target.empty());
 }
 
-TEST(TypeConverterApi, TypeConverterApi_EmptyVectorToSet)
+TEST(TypeConverterApi, ContainerConverter_EmptyVectorToSet)
 {
     std::vector<int> source;
     std::set<int> target;
@@ -231,7 +231,7 @@ TEST(TypeConverterApi, TypeConverterApi_EmptyVectorToSet)
 }
 
 // Тесты для проверки очистки целевого контейнера
-TEST(TypeConverterApi, TypeConverterApi_TargetContainerCleared)
+TEST(TypeConverterApi, ContainerConverter_TargetContainerCleared)
 {
     std::vector<int> source1 = {1, 2, 3};
     std::vector<int> source2 = {4, 5};
@@ -251,7 +251,7 @@ TEST(TypeConverterApi, TypeConverterApi_TargetContainerCleared)
 }
 
 // Тесты для больших контейнеров
-TEST(TypeConverterApi, TypeConverterApi_LargeContainer)
+TEST(TypeConverterApi, ContainerConverter_LargeContainer)
 {
     std::vector<int> source;
     for(int i = 0; i < 1000; ++i)
@@ -269,7 +269,7 @@ TEST(TypeConverterApi, TypeConverterApi_LargeContainer)
 }
 
 // Тесты для строковых контейнеров
-TEST(TypeConverterApi, TypeConverterApi_VectorStringToListString)
+TEST(TypeConverterApi, ContainerConverter_VectorStringToListString)
 {
     std::vector<std::string> source = {"hello", "world", "test"};
     std::list<std::string> target;
@@ -285,7 +285,7 @@ TEST(TypeConverterApi, TypeConverterApi_VectorStringToListString)
 }
 
 // Тесты для конвертации с разными числовыми типами
-TEST(TypeConverterApi, TypeConverterApi_VectorIntToVectorDouble)
+TEST(TypeConverterApi, ContainerConverter_VectorIntToVectorDouble)
 {
     std::vector<int> source = {1, 2, 3};
     std::vector<double> target;
@@ -299,7 +299,7 @@ TEST(TypeConverterApi, TypeConverterApi_VectorIntToVectorDouble)
     EXPECT_DOUBLE_EQ(target[2], 3.0);
 }
 
-TEST(TypeConverterApi, TypeConverterApi_VectorDoubleToVectorInt)
+TEST(TypeConverterApi, ContainerConverter_VectorDoubleToVectorInt)
 {
     std::vector<double> source = {1.5, 2.7, 3.9};
     std::vector<int> target;
@@ -314,7 +314,7 @@ TEST(TypeConverterApi, TypeConverterApi_VectorDoubleToVectorInt)
 }
 
 // Тест для проверки работы с различными исходными контейнерами
-TEST(TypeConverterApi, TypeConverterApi_SetToVector)
+TEST(TypeConverterApi, ContainerConverter_SetToVector)
 {
     std::set<int> source = {3, 1, 2};
     std::vector<int> target;
@@ -330,7 +330,7 @@ TEST(TypeConverterApi, TypeConverterApi_SetToVector)
 }
 
 // Тесты для граничных случаев
-TEST(TypeConverterApi, TypeConverterApi_SingleElement)
+TEST(TypeConverterApi, ContainerConverter_SingleElement)
 {
     std::vector<int> source = {42};
     std::list<int> target;
@@ -342,7 +342,7 @@ TEST(TypeConverterApi, TypeConverterApi_SingleElement)
     EXPECT_EQ(*target.begin(), 42);
 }
 
-TEST(TypeConverterApi, TypeConverterApi_NegativeNumbers)
+TEST(TypeConverterApi, ContainerConverter_NegativeNumbers)
 {
     std::vector<int> source = {-1, -2, -3, 0, 1, 2};
     std::vector<int> target;
@@ -356,7 +356,7 @@ TEST(TypeConverterApi, TypeConverterApi_NegativeNumbers)
     EXPECT_EQ(target[5], 2);
 }
 
-TEST(TypeConverterApi, TypeConverterApi_NegativeNumbersTypeConversion)
+TEST(TypeConverterApi, ContainerConverter_NegativeNumbersTypeConversion)
 {
     std::vector<int> source = {-10, -20, 30};
     std::vector<long> target;
@@ -371,7 +371,7 @@ TEST(TypeConverterApi, TypeConverterApi_NegativeNumbersTypeConversion)
 }
 
 // Тесты для различных комбинаций исходных контейнеров
-TEST(TypeConverterApi, TypeConverterApi_DequeToList)
+TEST(TypeConverterApi, ContainerConverter_DequeToList)
 {
     std::deque<int> source = {7, 8, 9};
     std::list<int> target;
@@ -386,7 +386,7 @@ TEST(TypeConverterApi, TypeConverterApi_DequeToList)
     EXPECT_EQ(*it++, 9);
 }
 
-TEST(TypeConverterApi, TypeConverterApi_ListToDeque)
+TEST(TypeConverterApi, ContainerConverter_ListToDeque)
 {
     std::list<int> source = {11, 12, 13};
     std::deque<int> target;
@@ -400,7 +400,7 @@ TEST(TypeConverterApi, TypeConverterApi_ListToDeque)
     EXPECT_EQ(target[2], 13);
 }
 
-TEST(TypeConverterApi, TypeConverterApi_DequeToSet)
+TEST(TypeConverterApi, ContainerConverter_DequeToSet)
 {
     std::deque<int> source = {5, 3, 5, 1, 3}; // С дубликатами
     std::set<int> target;
@@ -415,7 +415,7 @@ TEST(TypeConverterApi, TypeConverterApi_DequeToSet)
 }
 
 // Тест для проверки конвертации с изменением типа через метод convert()
-TEST(TypeConverterApi, TypeConverterApi_ConvertMethod_ListToVector)
+TEST(TypeConverterApi, ContainerConverter_ConvertMethod_ListToVector)
 {
     std::list<int> source = {50, 60, 70};
     
@@ -428,7 +428,7 @@ TEST(TypeConverterApi, TypeConverterApi_ConvertMethod_ListToVector)
     EXPECT_EQ(target[2], 70);
 }
 
-TEST(TypeConverterApi, TypeConverterApi_ConvertMethod_DequeToVector)
+TEST(TypeConverterApi, ContainerConverter_ConvertMethod_DequeToVector)
 {
     std::deque<int> source = {100, 200};
     
@@ -441,7 +441,7 @@ TEST(TypeConverterApi, TypeConverterApi_ConvertMethod_DequeToVector)
 }
 
 // Тест для проверки конвертации с изменением типа через метод convert()
-TEST(TypeConverterApi, TypeConverterApi_ConvertMethod_TypeConversion)
+TEST(TypeConverterApi, ContainerConverter_ConvertMethod_TypeConversion)
 {
     std::vector<int> source = {1000, 2000, 3000};
     

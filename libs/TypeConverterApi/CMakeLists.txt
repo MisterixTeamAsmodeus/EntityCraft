@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.8)
-
 project(TypeConverterApi LANGUAGES CXX)
 
 set(HEADER_FILES

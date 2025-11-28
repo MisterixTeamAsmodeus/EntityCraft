@@ -3,7 +3,7 @@
 #include "sqliteadapter_global.h"
 #include "sqliteconnection.h"
 
-#include <DatabaseAdapter/connectionpool.h>
+#include <DatabaseAdapter/connectionpool.hpp>
 
 namespace database_adapter {
 namespace sqlite {
