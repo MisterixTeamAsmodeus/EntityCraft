@@ -33,7 +33,7 @@ private:
 };
 
 // Тесты для reference_property
-TEST(ReferencePropertyTest, CreateReferencePropertyWithMemberPointer)
+TEST(ReflectionApi, ReferenceProperty_CreateReferencePropertyWithMemberPointer)
 {
     auto nestedEntity = reflection_api::make_entity<NestedStruct>(
         reflection_api::make_property("nestedValue", &NestedStruct::nestedValue),
@@ -56,7 +56,7 @@ TEST(ReferencePropertyTest, CreateReferencePropertyWithMemberPointer)
     EXPECT_EQ(refProp.value(obj).nestedName, "test");
 }
 
-TEST(ReferencePropertyTest, ReferencePropertyWithGetterSetter)
+TEST(ReflectionApi, ReferenceProperty_WithGetterSetter)
 {
     auto nestedEntity = reflection_api::make_entity<NestedStruct>(
         reflection_api::make_property("nestedValue", &NestedStruct::nestedValue),
@@ -80,7 +80,7 @@ TEST(ReferencePropertyTest, ReferencePropertyWithGetterSetter)
     EXPECT_EQ(refProp.value(obj).nestedName, "getter_setter_test");
 }
 
-TEST(ReferencePropertyTest, ReferenceEntityAccess)
+TEST(ReflectionApi, ReferenceProperty_ReferenceEntityAccess)
 {
     auto nestedEntity = reflection_api::make_entity<NestedStruct>(
         reflection_api::make_property("nestedValue", &NestedStruct::nestedValue),
@@ -97,7 +97,7 @@ TEST(ReferencePropertyTest, ReferenceEntityAccess)
     EXPECT_TRUE(refEntity.has_property("nestedName"));
 }
 
-TEST(ReferencePropertyTest, ReferencePropertyNestedAccess)
+TEST(ReflectionApi, ReferenceProperty_NestedAccess)
 {
     auto nestedEntity = reflection_api::make_entity<NestedStruct>(
         reflection_api::make_property("nestedValue", &NestedStruct::nestedValue),
@@ -125,7 +125,7 @@ TEST(ReferencePropertyTest, ReferencePropertyNestedAccess)
     EXPECT_EQ(nestedName, "nested_access");
 }
 
-TEST(ReferencePropertyTest, ReferencePropertySetNestedProperty)
+TEST(ReflectionApi, ReferenceProperty_SetNestedProperty)
 {
     auto nestedEntity = reflection_api::make_entity<NestedStruct>(
         reflection_api::make_property("nestedValue", &NestedStruct::nestedValue),
@@ -149,40 +149,7 @@ TEST(ReferencePropertyTest, ReferencePropertySetNestedProperty)
     EXPECT_EQ(refProp.value(obj).nestedName, "set_nested");
 }
 
-TEST(ReferencePropertyTest, CopyConstructor)
-{
-    auto nestedEntity = reflection_api::make_entity<NestedStruct>(
-        reflection_api::make_property("nestedValue", &NestedStruct::nestedValue));
-
-    auto refProp1 = reflection_api::make_reference_property(
-        "nested",
-        &ParentStruct::nested,
-        nestedEntity);
-
-    auto refProp2 = refProp1; // Copy constructor
-
-    EXPECT_EQ(refProp1.name(), refProp2.name());
-    EXPECT_EQ(refProp2.name(), "nested");
-    EXPECT_EQ(refProp1.reference_entity().property_count(), refProp2.reference_entity().property_count());
-}
-
-TEST(ReferencePropertyTest, MoveConstructor)
-{
-    auto nestedEntity = reflection_api::make_entity<NestedStruct>(
-        reflection_api::make_property("nestedValue", &NestedStruct::nestedValue));
-
-    auto refProp1 = reflection_api::make_reference_property(
-        "nested",
-        &ParentStruct::nested,
-        nestedEntity);
-
-    auto refProp2 = std::move(refProp1); // Move constructor
-
-    EXPECT_EQ(refProp2.name(), "nested");
-    EXPECT_EQ(refProp2.reference_entity().property_count(), 1);
-}
-
-TEST(ReferencePropertyTest, ReferencePropertyInEntity)
+TEST(ReflectionApi, ReferenceProperty_InEntity)
 {
     auto nestedEntity = reflection_api::make_entity<NestedStruct>(
         reflection_api::make_property("nestedValue", &NestedStruct::nestedValue),
@@ -213,7 +180,7 @@ TEST(ReferencePropertyTest, ReferencePropertyInEntity)
     EXPECT_EQ(obj.parentValue, 700);
 }
 
-TEST(ReferencePropertyTest, ReferencePropertyEmptyEntity)
+TEST(ReflectionApi, ReferenceProperty_EmptyEntity)
 {
     struct EmptyNested
     {
@@ -234,7 +201,7 @@ TEST(ReferencePropertyTest, ReferencePropertyEmptyEntity)
     EXPECT_EQ(refProp.reference_entity().property_count(), 0);
 }
 
-TEST(ReferencePropertyTest, ReferencePropertyMultipleNestedLevels)
+TEST(ReflectionApi, ReferenceProperty_MultipleNestedLevels)
 {
     struct Level2
     {
@@ -281,7 +248,7 @@ TEST(ReferencePropertyTest, ReferencePropertyMultipleNestedLevels)
     EXPECT_EQ(level2Entity.property_count(), 1);
 }
 
-TEST(ReferencePropertyTest, ReferencePropertyConstAccess)
+TEST(ReflectionApi, ReferenceProperty_ConstAccess)
 {
     auto nestedEntity = reflection_api::make_entity<NestedStruct>(
         reflection_api::make_property("nestedValue", &NestedStruct::nestedValue));

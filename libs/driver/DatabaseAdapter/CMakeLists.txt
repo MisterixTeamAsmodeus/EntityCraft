@@ -7,8 +7,6 @@ file(GLOB_RECURSE SOURCE_FILES src/*.cpp)
 
 add_library(${PROJECT_NAME} STATIC ${HEADER_FILES} ${SOURCE_FILES})
 
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_14)
-
 set_target_properties(${PROJECT_NAME}
         PROPERTIES
         OUTPUT_NAME ${PROJECT_NAME}

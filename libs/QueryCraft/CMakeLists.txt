@@ -15,7 +15,6 @@ target_link_libraries(${PROJECT_NAME} PUBLIC
         TypeConverterApi
 )
 
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_14)
 
 target_include_directories(${PROJECT_NAME} PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

@@ -2,7 +2,7 @@
 
 #include "helper/templates.hpp"
 
-#include <TypeConverterApi/typeconverterapi.h>
+#include <TypeConverterApi/typeconverterapi.hpp>
 
 #include <string>
 #include <type_traits>

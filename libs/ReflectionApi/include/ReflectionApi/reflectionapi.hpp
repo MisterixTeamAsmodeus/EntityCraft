@@ -6,5 +6,5 @@
 #include "visitor/propertyvisitor.hpp"
 #include "visitor/referencepropertyvisitor.hpp"
 
-#include <TypeConverterApi/typeconverterapi.h>
+#include <TypeConverterApi/typeconverterapi.hpp>
 

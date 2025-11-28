@@ -4,7 +4,20 @@ project(EnityCraft_Test LANGUAGES CXX)
 
 enable_testing()
 
-file(GLOB_RECURSE SOURCE_FILES *.cpp)
+set(SOURCE_FILES ${SOURCE_FILES}
+        ReflectionApi/entity_test.cpp
+        ReflectionApi/reference_property_test.cpp
+        ReflectionApi/property_test.cpp
+
+        TypeConverterApi/containerconverter_test.cpp
+        TypeConverterApi/typeconverter_containers_test.cpp
+        TypeConverterApi/typeconverter_numeric_test.cpp
+        TypeConverterApi/typeconverter_pointers_test.cpp
+        TypeConverterApi/typeconverter_qt_test.cpp
+        TypeConverterApi/typeconverter_strings_test.cpp
+        TypeConverterApi/utilities_test.cpp
+
+)
 
 set(ENTITY_CRAFT_GOOGLETEST_MODULES_LOCATION "EXTERNAL" CACHE STRING "Location where to find googletest modules. can be [INSTALLED|EXTERNAL]")
 
@@ -79,6 +92,16 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         ReflectionApi
         TypeConverterApi
 )
+
+cmake_policy(SET CMP0084 NEW)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core)
+if (Qt${QT_VERSION_MAJOR}_FOUND)
+    target_compile_definitions(${PROJECT_NAME} INTERFACE USE_TYPE_QT)
+
+    target_link_libraries(${PROJECT_NAME} INTERFACE
+            Qt${QT_VERSION_MAJOR}::Core
+    )
+endif ()
 
 include(GoogleTest)
 gtest_discover_tests(${PROJECT_NAME})  # Автоматическая регистрация тестов

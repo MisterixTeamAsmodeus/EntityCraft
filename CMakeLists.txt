@@ -5,7 +5,6 @@ set(CMAKE_CXX_STANDARD 14)
 
 option(ENTITY_CRAFT_EXAMPLE "Add EntityCraft examples file as executable (on|off)" OFF )
 option(ENTITY_CRAFT_TEST "Включить тесты для EntityCraft" OFF)
-option(ENTITY_CRAFT_QT "Включить поддержку Qt типов в библиотеки" OFF)
 option(ENTITY_CRAFT_ENABLE_SQLITE "Включить драйвер для Sqlite3" OFF)
 option(ENTITY_CRAFT_ENABLE_POSTGRE "Включить драйвер для PostgreSql" OFF)
 

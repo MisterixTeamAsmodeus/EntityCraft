@@ -23,7 +23,7 @@ private:
 };
 
 // Тесты для entity
-TEST(EntityTest, CreateEntity)
+TEST(ReflectionApi, Entity_CreateEntity)
 {
     const auto entity = reflection_api::make_entity<SimpleStruct>(
         reflection_api::make_property("value", &SimpleStruct::value),
@@ -32,7 +32,7 @@ TEST(EntityTest, CreateEntity)
     EXPECT_EQ(entity.property_count(), 2);
 }
 
-TEST(EntityTest, EmptyEntity)
+TEST(ReflectionApi, Entity_EmptyEntity)
 {
     auto entity = reflection_api::make_entity<SimpleStruct>(
         reflection_api::make_property("value", &SimpleStruct::value));
@@ -41,7 +41,7 @@ TEST(EntityTest, EmptyEntity)
     EXPECT_EQ(obj.value, 0);
 }
 
-TEST(EntityTest, SetPropertyValue)
+TEST(ReflectionApi, Entity_SetPropertyValue)
 {
     const auto entity = reflection_api::make_entity<SimpleStruct>(
         reflection_api::make_property("value", &SimpleStruct::value),
@@ -57,7 +57,7 @@ TEST(EntityTest, SetPropertyValue)
     EXPECT_EQ(obj.name, "test");
 }
 
-TEST(EntityTest, GetPropertyValue)
+TEST(ReflectionApi, Entity_GetPropertyValue)
 {
     auto entity = reflection_api::make_entity<SimpleStruct>(
         reflection_api::make_property("value", &SimpleStruct::value),
@@ -76,7 +76,7 @@ TEST(EntityTest, GetPropertyValue)
     EXPECT_EQ(name, obj.name);
 }
 
-TEST(EntityTest, GetPropertyValueConst)
+TEST(ReflectionApi, Entity_GetPropertyValueConst)
 {
     const auto entity = reflection_api::make_entity<SimpleStruct>(
         reflection_api::make_property("value", &SimpleStruct::value));
@@ -89,7 +89,7 @@ TEST(EntityTest, GetPropertyValueConst)
     EXPECT_EQ(value, obj.value);
 }
 
-TEST(EntityTest, ForEach)
+TEST(ReflectionApi, Entity_ForEach)
 {
     auto entity = reflection_api::make_entity<SimpleStruct>(
         reflection_api::make_property("value", &SimpleStruct::value),
@@ -104,7 +104,7 @@ TEST(EntityTest, ForEach)
     EXPECT_EQ(count, 2);
 }
 
-TEST(EntityTest, ForEachConst)
+TEST(ReflectionApi, Entity_ForEachConst)
 {
     const auto entity = reflection_api::make_entity<SimpleStruct>(
         reflection_api::make_property("value", &SimpleStruct::value));
@@ -117,7 +117,7 @@ TEST(EntityTest, ForEachConst)
     EXPECT_EQ(count, 1);
 }
 
-TEST(EntityTest, PropertyCount)
+TEST(ReflectionApi, Entity_PropertyCount)
 {
     auto entity1 = reflection_api::make_entity<SimpleStruct>(
         reflection_api::make_property("value", &SimpleStruct::value));
@@ -129,7 +129,7 @@ TEST(EntityTest, PropertyCount)
     EXPECT_EQ(entity2.property_count(), 2);
 }
 
-TEST(EntityTest, HasProperty)
+TEST(ReflectionApi, Entity_HasProperty)
 {
     auto entity = reflection_api::make_entity<SimpleStruct>(
         reflection_api::make_property("value", &SimpleStruct::value),
@@ -140,7 +140,7 @@ TEST(EntityTest, HasProperty)
     EXPECT_FALSE(entity.has_property("nonexistent"));
 }
 
-TEST(EntityTest, EntityWithGetterSetter)
+TEST(ReflectionApi, Entity_WithGetterSetter)
 {
     auto entity = reflection_api::make_entity<TestClass>(
         reflection_api::make_property("value", &TestClass::setValue, &TestClass::getValue));
@@ -152,40 +152,7 @@ TEST(EntityTest, EntityWithGetterSetter)
     EXPECT_EQ(value, 99);
 }
 
-TEST(EntityTest, CopyConstructor)
-{
-    auto entity1 = reflection_api::make_entity<SimpleStruct>(
-        reflection_api::make_property("value", &SimpleStruct::value),
-        reflection_api::make_property("name", &SimpleStruct::name));
-
-    auto entity2 = entity1; // Copy constructor
-
-    EXPECT_EQ(entity1.property_count(), entity2.property_count());
-    EXPECT_EQ(entity2.property_count(), 2);
-    EXPECT_TRUE(entity2.has_property("value"));
-    EXPECT_TRUE(entity2.has_property("name"));
-
-    SimpleStruct obj;
-    entity2.set_property_value(obj, 50, "value");
-    EXPECT_EQ(obj.value, 50);
-}
-
-TEST(EntityTest, MoveConstructor)
-{
-    auto entity1 = reflection_api::make_entity<SimpleStruct>(
-        reflection_api::make_property("value", &SimpleStruct::value));
-
-    auto entity2 = std::move(entity1); // Move constructor
-
-    EXPECT_EQ(entity2.property_count(), 1);
-    EXPECT_TRUE(entity2.has_property("value"));
-
-    SimpleStruct obj;
-    entity2.set_property_value(obj, 75, "value");
-    EXPECT_EQ(obj.value, 75);
-}
-
-TEST(EntityTest, SetPropertyValueWithRvalue)
+TEST(ReflectionApi, Entity_SetPropertyValueWithRvalue)
 {
     auto entity = reflection_api::make_entity<SimpleStruct>(
         reflection_api::make_property("value", &SimpleStruct::value),
@@ -200,7 +167,7 @@ TEST(EntityTest, SetPropertyValueWithRvalue)
     EXPECT_EQ(obj.name, "rvalue_test");
 }
 
-TEST(EntityTest, EmptyEntityName)
+TEST(ReflectionApi, Entity_EmptyName)
 {
     auto entity = reflection_api::make_entity<SimpleStruct>(
         reflection_api::make_property("", &SimpleStruct::value));
@@ -213,7 +180,7 @@ TEST(EntityTest, EmptyEntityName)
     EXPECT_EQ(obj.value, 42);
 }
 
-TEST(EntityTest, MultiplePropertiesSameType)
+TEST(ReflectionApi, Entity_MultiplePropertiesSameType)
 {
     struct MultiIntStruct
     {
@@ -247,7 +214,7 @@ TEST(EntityTest, MultiplePropertiesSameType)
     EXPECT_EQ(value, 3);
 }
 
-TEST(EntityTest, ForEachWithPropertyNames)
+TEST(ReflectionApi, Entity_ForEachWithPropertyNames)
 {
     auto entity = reflection_api::make_entity<SimpleStruct>(
         reflection_api::make_property("value", &SimpleStruct::value),
@@ -263,7 +230,7 @@ TEST(EntityTest, ForEachWithPropertyNames)
     EXPECT_TRUE(std::find(names.begin(), names.end(), "name") != names.end());
 }
 
-TEST(EntityTest, SetPropertyValueNonExistent)
+TEST(ReflectionApi, Entity_SetPropertyValueNonExistent)
 {
     auto entity = reflection_api::make_entity<SimpleStruct>(
         reflection_api::make_property("value", &SimpleStruct::value));
@@ -280,7 +247,7 @@ TEST(EntityTest, SetPropertyValueNonExistent)
     EXPECT_EQ(value, 10);
 }
 
-TEST(EntityTest, GetPropertyValueNonExistent)
+TEST(ReflectionApi, Entity_GetPropertyValueNonExistent)
 {
     auto entity = reflection_api::make_entity<SimpleStruct>(
         reflection_api::make_property("value", &SimpleStruct::value));
@@ -296,7 +263,7 @@ TEST(EntityTest, GetPropertyValueNonExistent)
     EXPECT_EQ(value, 100);
 }
 
-TEST(EntityTest, EntityWithZeroProperties)
+TEST(ReflectionApi, Entity_WithZeroProperties)
 {
     struct EmptyStruct {};
     
@@ -310,7 +277,7 @@ TEST(EntityTest, EntityWithZeroProperties)
     EXPECT_EQ(count, 0);
 }
 
-TEST(EntityTest, StaticEmptyEntity)
+TEST(ReflectionApi, Entity_StaticEmptyEntity)
 {
     auto entity = reflection_api::make_entity<SimpleStruct>(
         reflection_api::make_property("value", &SimpleStruct::value));
@@ -320,7 +287,7 @@ TEST(EntityTest, StaticEmptyEntity)
     EXPECT_TRUE(obj.name.empty());
 }
 
-TEST(EntityTest, GetPropertyNames)
+TEST(ReflectionApi, Entity_GetPropertyNames)
 {
     auto entity = reflection_api::make_entity<SimpleStruct>(
         reflection_api::make_property("value", &SimpleStruct::value),

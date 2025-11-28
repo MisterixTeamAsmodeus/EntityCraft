@@ -27,19 +27,7 @@ target_link_libraries(${PROJECT_NAME} INTERFACE
         TypeConverterApi
 )
 
-target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_14)
-
 set_target_properties(${PROJECT_NAME}
         PROPERTIES
         OUTPUT_NAME ${PROJECT_NAME}
-)
-
-install(TARGETS ${PROJECT_NAME}
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-        RUNTIME DESTINATION bin
-)
-
-install(DIRECTORY include
-        DESTINATION include
 )

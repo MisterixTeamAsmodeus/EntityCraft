@@ -2,35 +2,34 @@ cmake_minimum_required(VERSION 3.8)
 
 project(TypeConverterApi LANGUAGES CXX)
 
-file(GLOB_RECURSE HEADER_FILES include/*.h)
-file(GLOB_RECURSE SOURCE_FILES src/*.cpp)
+set(HEADER_FILES
+    include/TypeConverterApi/helper/void_t.hpp
+    include/TypeConverterApi/helper/sfinae.hpp
+    include/TypeConverterApi/converter/typeconverter_base.hpp
+    include/TypeConverterApi/converter/typeconverter_strings.hpp
+    include/TypeConverterApi/converter/typeconverter_numeric.hpp
+    include/TypeConverterApi/converter/typeconverter_pointers.hpp
+    include/TypeConverterApi/converter/typeconverter_containers.hpp
+    include/TypeConverterApi/converter/typeconverter_qt.hpp
+    include/TypeConverterApi/typeconverter.hpp
+    include/TypeConverterApi/containerconverter.hpp
+    include/TypeConverterApi/utilities.hpp
+    include/TypeConverterApi/typeconverterapi.hpp
+)
 
-add_library(${PROJECT_NAME} STATIC ${HEADER_FILES} ${SOURCE_FILES})
+add_library(${PROJECT_NAME} INTERFACE)
 
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_14)
-
-if (${ENTITY_CRAFT_QT})
-    target_compile_definitions(${PROJECT_NAME} PUBLIC USE_TYPE_QT)
-    add_definitions(-DUSE_TYPE_QT)
-
-    find_package(Qt5 COMPONENTS Core REQUIRED)
-
-    target_link_libraries(${PROJECT_NAME} PUBLIC
-            Qt5::Core
-    )
-endif ()
-
-target_include_directories(${PROJECT_NAME} PUBLIC
+target_include_directories(${PROJECT_NAME} INTERFACE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
 )
 
-install(TARGETS ${PROJECT_NAME}
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-        RUNTIME DESTINATION bin
-)
+cmake_policy(SET CMP0084 NEW)
+find_package(Qt${QT_VERSION_MAJOR} COMPONENTS Core)
+if (Qt${QT_VERSION_MAJOR}_FOUND)
+    target_compile_definitions(${PROJECT_NAME} INTERFACE USE_TYPE_QT)
 
-install(DIRECTORY include
-        DESTINATION include
-)
+    target_link_libraries(${PROJECT_NAME} INTERFACE
+            Qt${QT_VERSION_MAJOR}::Core
+    )
+endif ()

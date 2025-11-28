@@ -31,8 +31,6 @@ add_definitions(-DPOSTGRE_LIBRARY)
 
 add_library(${PROJECT_NAME} SHARED ${HEADER_FILES} ${SOURCE_FILES})
 
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_14)
-
 target_include_directories(${PROJECT_NAME} PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>

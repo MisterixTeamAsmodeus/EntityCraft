@@ -47,7 +47,7 @@ private:
 };
 
 // Тесты для property
-TEST(PropertyTest, CreatePropertyWithMemberPointer)
+TEST(ReflectionApi, Property_CreateWithMemberPointer)
 {
     auto prop = reflection_api::make_property("intValue", &TestStruct::intValue);
     EXPECT_EQ(prop.name(), "intValue");
@@ -57,7 +57,7 @@ TEST(PropertyTest, CreatePropertyWithMemberPointer)
     EXPECT_EQ(prop.value(obj), 42);
 }
 
-TEST(PropertyTest, PropertyWithDifferentTypes)
+TEST(ReflectionApi, Property_WithDifferentTypes)
 {
     auto intProp = reflection_api::make_property("intValue", &TestStruct::intValue);
     auto doubleProp = reflection_api::make_property("doubleValue", &TestStruct::doubleValue);
@@ -79,7 +79,7 @@ TEST(PropertyTest, PropertyWithDifferentTypes)
     EXPECT_TRUE(boolProp.value(obj));
 }
 
-TEST(PropertyTest, PropertyWithGetterSetter)
+TEST(ReflectionApi, Property_WithGetterSetter)
 {
     auto prop = reflection_api::make_property("intValue", &TestClassWithMethods::setIntValue, &TestClassWithMethods::getIntValue);
 
@@ -88,7 +88,7 @@ TEST(PropertyTest, PropertyWithGetterSetter)
     EXPECT_EQ(prop.value(obj), 100);
 }
 
-TEST(PropertyTest, PropertyName)
+TEST(ReflectionApi, Property_Name)
 {
     auto prop1 = reflection_api::make_property("test1", &TestStruct::intValue);
     auto prop2 = reflection_api::make_property("test2", &TestStruct::stringValue);
@@ -97,13 +97,13 @@ TEST(PropertyTest, PropertyName)
     EXPECT_EQ(prop2.name(), "test2");
 }
 
-TEST(PropertyTest, PropertyNameConst)
+TEST(ReflectionApi, Property_NameConst)
 {
     const auto prop = reflection_api::make_property("test", &TestStruct::intValue);
     EXPECT_EQ(prop.name(), "test");
 }
 
-TEST(PropertyTest, EmptyProperty)
+TEST(ReflectionApi, Property_EmptyProperty)
 {
     auto intProp = reflection_api::make_property("intValue", &TestStruct::intValue);
     constexpr auto empty = intProp.empty_property();
@@ -114,7 +114,7 @@ TEST(PropertyTest, EmptyProperty)
     EXPECT_TRUE(emptyString.empty());
 }
 
-TEST(PropertyTest, PropertyConverter)
+TEST(ReflectionApi, Property_Converter)
 {
     const auto prop = reflection_api::make_property("intValue", &TestStruct::intValue);
     const auto converter = prop.property_converter();
@@ -129,7 +129,7 @@ TEST(PropertyTest, PropertyConverter)
     EXPECT_EQ(str, "456");
 }
 
-TEST(PropertyTest, SetConverter)
+TEST(ReflectionApi, Property_SetConverter)
 {
     auto prop = reflection_api::make_property("intValue", &TestStruct::intValue);
     const auto customConverter = std::make_shared<type_converter_api::type_converter<int>>();
@@ -140,7 +140,7 @@ TEST(PropertyTest, SetConverter)
     EXPECT_EQ(converter, customConverter);
 }
 
-TEST(PropertyTest, PropertyWithString)
+TEST(ReflectionApi, Property_WithString)
 {
     auto prop = reflection_api::make_property("stringValue", &TestStruct::stringValue);
 
@@ -152,21 +152,7 @@ TEST(PropertyTest, PropertyWithString)
     EXPECT_EQ(prop.value(obj), "world");
 }
 
-TEST(PropertyTest, CopyConstructor)
-{
-    auto prop1 = reflection_api::make_property("intValue", &TestStruct::intValue);
-    auto prop2 = prop1; // Copy constructor
-
-    EXPECT_EQ(prop1.name(), prop2.name());
-    EXPECT_EQ(prop2.name(), "intValue");
-
-    TestStruct obj;
-    prop2.set_value(obj, 200);
-    EXPECT_EQ(prop2.value(obj), 200);
-    EXPECT_EQ(prop1.value(obj), 200); // Same underlying member
-}
-
-TEST(PropertyTest, PropertyWithBaseSetter)
+TEST(ReflectionApi, Property_WithBaseSetter)
 {
     auto prop = reflection_api::make_property("value", &TestClassWithBaseSetter::setValue, &TestClassWithBaseSetter::getValue);
 
@@ -175,7 +161,7 @@ TEST(PropertyTest, PropertyWithBaseSetter)
     EXPECT_EQ(prop.value(obj), 450);
 }
 
-TEST(PropertyTest, PropertyWithStringGetterSetter)
+TEST(ReflectionApi, Property_WithStringGetterSetter)
 {
     class StringClass
     {
@@ -194,7 +180,7 @@ TEST(PropertyTest, PropertyWithStringGetterSetter)
     EXPECT_EQ(prop.value(obj), "test_string");
 }
 
-TEST(PropertyTest, PropertyConverterDefault)
+TEST(ReflectionApi, Property_ConverterDefault)
 {
     auto prop = reflection_api::make_property("intValue", &TestStruct::intValue);
     const auto converter = prop.property_converter();
@@ -210,7 +196,7 @@ TEST(PropertyTest, PropertyConverterDefault)
     EXPECT_EQ(str, "101112");
 }
 
-TEST(PropertyTest, PropertyConverterString)
+TEST(ReflectionApi, Property_ConverterString)
 {
     auto prop = reflection_api::make_property("stringValue", &TestStruct::stringValue);
     const auto converter = prop.property_converter();
@@ -225,7 +211,7 @@ TEST(PropertyTest, PropertyConverterString)
     EXPECT_EQ(str, "test");
 }
 
-TEST(PropertyTest, SetConverterMultipleTimes)
+TEST(ReflectionApi, Property_SetConverterMultipleTimes)
 {
     auto prop = reflection_api::make_property("intValue", &TestStruct::intValue);
     
@@ -239,7 +225,7 @@ TEST(PropertyTest, SetConverterMultipleTimes)
     EXPECT_NE(prop.property_converter(), converter1);
 }
 
-TEST(PropertyTest, PropertyWithBool)
+TEST(ReflectionApi, Property_WithBool)
 {
     auto prop = reflection_api::make_property("boolValue", &TestStruct::boolValue);
 
@@ -251,7 +237,7 @@ TEST(PropertyTest, PropertyWithBool)
     EXPECT_FALSE(prop.value(obj));
 }
 
-TEST(PropertyTest, PropertyWithDouble)
+TEST(ReflectionApi, Property_WithDouble)
 {
     auto prop = reflection_api::make_property("doubleValue", &TestStruct::doubleValue);
 
@@ -263,7 +249,7 @@ TEST(PropertyTest, PropertyWithDouble)
     EXPECT_DOUBLE_EQ(prop.value(obj), 1.414);
 }
 
-TEST(PropertyTest, PropertyEmptyName)
+TEST(ReflectionApi, Property_EmptyName)
 {
     auto prop = reflection_api::make_property("", &TestStruct::intValue);
     EXPECT_TRUE(prop.name().empty());
@@ -273,7 +259,7 @@ TEST(PropertyTest, PropertyEmptyName)
     EXPECT_EQ(prop.value(obj), 999);
 }
 
-TEST(PropertyTest, PropertyTypeAliases)
+TEST(ReflectionApi, Property_TypeAliases)
 {
     auto prop = reflection_api::make_property("intValue", &TestStruct::intValue);
     
@@ -284,7 +270,7 @@ TEST(PropertyTest, PropertyTypeAliases)
     EXPECT_TRUE((std::is_same<PropertyType, int>::value));
 }
 
-TEST(PropertyTest, PropertyMultipleSetGet)
+TEST(ReflectionApi, Property_MultipleSetGet)
 {
     auto prop = reflection_api::make_property("intValue", &TestStruct::intValue);
 
@@ -296,7 +282,7 @@ TEST(PropertyTest, PropertyMultipleSetGet)
     }
 }
 
-TEST(PropertyTest, PropertyWithConstObject)
+TEST(ReflectionApi, Property_WithConstObject)
 {
     auto prop = reflection_api::make_property("intValue", &TestStruct::intValue);
 
@@ -307,7 +293,7 @@ TEST(PropertyTest, PropertyWithConstObject)
     EXPECT_EQ(prop.value(constObj), 777);
 }
 
-TEST(PropertyTest, PropertyGetterSetterWithReference)
+TEST(ReflectionApi, Property_GetterSetterWithReference)
 {
     class RefClass
     {

@@ -11,7 +11,7 @@
 #include "operator/notequalsoperator.h"
 #include "operator/notinoperator.h"
 
-#include <TypeConverterApi/typeconverterapi.h>
+#include <TypeConverterApi/typeconverterapi.hpp>
 
 #include <algorithm>
 #include <cstdint>

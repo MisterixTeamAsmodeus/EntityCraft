@@ -35,7 +35,7 @@ bool is_null(const T&, ...)
 {
     throw std::runtime_error("is_null not implemented");
 }
-} // namespace helpers
+} // namespace helper
 
 template<typename T>
 class null_cheker
