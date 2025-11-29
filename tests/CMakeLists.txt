@@ -29,6 +29,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         DatabaseAdapter/connectionpool_test.cpp
 
         SqliteAdapter/sqliteadapter_test.cpp
+        PostgreAdapter/postgreadapter_test.cpp
 
 )
 
@@ -108,6 +109,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         TypeConverterApi
         DatabaseAdapter
         SqliteAdapter
+        PostgreAdapter
 )
 
 cmake_policy(SET CMP0084 NEW)
@@ -127,6 +129,43 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         $<TARGET_FILE_DIR:${PROJECT_NAME}>
         COMMENT "Copying SqliteAdapter to test output directory"
 )
+
+if(TARGET unofficial::sqlite3::sqlite3)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:unofficial::sqlite3::sqlite3> $<TARGET_FILE_DIR:${PROJECT_NAME}>
+            COMMENT "Copying sqlite3 to example output directory"
+    )
+endif()
+if(TARGET SQLite3)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SQLite3> $<TARGET_FILE_DIR:${PROJECT_NAME}>
+            COMMENT "Copying sqlite3 to example output directory"
+    )
+endif()
+
+# Копируем PostgreAdapter
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:PostgreAdapter>
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>
+        COMMENT "Copying PostgreAdapter to test output directory"
+)
+
+# Копируем libpq только на Windows (на Linux библиотеки доступны системно)
+if (WIN32)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE_DIR:PostgreAdapter>/libcrypto-3-x64.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>
+            COMMENT "Copying libcrypto-3.dll to example output directory"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE_DIR:PostgreAdapter>/LIBPQ.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>
+            COMMENT "Copying libpq.dll to example output directory"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE_DIR:PostgreAdapter>/libssl-3-x64.dll $<TARGET_FILE_DIR:${PROJECT_NAME}>
+            COMMENT "Copying libssl-3.dll to example output directory"
+    )
+endif ()
 
 include(GoogleTest)
 gtest_discover_tests(${PROJECT_NAME})  # Автоматическая регистрация тестов

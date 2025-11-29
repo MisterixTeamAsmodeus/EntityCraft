@@ -14,5 +14,5 @@
 #endif
 
 #ifdef ENABLE_POSTGRE
-#    include <PostgreAdapter/postgreadapter.h>
+#    include <PostgreAdapter/postgreadapter.hpp>
 #endif

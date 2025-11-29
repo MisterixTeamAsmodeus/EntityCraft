@@ -22,8 +22,19 @@ else()
     message(FATAL_ERROR "Unknown location to find libpq '${ENTITYCRAFT_POSTGRE_MODULES_LOCATION}'")
 endif()
 
-file(GLOB_RECURSE HEADER_FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h)
-file(GLOB_RECURSE SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+set(HEADER_FILES
+        include/PostgreAdapter/postgreadapter.hpp
+        include/PostgreAdapter/postgreadapter_global.hpp
+        include/PostgreAdapter/postgreconnection.hpp
+        include/PostgreAdapter/postgreconnectionpool.hpp
+        include/PostgreAdapter/postgreerrorcode.hpp
+)
+
+set(SOURCE_FILES
+        src/postgreconnection.cpp
+        src/postgreconnectionpool.cpp
+        src/postgreerrorcode.cpp
+)
 
 add_definitions(-DPOSTGRE_LIBRARY)
 

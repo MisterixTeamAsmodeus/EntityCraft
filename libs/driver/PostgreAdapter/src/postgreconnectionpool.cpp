@@ -1,4 +1,4 @@
-#include <PostgreAdapter/postgreconnectionpool.h>
+#include "PostgreAdapter/postgreconnectionpool.hpp"
 
 namespace database_adapter {
 namespace postgre {
