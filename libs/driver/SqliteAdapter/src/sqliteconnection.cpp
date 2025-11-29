@@ -1,4 +1,5 @@
 #include "SqliteAdapter/sqliteconnection.hpp"
+#include "SqliteAdapter/sqliteerrorcode.hpp"
 
 #include <DatabaseAdapter/databaseadapter.hpp>
 
@@ -29,7 +30,8 @@ connection::~connection()
     for(const auto& prepared_pair : _prepared) {
         if(prepared_pair.second != nullptr) {
             const int rc = sqlite3_finalize(prepared_pair.second);
-            if(rc != SQLITE_OK && _logger != nullptr) {
+            const sqlite_error_code error_code = to_sqlite_error_code(rc);
+            if(error_code != sqlite_error_code::OK && _logger != nullptr) {
                 _logger->log_error("Error finalizing prepared statement: " + std::string(sqlite3_errmsg(_connection)));
             }
         }
@@ -59,7 +61,9 @@ query_result connection::exec(const std::string& query)
         _logger->log_sql(query);
     }
 
-    if(sqlite3_prepare_v2(_connection, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+    const int prepare_rc = sqlite3_prepare_v2(_connection, query.c_str(), -1, &stmt, nullptr);
+    const sqlite_error_code prepare_error_code = to_sqlite_error_code(prepare_rc);
+    if(prepare_error_code != sqlite_error_code::OK) {
         std::string last_error = "Failed to prepare statement: ";
         last_error.append(sqlite3_errmsg(_connection));
         const int error_code = sqlite3_extended_errcode(_connection);
@@ -76,9 +80,10 @@ query_result connection::exec(const std::string& query)
     }
 
     int rc = sqlite3_step(stmt);
+    sqlite_error_code step_error_code = to_sqlite_error_code(rc);
 
     query_result result;
-    while(rc == SQLITE_ROW) {
+    while(step_error_code == sqlite_error_code::ROW) {
         query_result::row row;
         const int column_count = sqlite3_column_count(stmt);
         for(int i = 0; i < column_count; i++) {
@@ -89,9 +94,10 @@ query_result connection::exec(const std::string& query)
         result.add(row);
 
         rc = sqlite3_step(stmt);
+        step_error_code = to_sqlite_error_code(rc);
     }
 
-    if(rc != SQLITE_DONE && rc != SQLITE_ROW) {
+    if(step_error_code != sqlite_error_code::DONE && step_error_code != sqlite_error_code::ROW) {
         std::string last_error = "Failed to execute statement: ";
         last_error.append(sqlite3_errmsg(_connection));
         const int error_code = sqlite3_extended_errcode(_connection);
@@ -121,7 +127,8 @@ void connection::prepare(const std::string& query, const std::string& name)
     if(existing_it != _prepared.end()) {
         if(existing_it->second != nullptr) {
             const int rc = sqlite3_finalize(existing_it->second);
-            if(rc != SQLITE_OK && _logger != nullptr) {
+            const sqlite_error_code error_code = to_sqlite_error_code(rc);
+            if(error_code != sqlite_error_code::OK && _logger != nullptr) {
                 _logger->log_error("Error finalizing existing prepared statement: " + std::string(sqlite3_errmsg(_connection)));
             }
         }
@@ -134,7 +141,9 @@ void connection::prepare(const std::string& query, const std::string& name)
         _logger->log_sql("Prepare query " + name + " sql: " + query);
     }
 
-    if(sqlite3_prepare_v2(_connection, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
+    const int prepare_rc = sqlite3_prepare_v2(_connection, query.c_str(), -1, &stmt, nullptr);
+    const sqlite_error_code prepare_error_code = to_sqlite_error_code(prepare_rc);
+    if(prepare_error_code != sqlite_error_code::OK) {
         std::string last_error = "Failed to prepare statement: ";
         last_error.append(sqlite3_errmsg(_connection));
         const int error_code = sqlite3_extended_errcode(_connection);
@@ -169,7 +178,8 @@ query_result connection::exec_prepared(const std::vector<std::string>& params, c
 
     sqlite3_clear_bindings(stmt);
     const int reset_rc = sqlite3_reset(stmt);
-    if(reset_rc != SQLITE_OK && _logger != nullptr) {
+    const sqlite_error_code reset_error_code = to_sqlite_error_code(reset_rc);
+    if(reset_error_code != sqlite_error_code::OK && _logger != nullptr) {
         _logger->log_error("Error resetting prepared statement: " + std::string(sqlite3_errmsg(_connection)));
     }
 
@@ -199,9 +209,10 @@ query_result connection::exec_prepared(const std::vector<std::string>& params, c
     }
 
     int rc = sqlite3_step(stmt);
+    sqlite_error_code step_error_code = to_sqlite_error_code(rc);
 
     query_result result;
-    while(rc == SQLITE_ROW) {
+    while(step_error_code == sqlite_error_code::ROW) {
         query_result::row row;
         const int column_count = sqlite3_column_count(stmt);
         for(int i = 0; i < column_count; i++) {
@@ -212,9 +223,10 @@ query_result connection::exec_prepared(const std::vector<std::string>& params, c
         result.add(row);
 
         rc = sqlite3_step(stmt);
+        step_error_code = to_sqlite_error_code(rc);
     }
 
-    if(rc != SQLITE_DONE && rc != SQLITE_ROW) {
+    if(step_error_code != sqlite_error_code::DONE && step_error_code != sqlite_error_code::ROW) {
         std::string last_error = "Failed to execute prepared statement: ";
         last_error.append(sqlite3_errmsg(_connection));
         const int error_code = sqlite3_extended_errcode(_connection);
@@ -278,7 +290,8 @@ void connection::connect(const database_connection_settings& settings)
     }
 
     const int open_rc = sqlite3_open_v2(settings.url.c_str(), &_connection, SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE, nullptr);
-    if(open_rc != SQLITE_OK) {
+    const sqlite_error_code open_error_code = to_sqlite_error_code(open_rc);
+    if(open_error_code != sqlite_error_code::OK) {
         std::string last_error = "Can't open database path: " + settings.url + "; ";
         last_error.append(sqlite3_errmsg(_connection));
         const int error_code = (_connection != nullptr) ? sqlite3_extended_errcode(_connection) : open_rc;
@@ -316,7 +329,8 @@ void connection::bind_parameter(sqlite3_stmt* stmt, int bind_index, const std::s
     // Обработка NULL значений
     if(param == NULL_VALUE) {
         const int bind_rc = sqlite3_bind_null(stmt, bind_index);
-        if(bind_rc != SQLITE_OK) {
+        const sqlite_error_code bind_error_code = to_sqlite_error_code(bind_rc);
+        if(bind_error_code != sqlite_error_code::OK) {
             std::string error_msg = "Error binding NULL parameter at index " + std::to_string(bind_index) + ": " + std::string(sqlite3_errmsg(_connection));
             const int error_code = sqlite3_extended_errcode(_connection);
             if(_logger != nullptr) {
@@ -372,11 +386,13 @@ void connection::bind_parameter(sqlite3_stmt* stmt, int bind_index, const std::s
             try {
                 const sqlite3_int64 int_value = std::stoll(param);
                 const int bind_rc = sqlite3_bind_int64(stmt, bind_index, int_value);
-                if(bind_rc != SQLITE_OK) {
+                const sqlite_error_code bind_error_code = to_sqlite_error_code(bind_rc);
+                if(bind_error_code != sqlite_error_code::OK) {
                     // Если не удалось привязать как INTEGER, пробуем как TEXT
                     // (SQLite автоматически преобразует)
                     const int text_bind_rc = sqlite3_bind_text(stmt, bind_index, param.c_str(), static_cast<int>(param.size()), SQLITE_TRANSIENT);
-                    if(text_bind_rc != SQLITE_OK) {
+                    const sqlite_error_code text_bind_error_code = to_sqlite_error_code(text_bind_rc);
+                    if(text_bind_error_code != sqlite_error_code::OK) {
                         std::string error_msg = "Error binding parameter at index " + std::to_string(bind_index) + ": " + std::string(sqlite3_errmsg(_connection));
                         const int error_code = sqlite3_extended_errcode(_connection);
                         if(_logger != nullptr) {
@@ -396,10 +412,12 @@ void connection::bind_parameter(sqlite3_stmt* stmt, int bind_index, const std::s
             try {
                 const double float_value = std::stod(param);
                 const int bind_rc = sqlite3_bind_double(stmt, bind_index, float_value);
-                if(bind_rc != SQLITE_OK) {
+                const sqlite_error_code bind_error_code = to_sqlite_error_code(bind_rc);
+                if(bind_error_code != sqlite_error_code::OK) {
                     // Если не удалось привязать как REAL, пробуем как TEXT
                     const int text_bind_rc = sqlite3_bind_text(stmt, bind_index, param.c_str(), static_cast<int>(param.size()), SQLITE_TRANSIENT);
-                    if(text_bind_rc != SQLITE_OK) {
+                    const sqlite_error_code text_bind_error_code = to_sqlite_error_code(text_bind_rc);
+                    if(text_bind_error_code != sqlite_error_code::OK) {
                         std::string error_msg = "Error binding parameter at index " + std::to_string(bind_index) + ": " + std::string(sqlite3_errmsg(_connection));
                         const int error_code = sqlite3_extended_errcode(_connection);
                         if(_logger != nullptr) {
@@ -419,7 +437,8 @@ void connection::bind_parameter(sqlite3_stmt* stmt, int bind_index, const std::s
     // SQLite автоматически преобразует типы при необходимости
     // При использовании prepared statements экранирование не требуется - SQLite обрабатывает это безопасно
     const int bind_rc = sqlite3_bind_text(stmt, bind_index, param.c_str(), static_cast<int>(param.size()), SQLITE_TRANSIENT);
-    if(bind_rc != SQLITE_OK) {
+    const sqlite_error_code bind_error_code = to_sqlite_error_code(bind_rc);
+    if(bind_error_code != sqlite_error_code::OK) {
         std::string error_msg = "Error binding text parameter at index " + std::to_string(bind_index) + ": " + std::string(sqlite3_errmsg(_connection));
         const int error_code = sqlite3_extended_errcode(_connection);
         if(_logger != nullptr) {
