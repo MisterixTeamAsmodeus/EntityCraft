@@ -10,7 +10,7 @@
 #include <QueryCraft/querycraft.h>
 
 #ifdef ENABLE_SQLITE
-#    include <SqliteAdapter/sqliteadapter.h>
+#    include <SqliteAdapter/sqliteadapter.hpp>
 #endif
 
 #ifdef ENABLE_POSTGRE

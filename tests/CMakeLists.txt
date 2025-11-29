@@ -28,6 +28,8 @@ set(SOURCE_FILES ${SOURCE_FILES}
         DatabaseAdapter/transaction_guard_test.cpp
         DatabaseAdapter/connectionpool_test.cpp
 
+        SqliteAdapter/sqliteadapter_test.cpp
+
 )
 
 set(ENTITY_CRAFT_GOOGLETEST_MODULES_LOCATION "EXTERNAL" CACHE STRING "Location where to find googletest modules. can be [INSTALLED|EXTERNAL]")
@@ -105,6 +107,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         ReflectionApi
         TypeConverterApi
         DatabaseAdapter
+        SqliteAdapter
 )
 
 cmake_policy(SET CMP0084 NEW)
@@ -116,6 +119,14 @@ if (Qt${QT_VERSION_MAJOR}_FOUND)
             Qt${QT_VERSION_MAJOR}::Core
     )
 endif ()
+
+# Копируем SqliteAdapter
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:SqliteAdapter>
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>
+        COMMENT "Copying SqliteAdapter to test output directory"
+)
 
 include(GoogleTest)
 gtest_discover_tests(${PROJECT_NAME})  # Автоматическая регистрация тестов

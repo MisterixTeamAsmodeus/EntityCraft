@@ -13,7 +13,7 @@ transaction_guard::transaction_guard(std::shared_ptr<IConnection> connection)
         throw open_database_exception("Соединение с базой данных не может быть nullptr");
     }
 
-    if(!_connection->open_base_transaction()) {
+    if(!_connection->begin_transaction()) {
         throw sql_exception("Не удалось открыть транзакцию", "");
     }
 }

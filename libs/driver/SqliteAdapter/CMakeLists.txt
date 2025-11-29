@@ -42,8 +42,19 @@ else()
     message(FATAL_ERROR "Unknown location to find SQLite3 '${ENTITYCRAFT_SQLITE3_MODULES_LOCATION}'")
 endif()
 
-file(GLOB_RECURSE HEADER_FILES ${CMAKE_CURRENT_SOURCE_DIR}/include/*.h)
-file(GLOB_RECURSE SOURCE_FILES ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+set(HEADER_FILES
+        include/SqliteAdapter/sqliteadapter.hpp
+        include/SqliteAdapter/sqliteadapter_global.hpp
+        include/SqliteAdapter/sqliteconnection.hpp
+        include/SqliteAdapter/sqliteconnectionpool.hpp
+        include/SqliteAdapter/sqliteerrorcode.hpp
+)
+
+set(SOURCE_FILES
+        src/sqliteconnection.cpp
+        src/sqliteconnectionpool.cpp
+        src/sqliteerrorcode.cpp
+)
 
 add_definitions(-DSQLITE_LIBRARY)
 

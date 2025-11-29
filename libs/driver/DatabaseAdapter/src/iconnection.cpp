@@ -11,8 +11,8 @@
 namespace {
 void validate_connection_settings(const database_adapter::database_connection_settings& settings)
 {
-    if(settings.database_name.empty()) {
-        throw database_adapter::open_database_exception("Название базы данных не может быть пустым");
+    if(settings.url.empty()) {
+        throw database_adapter::open_database_exception("Неверное значение url");
     }
 }
 
@@ -66,19 +66,10 @@ bool IConnection::is_transaction() const
     return _has_transaction;
 }
 
-bool IConnection::open_base_transaction()
-{
-    std::lock_guard<std::mutex> lock(_mutex);
-    const bool result = open_transaction(transaction_isolation_level::DEFAULT);
-    if(result) {
-        _has_transaction = true;
-    }
-    return result;
-}
-
 bool IConnection::begin_transaction()
 {
-    return open_base_transaction();
+    _has_transaction = open_transaction(transaction_isolation_level::DEFAULT);
+    return _has_transaction;
 }
 
 void IConnection::commit()

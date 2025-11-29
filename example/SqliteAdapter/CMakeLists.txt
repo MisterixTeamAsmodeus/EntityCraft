@@ -11,10 +11,23 @@ foreach(EXAMPLE_SOURCE_FILE ${EXAMPLE_SOURCE_FILES})
 
     add_executable(${EXAMPLE_TARGET} ${EXAMPLE_SOURCE_FILE})
 
-    target_link_libraries(${EXAMPLE_TARGET} PRIVATE EntityCraft)
+    target_link_libraries(${EXAMPLE_TARGET} PRIVATE SqliteAdapter)
 
     add_custom_command(TARGET ${EXAMPLE_TARGET} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E echo "POST_BUILD COPY LIB FROM $<TARGET_FILE:SqliteAdapter> TO $<TARGET_FILE_DIR:${EXAMPLE_TARGET}>"
-            COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:SqliteAdapter> $<TARGET_FILE_DIR:${EXAMPLE_TARGET}>
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SqliteAdapter> $<TARGET_FILE_DIR:${EXAMPLE_TARGET}>
+            COMMENT "Copying SqliteAdapter to example output directory"
     )
+
+    if(TARGET unofficial::sqlite3::sqlite3)
+        add_custom_command(TARGET ${EXAMPLE_TARGET} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:unofficial::sqlite3::sqlite3> $<TARGET_FILE_DIR:${EXAMPLE_TARGET}>
+                COMMENT "Copying sqlite3 to example output directory"
+        )
+    endif()
+    if(TARGET SQLite3)
+        add_custom_command(TARGET ${EXAMPLE_TARGET} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SQLite3> $<TARGET_FILE_DIR:${EXAMPLE_TARGET}>
+                COMMENT "Copying sqlite3 to example output directory"
+        )
+    endif()
 endforeach()

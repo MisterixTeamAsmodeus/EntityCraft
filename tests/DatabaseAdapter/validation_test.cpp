@@ -23,9 +23,9 @@ TEST_F(DatabaseAdapter, Validation_ValidSettings)
 /**
  * @brief Тест пустого имени базы данных
  */
-TEST_F(DatabaseAdapter, Validation_EmptyDatabaseName)
+TEST_F(DatabaseAdapter, Validation_EmptyUrl)
 {
-    _settings.database_name = "";
+    _settings.url = "";
     EXPECT_THROW({ MockConnection connection(_settings); }, database_adapter::open_database_exception);
 }
 

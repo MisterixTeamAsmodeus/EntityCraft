@@ -65,13 +65,7 @@ public:
     virtual query_result exec_prepared(const std::vector<std::string>& params, const std::string& name) = 0;
 
     /**
-     * @brief Открывает новую транзакцию с уровнем изоляции по умолчанию.
-     * @return Возвращает true, если транзакция была успешно открыта, иначе false
-     */
-    bool open_base_transaction();
-
-    /**
-     * @brief Алиас для open_base_transaction(). Открывает новую транзакцию с уровнем изоляции по умолчанию.
+     * @brief Алиас для open_transaction(). Открывает новую транзакцию с уровнем изоляции по умолчанию.
      * @return Возвращает true, если транзакция была успешно открыта, иначе false
      */
     bool begin_transaction();

@@ -1,5 +1,5 @@
 #include <EntityCraft/entitycraft.h>
-#include <SqliteAdapter/sqliteadapter.h>
+#include <SqliteAdapter/sqliteadapter.hpp>
 
 #include <ostream>
 #include <string>
