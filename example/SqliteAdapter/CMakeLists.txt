@@ -18,16 +18,10 @@ foreach(EXAMPLE_SOURCE_FILE ${EXAMPLE_SOURCE_FILES})
             COMMENT "Copying SqliteAdapter to example output directory"
     )
 
-    if(TARGET unofficial::sqlite3::sqlite3)
+    if(WIN32)
         add_custom_command(TARGET ${EXAMPLE_TARGET} POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:unofficial::sqlite3::sqlite3> $<TARGET_FILE_DIR:${EXAMPLE_TARGET}>
-                COMMENT "Copying sqlite3 to example output directory"
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE_DIR:SqliteAdapter>/sqlite3.dll $<TARGET_FILE_DIR:${EXAMPLE_TARGET}>
+                COMMENT "Copying sqlite3.dll to example output directory"
         )
-    endif()
-    if(TARGET SQLite3)
-        add_custom_command(TARGET ${EXAMPLE_TARGET} POST_BUILD
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:SQLite3> $<TARGET_FILE_DIR:${EXAMPLE_TARGET}>
-                COMMENT "Copying sqlite3 to example output directory"
-        )
-    endif()
+    endif ()
 endforeach()
