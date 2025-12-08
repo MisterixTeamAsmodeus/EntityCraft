@@ -7,7 +7,7 @@
 
 #include <DatabaseAdapter/databaseadapter.h>
 
-#include <QueryCraft/sqltable.h>
+#include <QueryCraft/sqltable.h> // TODO(QueryCraft v2): legacy API. Переписать на новый QueryCraft (AST + DSL) и удалить зависимость от sql_table/condition_group/sort_column/join_column.
 
 #include <memory>
 #include <set>

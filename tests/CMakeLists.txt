@@ -6,6 +6,7 @@ set(HEADERS_FILES ${HEADERS_FILES}
         DatabaseAdapter/mock/databaseadapter.hpp
         DatabaseAdapter/mock/mock_connection.hpp
         DatabaseAdapter/mock/mock_connection_pool.hpp
+        QueryCraft/querycraft.hpp
 )
 
 set(SOURCE_FILES ${SOURCE_FILES}
@@ -31,6 +32,17 @@ set(SOURCE_FILES ${SOURCE_FILES}
         SqliteAdapter/sqliteadapter_test.cpp
         PostgreAdapter/postgreadapter_test.cpp
 
+        QueryCraft/select_builder_test.cpp
+        QueryCraft/insert_builder_test.cpp
+        QueryCraft/update_builder_test.cpp
+        QueryCraft/delete_builder_test.cpp
+        QueryCraft/compiler_test.cpp
+        QueryCraft/postgres_dialect_test.cpp
+        QueryCraft/sqlite_dialect_test.cpp
+        QueryCraft/expression_test.cpp
+        QueryCraft/dsl_test.cpp
+        QueryCraft/join_test.cpp
+        QueryCraft/cte_test.cpp
 )
 
 set(ENTITY_CRAFT_GOOGLETEST_MODULES_LOCATION "EXTERNAL" CACHE STRING "Location where to find googletest modules. can be [INSTALLED|EXTERNAL]")
@@ -110,6 +122,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         DatabaseAdapter
         SqliteAdapter
         PostgreAdapter
+        QueryCraft
 )
 
 cmake_policy(SET CMP0084 NEW)

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "nullcheker.h"
-#include "QueryCraft/conditiongroup.h"
+#include "QueryCraft/conditiongroup.h" // TODO(QueryCraft v2): legacy API. column_info/settings/condition_group будут удалены — перенести метаданные колонок в EntityCraft и использовать QueryCraft v2.
 
 #include <ReflectionApi/helper/templates.h>
 #include <ReflectionApi/property.h>

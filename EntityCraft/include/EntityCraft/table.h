@@ -4,8 +4,8 @@
 
 #include <ReflectionApi/entity.h>
 
-#include <QueryCraft/conditiongroup.h>
-#include <QueryCraft/table.h>
+#include <QueryCraft/conditiongroup.h> // TODO(QueryCraft v2): legacy API. Переписать таблицу EntityCraft на новый AST/DSL без condition_group/column_info.
+#include <QueryCraft/table.h>          // TODO(QueryCraft v2): legacy API. Заменить query_craft::table на собственную модель + QueryCraft v2.
 
 namespace entity_craft {
 
