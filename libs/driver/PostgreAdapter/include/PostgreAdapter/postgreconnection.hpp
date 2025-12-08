@@ -5,6 +5,7 @@
 #include <DatabaseAdapter/iconnection.hpp>
 #include <DatabaseAdapter/ilogger.hpp>
 #include <DatabaseAdapter/transaction_isolation.hpp>
+#include <QueryCraft/dialect/postgres_dialect.h>
 #include <libpq-fe.h>
 
 #include <memory>
@@ -90,6 +91,12 @@ public:
      * @return true, если транзакция успешно открыта, иначе false
      */
     bool open_transaction(transaction_isolation_level level) override;
+
+    /**
+     * @brief Получить SQL диалект для PostgreSQL соединения
+     * @return Умный указатель на PostgreSQL диалект
+     */
+    std::shared_ptr<query_craft::sql_dialect> dialect() const override;
 
 private:
     /**

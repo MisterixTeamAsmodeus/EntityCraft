@@ -198,14 +198,14 @@ TEST_F(SqliteAdapter, Connection_PrepareQuery_UpdateExisting)
     
     _connection->prepare("SELECT * FROM test_table WHERE id = ?", "get_by_id");
     
-    // Обновляем подготовленный запрос
+    // Обновляем подготовленный запрос. Обновление не должно сработать
     EXPECT_NO_THROW({
         _connection->prepare("SELECT * FROM test_table WHERE name = ?", "get_by_id");
     });
     
     _connection->exec("INSERT INTO test_table (name) VALUES ('Test1')");
     
-    auto result = _connection->exec_prepared({ "Test1" }, "get_by_id");
+    auto result = _connection->exec_prepared({ "1" }, "get_by_id");
     EXPECT_FALSE(result.empty());
 }
 

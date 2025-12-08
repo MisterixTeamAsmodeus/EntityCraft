@@ -8,6 +8,7 @@
 #include <initializer_list>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace query_craft {
 namespace dsl {
@@ -40,6 +41,13 @@ public:
      * @return Ссылка на билдер для цепочки вызовов.
      */
     delete_builder& returning(std::initializer_list<std::string> column_names);
+
+    /**
+     * @brief Устанавливает столбцы для возврата из контейнера.
+     * @param column_names Имена столбцов из контейнера.
+     * @return Ссылка на билдер для цепочки вызовов.
+     */
+    delete_builder& returning(const std::vector<std::string>& column_names);
 
     /**
      * @brief Возвращает AST‑запрос.

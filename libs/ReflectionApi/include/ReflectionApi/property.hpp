@@ -104,7 +104,7 @@ public:
      *
      * @return Имя переменной.
      */
-    const std::string& name() const noexcept
+    std::string name() const noexcept
     {
         return _name;
     }

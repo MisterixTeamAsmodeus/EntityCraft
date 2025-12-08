@@ -5,7 +5,9 @@
 #include "DatabaseAdapter/exception/opendatabaseexception.hpp"
 #include "DatabaseAdapter/exception/sqlexception.hpp"
 #include "DatabaseAdapter/transaction_isolation.hpp"
+#include <QueryCraft/dialect/postgres_dialect.h>
 
+#include <memory>
 #include <sstream>
 #include <thread>
 #include <vector>
@@ -130,16 +132,16 @@ query_result connection::exec(const std::string& query)
 
 void connection::prepare(const std::string& query, const std::string& name)
 {
+    if(_prepared_statements.find(name) != _prepared_statements.end()) {
+        return;
+    }
+    
     validate_query(query);
 
     std::lock_guard<std::mutex> lock(_prepared_mutex);
 
     if(_logger != nullptr) {
         _logger->log_sql("Prepare query " + name + " sql: " + query);
-    }
-
-    if(_prepared_statements.find(name) != _prepared_statements.end()) {
-        throw sql_exception("Prepared statement already exists: " + name, query);
     }
 
     auto* query_result = PQprepare(_connection, name.c_str(), query.c_str(), 0, nullptr);
@@ -336,6 +338,11 @@ void connection::disconnect()
 
     PQfinish(_connection);
     _connection = nullptr;
+}
+
+std::shared_ptr<query_craft::sql_dialect> connection::dialect() const
+{
+    return std::make_shared<query_craft::postgres_dialect>();
 }
 
 void connection::cleanup_prepared_statements()

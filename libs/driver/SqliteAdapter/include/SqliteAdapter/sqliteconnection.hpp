@@ -6,6 +6,7 @@
 #include <DatabaseAdapter/iconnection.hpp>
 #include <DatabaseAdapter/ilogger.hpp>
 #include <DatabaseAdapter/transaction_isolation.hpp>
+#include <QueryCraft/dialect/sqlite_dialect.h>
 #include <sqlite3.h>
 
 #include <memory>
@@ -41,6 +42,12 @@ public:
     query_result exec_prepared(const std::vector<std::string>& params, const std::string& name) override;
 
     bool open_transaction(transaction_isolation_level level) override;
+
+    /**
+     * @brief Получить SQL диалект для SQLite соединения
+     * @return Умный указатель на SQLite диалект
+     */
+    std::shared_ptr<query_craft::sql_dialect> dialect() const override;
 
 private:
     void connect(const settings& settings);

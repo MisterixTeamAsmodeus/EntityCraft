@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <initializer_list>
 #include <memory>
+#include <vector>
 
 namespace query_craft {
 namespace dsl {
@@ -32,6 +33,13 @@ public:
      * @return Ссылка на билдер для цепочки вызовов.
      */
     select_builder& columns(std::initializer_list<ast::expression> columns);
+
+    /**
+     * @brief Устанавливает столбцы для выборки из контейнера.
+     * @param columns Столбцы из контейнера.
+     * @return Ссылка на билдер для цепочки вызовов.
+     */
+    select_builder& columns(const std::vector<ast::expression>& columns);
 
     /**
      * @brief Устанавливает условие WHERE.

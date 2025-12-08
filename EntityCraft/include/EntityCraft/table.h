@@ -1,34 +1,35 @@
 #pragma once
 
-#include "requestcallback.h"
+#include "ReflectionApi/entity.hpp"
 
-#include <ReflectionApi/entity.h>
-
-#include <QueryCraft/conditiongroup.h> // TODO(QueryCraft v2): legacy API. Переписать таблицу EntityCraft на новый AST/DSL без condition_group/column_info.
-#include <QueryCraft/table.h>          // TODO(QueryCraft v2): legacy API. Заменить query_craft::table на собственную модель + QueryCraft v2.
+#include <set>
+#include <type_traits>
+#include <utility>
 
 namespace entity_craft {
 
 template<typename ClassType, typename... Columns>
-class table
+class table : public reflection_api::entity<ClassType, Columns...>
 {
 public:
-    static ClassType empty_entity()
+    template<typename T>
+    static ClassType empty_entity_with_id(T&& id)
     {
-        return ClassType();
+        return ClassType(std::forward<T>(id));
     }
 
 public:
     explicit table(std::string table_name, std::string scheme, Columns... properties)
-        : _table_info(std::move(table_name), std::move(scheme))
-        , _columns(std::make_tuple<Columns...>(std::move(properties)...))
+        : reflection_api::entity<ClassType, Columns...>(std::move(properties)...)
+        , _scheme(std::move(scheme))
+        , _table_name(std::move(table_name))
     {
-        for_each([this](auto& column) {
-            try {
-                // При отношениях one to many/one to one inverted может происходить дублирования колонок при
-                _table_info.add_column(column.mutable_column_info());
-            } catch(const std::exception& /*e*/) {
-                _duplicate_column.emplace_back(column.column_info());
+        for_each([this](const auto& column) {
+            auto it = _columns_name.find(column.name());
+            if(it == _columns_name.end()) {
+                _columns_name.insert(column.name());
+            } else {
+                _duplicate_columns_name.insert(column.name());
             }
         });
     }
@@ -41,66 +42,53 @@ public:
     table& operator=(const table& other) = default;
     table& operator=(table&& other) noexcept = default;
 
-    template<typename Action_>
-    void visit_property(const std::string& property_name, Action_&& action)
+    std::string scheme() const
     {
-        reflection_api::helper::perform_if(
-            _columns,
-            [&](const auto& column) {
-                return column.name() == property_name;
-            },
-            std::forward<Action_>(action));
+        return _scheme;
     }
 
-    template<typename Action_>
-    void for_each(Action_&& action)
+    std::string table_name() const
     {
-        reflection_api::helper::for_each(
-            _columns,
-            std::forward<Action_>(action));
+        return _table_name;
     }
 
-    query_craft::table table_info() const
+    std::string column_alias(const std::string& column_name) const
     {
-        return _table_info;
+        return (_scheme.empty() ? "" : _scheme + "_") + _table_name + "_" + column_name;
     }
 
-    std::vector<query_craft::column_info> duplicate_column() const
+    std::set<std::string> columns_name() const
     {
-        return _duplicate_column;
+        return _columns_name;
     }
 
-    std::shared_ptr<IRequestCallback<ClassType>> reques_callback() const
+    std::set<std::string> duplicate_columns_name() const
     {
-        return _reques_callback;
-    }
-
-    table& set_reques_callback(const std::shared_ptr<IRequestCallback<ClassType>>& reques_callback)
-    {
-        _reques_callback = reques_callback;
-        return *this;
-    }
-
-    bool has_reques_callback() const
-    {
-        return _reques_callback != nullptr;
+        return _duplicate_columns_name;
     }
 
 private:
-    query_craft::table _table_info;
-    std::tuple<Columns...> _columns = {};
-    std::vector<query_craft::column_info> _duplicate_column;
+    std::string _scheme;
+    std::string _table_name;
 
-    std::shared_ptr<IRequestCallback<ClassType>> _reques_callback = nullptr;
+    std::set<std::string> _columns_name;
+    std::set<std::string> _duplicate_columns_name;
 };
 
-template<typename ClassType, typename... Properties>
-auto make_table(std::string scheme, std::string table_name, Properties&&... properties)
+/**
+ * @brief Функция-помощник для создания table с автоматическим выводом типов колонок
+ * @param table_name Имя таблицы
+ * @param scheme Схема таблицы
+ * @param properties Колонки таблицы
+ * @return Экземпляр table с выведенными типами
+ */
+template<typename ClassType, typename... Columns>
+table<ClassType, Columns...> make_table(
+    const std::string& table_name,
+    const std::string& scheme,
+    Columns... properties)
 {
-    return table<ClassType, Properties...>(
-        std::move(table_name),
-        std::move(scheme),
-        std::move(properties)...);
+    return table<ClassType, std::decay_t<Columns>...>(table_name, scheme, std::move(properties)...);
 }
 
 } // namespace entity_craft

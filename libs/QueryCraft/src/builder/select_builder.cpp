@@ -20,6 +20,12 @@ select_builder& select_builder::columns(const std::initializer_list<ast::express
     return *this;
 }
 
+select_builder& select_builder::columns(const std::vector<ast::expression>& columns)
+{
+    query_.columns.assign(columns.begin(), columns.end());
+    return *this;
+}
+
 select_builder& select_builder::where(ast::expression expr)
 {
     query_.where = std::move(expr);

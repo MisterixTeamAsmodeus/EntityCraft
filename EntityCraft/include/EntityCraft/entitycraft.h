@@ -1,12 +1,12 @@
 #pragma once
 
 #include "column.h"
+#include "mapper.h"
 #include "referencecolumn.h"
 #include "storage.h"
+#include "storage_utils.h"
 #include "table.h"
 
-#include <DatabaseAdapter/databaseadapter.h>
-#include <ReflectionApi/reflectionapi.h>
 #include <QueryCraft/querycraft.h>
 
 #ifdef ENABLE_SQLITE

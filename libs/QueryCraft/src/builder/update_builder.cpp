@@ -40,6 +40,17 @@ update_builder& update_builder::returning(const std::initializer_list<std::strin
     return *this;
 }
 
+update_builder& update_builder::returning(const std::vector<std::string>& column_names)
+{
+    query_.returning.clear();
+    for(const auto& name : column_names) {
+        ast::identifier id;
+        id.name = name;
+        query_.returning.push_back(id);
+    }
+    return *this;
+}
+
 ast::update_query update_builder::to_ast() const noexcept
 {
     return query_;

@@ -12,20 +12,20 @@ namespace dsl {
 /**
  * @brief Хелпер для создания идентификатора колонки.
  * @param name Имя колонки.
- * @param table_alias Алиас таблицы (опционально).
+ * @param alias Алиас (опционально).
  * @param schema Схема таблицы (опционально).
  * @return Выражение типа identifier.
  */
-ast::expression col(const std::string& name, const std::string& table_alias = {}, const std::string& schema = {});
+ast::expression col(const std::string& name, const std::string& alias = {}, const std::string& schema = {});
 
 /**
  * @brief Перегрузка для строковых литералов (const char*).
  * @param name Имя колонки.
- * @param table_alias Алиас таблицы (опционально).
+ * @param alias Алиас (опционально).
  * @param schema Схема таблицы (опционально).
  * @return Выражение типа identifier.
  */
-ast::expression col(const char* name, const char* table_alias = nullptr, const char* schema = nullptr);
+ast::expression col(const char* name, const char* alias = nullptr, const char* schema = nullptr);
 
 /**
  * @brief Хелпер для создания строкового литерала.

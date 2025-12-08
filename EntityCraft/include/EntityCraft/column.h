@@ -1,11 +1,10 @@
 #pragma once
 
+#include "column_settings.hpp"
 #include "nullcheker.h"
-#include "QueryCraft/conditiongroup.h" // TODO(QueryCraft v2): legacy API. column_info/settings/condition_group будут удалены — перенести метаданные колонок в EntityCraft и использовать QueryCraft v2.
 
-#include <ReflectionApi/helper/templates.h>
-#include <ReflectionApi/property.h>
-
+#include <ReflectionApi/helper/templates.hpp>
+#include <ReflectionApi/property.hpp>
 #include <utility>
 
 namespace entity_craft {
@@ -14,201 +13,95 @@ template<typename ClassType,
     typename PropertyType,
     typename Setter = reflection_api::helper::Setter_t<ClassType, PropertyType>,
     typename Getter = reflection_api::helper::ConstGetter_t<ClassType, PropertyType>>
-class column
+class column : public reflection_api::property<ClassType, PropertyType, Setter, Getter>
 {
 public:
-    column(query_craft::column_info column_info, const reflection_api::property<ClassType, PropertyType, Setter, Getter>& reflection_property)
-        : _column_info(std::move(column_info))
-        , _reflection_property(reflection_property)
-    {
-    }
+    explicit column(const std::string& name, reflection_api::helper::Variable_t<ClassType, PropertyType> variable, column_settings settings = column_settings::empty) noexcept;
+
+    explicit column(const std::string& name, Setter setter, Getter getter, column_settings settings = column_settings::empty) noexcept;
 
     column(const column& other) = default;
     column(column&& other) noexcept = default;
 
-    ~column() = default;
+    ~column() override = default;
 
     column& operator=(const column& other) = default;
     column& operator=(column&& other) noexcept = default;
 
-    reflection_api::property<ClassType, PropertyType, Setter, Getter> property() const
-    {
-        return _reflection_property;
-    }
+    column_settings settings() const;
 
-    query_craft::column_info column_info() const
-    {
-        return _column_info;
-    }
+    std::shared_ptr<entity_craft::null_cheker<PropertyType>> null_checker() const;
 
-    query_craft::column_info& mutable_column_info()
-    {
-        return _column_info;
-    }
-
-    std::shared_ptr<type_converter_api::type_converter<PropertyType>> converter() const
-    {
-        return _reflection_property.property_converter();
-    }
-
-    column set_converter(const std::shared_ptr<type_converter_api::type_converter<PropertyType>>& converter)
-    {
-        _reflection_property.set_converter(converter);
-        return *this;
-    }
-
-    std::shared_ptr<entity_craft::null_cheker<PropertyType>> null_cheker() const
-    {
-        return _null_cheker;
-    }
-
-    column set_null_cheker(const std::shared_ptr<entity_craft::null_cheker<PropertyType>>& null_cheker)
-    {
-        _null_cheker = null_cheker;
-        return *this;
-    }
+    column set_null_checker(const std::shared_ptr<entity_craft::null_cheker<PropertyType>>& null_checker);
 
 private:
-    query_craft::column_info _column_info;
-    reflection_api::property<ClassType, PropertyType, Setter, Getter> _reflection_property;
-    std::shared_ptr<entity_craft::null_cheker<PropertyType>> _null_cheker = std::make_shared<entity_craft::null_cheker<PropertyType>>();
+    column_settings _settings;
+    std::shared_ptr<entity_craft::null_cheker<PropertyType>> _null_checker = std::make_shared<entity_craft::null_cheker<PropertyType>>();
 };
 
+template<typename ClassType, typename PropertyType, typename Setter, typename Getter> column<ClassType, PropertyType, Setter, Getter>::column(const std::string& name, const reflection_api::helper::Variable_t<ClassType, PropertyType> variable, const column_settings settings) noexcept
+    : reflection_api::property<ClassType, PropertyType, Setter, Getter>(std::move(name), variable)
+    , _settings(settings)
+{
+}
+
+template<typename ClassType, typename PropertyType, typename Setter, typename Getter> column<ClassType, PropertyType, Setter, Getter>::column(const std::string& name, Setter setter, Getter getter, const column_settings settings) noexcept
+    : reflection_api::property<ClassType, PropertyType, Setter, Getter>(std::move(name), setter, getter)
+    , _settings(settings)
+{
+}
+
+template<typename ClassType, typename PropertyType, typename Setter, typename Getter> column_settings column<ClassType, PropertyType, Setter, Getter>::settings() const
+{
+    return _settings;
+}
+
+template<typename ClassType, typename PropertyType, typename Setter, typename Getter> std::shared_ptr<null_cheker<PropertyType>> column<ClassType, PropertyType, Setter, Getter>::null_checker() const
+{
+    return _null_checker;
+}
+
+template<typename ClassType, typename PropertyType, typename Setter, typename Getter> column<ClassType, PropertyType, Setter, Getter> column<ClassType, PropertyType, Setter, Getter>::set_null_checker(const std::shared_ptr<null_cheker<PropertyType>>& null_checker)
+{
+    _null_checker = null_checker;
+    return *this;
+}
+
+/**
+ * @brief Функция-помощник для создания column с автоматическим выводом типов
+ * @param name Имя колонки
+ * @param variable Указатель на член класса
+ * @param settings Настройки колонки
+ * @return Экземпляр column с выведенными типами
+ */
 template<typename ClassType, typename PropertyType>
-auto make_column(
-    std::string column_name,
+column<ClassType, PropertyType> make_column(
+    const std::string& name,
     reflection_api::helper::Variable_t<ClassType, PropertyType> variable,
-    const query_craft::column_settings settings = query_craft::column_settings::none)
+    const column_settings settings = column_settings::empty) noexcept
 {
-    return column<ClassType, PropertyType>(
-        query_craft::column_info(
-            column_name,
-            settings),
-        reflection_api::make_property(
-            column_name,
-            variable));
+    return column<ClassType, PropertyType>(name, variable, settings);
 }
 
-template<typename ClassType, typename PropertyType>
-auto make_column(
-    std::string column_name,
-    reflection_api::helper::Setter_t<ClassType, PropertyType> setter,
-    reflection_api::helper::ConstGetter_t<ClassType, PropertyType> getter,
-    const query_craft::column_settings settings = query_craft::column_settings::none)
+/**
+ * @brief Функция-помощник для создания column с автоматическим выводом типов (перегрузка для setter/getter)
+ * @param name Имя колонки
+ * @param setter Setter для установки значения
+ * @param getter Getter для получения значения
+ * @param settings Настройки колонки
+ * @return Экземпляр column с выведенными типами
+ */
+template<typename ClassType,
+    typename PropertyType,
+    typename Setter = reflection_api::helper::Setter_t<ClassType, PropertyType>,
+    typename Getter = reflection_api::helper::ConstGetter_t<ClassType, PropertyType>>
+column<ClassType, PropertyType, Setter, Getter> make_column(
+    const std::string& name,
+    Setter setter,
+    Getter getter,
+    const column_settings settings = column_settings::empty) noexcept
 {
-    return column<ClassType,
-        PropertyType,
-        reflection_api::helper::Setter_t<ClassType, PropertyType>,
-        reflection_api::helper::ConstGetter_t<ClassType, PropertyType>>(
-        query_craft::column_info(
-            column_name,
-            settings),
-        reflection_api::make_property(
-            column_name,
-            setter,
-            getter));
-}
-
-template<typename ClassType, typename PropertyType>
-auto make_column(
-    std::string column_name,
-    reflection_api::helper::Setter_t<ClassType, PropertyType> setter,
-    reflection_api::helper::MutableGetter_t<ClassType, PropertyType> getter,
-    const query_craft::column_settings settings = query_craft::column_settings::none)
-{
-    return column<ClassType,
-        PropertyType,
-        reflection_api::helper::Setter_t<ClassType, PropertyType>,
-        reflection_api::helper::MutableGetter_t<ClassType, PropertyType>>(
-        query_craft::column_info(
-            column_name,
-            settings),
-        reflection_api::make_property(
-            column_name,
-            setter,
-            getter));
-}
-
-template<typename ClassType, typename PropertyType>
-auto make_column(
-    std::string column_name,
-    reflection_api::helper::Setter_t<ClassType, PropertyType> setter,
-    reflection_api::helper::Getter_t<ClassType, PropertyType> getter,
-    const query_craft::column_settings settings = query_craft::column_settings::none)
-{
-    return column<ClassType,
-        PropertyType,
-        reflection_api::helper::Setter_t<ClassType, PropertyType>,
-        reflection_api::helper::Getter_t<ClassType, PropertyType>>(
-        query_craft::column_info(
-            column_name,
-            settings),
-        reflection_api::make_property(
-            column_name,
-            setter,
-            getter));
-}
-
-//-----------------------------Перегрузки для примитивов, где параметры в setter не по const &-----------------------------------
-
-template<typename ClassType, typename PropertyType>
-auto make_column(
-    std::string column_name,
-    reflection_api::helper::BaseSetter_t<ClassType, PropertyType> setter,
-    reflection_api::helper::ConstGetter_t<ClassType, PropertyType> getter,
-    const query_craft::column_settings settings = query_craft::column_settings::none)
-{
-    return column<ClassType,
-        PropertyType,
-        reflection_api::helper::BaseSetter_t<ClassType, PropertyType>,
-        reflection_api::helper::ConstGetter_t<ClassType, PropertyType>>(
-        query_craft::column_info(
-            column_name,
-            settings),
-        reflection_api::make_property(
-            column_name,
-            setter,
-            getter));
-}
-
-template<typename ClassType, typename PropertyType>
-auto make_column(
-    std::string column_name,
-    reflection_api::helper::BaseSetter_t<ClassType, PropertyType> setter,
-    reflection_api::helper::MutableGetter_t<ClassType, PropertyType> getter,
-    const query_craft::column_settings settings = query_craft::column_settings::none)
-{
-    return column<ClassType,
-        PropertyType,
-        reflection_api::helper::BaseSetter_t<ClassType, PropertyType>,
-        reflection_api::helper::MutableGetter_t<ClassType, PropertyType>>(
-        query_craft::column_info(
-            column_name,
-            settings),
-        reflection_api::make_property(
-            column_name,
-            setter,
-            getter));
-}
-
-template<typename ClassType, typename PropertyType>
-auto make_column(
-    std::string column_name,
-    reflection_api::helper::BaseSetter_t<ClassType, PropertyType> setter,
-    reflection_api::helper::Getter_t<ClassType, PropertyType> getter,
-    const query_craft::column_settings settings = query_craft::column_settings::none)
-{
-    return column<ClassType,
-        PropertyType,
-        reflection_api::helper::BaseSetter_t<ClassType, PropertyType>,
-        reflection_api::helper::Getter_t<ClassType, PropertyType>>(
-        query_craft::column_info(
-            column_name,
-            settings),
-        reflection_api::make_property(
-            column_name,
-            setter,
-            getter));
+    return column<ClassType, PropertyType, Setter, Getter>(name, setter, getter, settings);
 }
 
 } // namespace entity_craft

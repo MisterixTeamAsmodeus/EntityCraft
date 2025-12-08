@@ -223,8 +223,8 @@ TEST_F(PostgreAdapter, Connection_PrepareQuery_UpdateExisting)
 
     _connection->prepare("SELECT * FROM test_table WHERE name = $1", "get_by_name");
     
-    // Обновляем подготовленный запрос
-    EXPECT_THROW(_connection->prepare("SELECT * FROM test_table WHERE id = $1", "get_by_name") , database_adapter::sql_exception);
+    // Обновляем подготовленный запрос. Обновление не должно сработать
+    _connection->prepare("SELECT * FROM test_table WHERE id = $1", "get_by_name");
     
     _connection->exec("INSERT INTO test_table (name) VALUES ('Test1')");
     

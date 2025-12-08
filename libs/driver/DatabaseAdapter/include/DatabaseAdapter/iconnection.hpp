@@ -3,6 +3,9 @@
 #include "model/queryresult.hpp"
 #include "transaction_isolation.hpp"
 
+#include <QueryCraft/dialect/sql_dialect.h>
+
+#include <memory>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -107,6 +110,13 @@ public:
      * @note Потокобезопасный метод
      */
     void rollback();
+
+    /**
+     * @brief Получить SQL диалект для данного соединения
+     * @return Умный указатель на SQL диалект или nullptr, если диалект не определен
+     * @note Метод должен быть переопределен в производных классах для возврата соответствующего диалекта
+     */
+    virtual std::shared_ptr<query_craft::sql_dialect> dialect() const;
 
 protected:
     /**

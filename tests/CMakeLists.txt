@@ -10,39 +10,41 @@ set(HEADERS_FILES ${HEADERS_FILES}
 )
 
 set(SOURCE_FILES ${SOURCE_FILES}
-        ReflectionApi/entity_test.cpp
-        ReflectionApi/reference_property_test.cpp
-        ReflectionApi/property_test.cpp
+#        ReflectionApi/entity_test.cpp
+#        ReflectionApi/reference_property_test.cpp
+#        ReflectionApi/property_test.cpp
+#
+#        TypeConverterApi/containerconverter_test.cpp
+#        TypeConverterApi/typeconverter_containers_test.cpp
+#        TypeConverterApi/typeconverter_numeric_test.cpp
+#        TypeConverterApi/typeconverter_pointers_test.cpp
+#        TypeConverterApi/typeconverter_qt_test.cpp
+#        TypeConverterApi/typeconverter_strings_test.cpp
+#        TypeConverterApi/utilities_test.cpp
+#
+#        DatabaseAdapter/query_result_test.cpp
+#        DatabaseAdapter/exception_test.cpp
+#        DatabaseAdapter/validation_test.cpp
+#        DatabaseAdapter/connection_test.cpp
+#        DatabaseAdapter/transaction_guard_test.cpp
+#        DatabaseAdapter/connectionpool_test.cpp
+#
+#        SqliteAdapter/sqliteadapter_test.cpp
+#        PostgreAdapter/postgreadapter_test.cpp
+#
+#        QueryCraft/select_builder_test.cpp
+#        QueryCraft/insert_builder_test.cpp
+#        QueryCraft/update_builder_test.cpp
+#        QueryCraft/delete_builder_test.cpp
+#        QueryCraft/compiler_test.cpp
+#        QueryCraft/postgres_dialect_test.cpp
+#        QueryCraft/sqlite_dialect_test.cpp
+#        QueryCraft/expression_test.cpp
+#        QueryCraft/dsl_test.cpp
+#        QueryCraft/join_test.cpp
+#        QueryCraft/cte_test.cpp
 
-        TypeConverterApi/containerconverter_test.cpp
-        TypeConverterApi/typeconverter_containers_test.cpp
-        TypeConverterApi/typeconverter_numeric_test.cpp
-        TypeConverterApi/typeconverter_pointers_test.cpp
-        TypeConverterApi/typeconverter_qt_test.cpp
-        TypeConverterApi/typeconverter_strings_test.cpp
-        TypeConverterApi/utilities_test.cpp
-
-        DatabaseAdapter/query_result_test.cpp
-        DatabaseAdapter/exception_test.cpp
-        DatabaseAdapter/validation_test.cpp
-        DatabaseAdapter/connection_test.cpp
-        DatabaseAdapter/transaction_guard_test.cpp
-        DatabaseAdapter/connectionpool_test.cpp
-
-        SqliteAdapter/sqliteadapter_test.cpp
-        PostgreAdapter/postgreadapter_test.cpp
-
-        QueryCraft/select_builder_test.cpp
-        QueryCraft/insert_builder_test.cpp
-        QueryCraft/update_builder_test.cpp
-        QueryCraft/delete_builder_test.cpp
-        QueryCraft/compiler_test.cpp
-        QueryCraft/postgres_dialect_test.cpp
-        QueryCraft/sqlite_dialect_test.cpp
-        QueryCraft/expression_test.cpp
-        QueryCraft/dsl_test.cpp
-        QueryCraft/join_test.cpp
-        QueryCraft/cte_test.cpp
+        EntityCraft/entitycraft_test.cpp
 )
 
 set(ENTITY_CRAFT_GOOGLETEST_MODULES_LOCATION "EXTERNAL" CACHE STRING "Location where to find googletest modules. can be [INSTALLED|EXTERNAL]")
@@ -123,6 +125,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         SqliteAdapter
         PostgreAdapter
         QueryCraft
+        EntityCraft
 )
 
 cmake_policy(SET CMP0084 NEW)

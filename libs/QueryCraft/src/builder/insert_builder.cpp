@@ -25,7 +25,24 @@ insert_builder& insert_builder::columns(const std::initializer_list<std::string>
     return *this;
 }
 
+insert_builder& insert_builder::columns(const std::vector<std::string>& column_names)
+{
+    query_.columns.clear();
+    for(const auto& name : column_names) {
+        ast::identifier id;
+        id.name = name;
+        query_.columns.push_back(id);
+    }
+    return *this;
+}
+
 insert_builder& insert_builder::values(const std::initializer_list<ast::expression> row)
+{
+    query_.values.emplace_back(row.begin(), row.end());
+    return *this;
+}
+
+insert_builder& insert_builder::values(const std::vector<ast::expression>& row)
 {
     query_.values.emplace_back(row.begin(), row.end());
     return *this;

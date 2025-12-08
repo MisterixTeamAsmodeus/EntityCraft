@@ -4,24 +4,24 @@
 
 namespace query_craft {
 namespace dsl {
-ast::expression col(const std::string& name, const std::string& table_alias, const std::string& schema)
+ast::expression col(const std::string& name, const std::string& alias, const std::string& schema)
 {
     ast::identifier id;
     id.schema = schema;
     id.name = name;
-    id.alias = table_alias;
+    id.alias = alias;
     return ast::expression::make_identifier(std::move(id));
 }
 
-ast::expression col(const char* name, const char* table_alias, const char* schema)
+ast::expression col(const char* name, const char* alias, const char* schema)
 {
     ast::identifier id;
     if(schema) {
         id.schema = schema;
     }
     id.name = name;
-    if(table_alias) {
-        id.alias = table_alias;
+    if(alias) {
+        id.alias = alias;
     }
     return ast::expression::make_identifier(std::move(id));
 }

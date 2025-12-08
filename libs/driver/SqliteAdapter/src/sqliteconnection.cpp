@@ -2,8 +2,10 @@
 #include "SqliteAdapter/sqliteerrorcode.hpp"
 
 #include <DatabaseAdapter/databaseadapter.hpp>
+#include <QueryCraft/dialect/sqlite_dialect.h>
 
 #include <cctype>
+#include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <mutex>
@@ -118,22 +120,13 @@ query_result connection::exec(const std::string& query)
 
 void connection::prepare(const std::string& query, const std::string& name)
 {
+    if(_prepared.find(name) != _prepared.end()) {
+        return;
+    }
+
     validate_query(query);
     
-    std::lock_guard<std::mutex> lock(_prepared_mutex);
-    
-    // Если запрос уже существует, освобождаем старый
-    const auto existing_it = _prepared.find(name);
-    if(existing_it != _prepared.end()) {
-        if(existing_it->second != nullptr) {
-            const int rc = sqlite3_finalize(existing_it->second);
-            const sqlite_error_code error_code = to_sqlite_error_code(rc);
-            if(error_code != sqlite_error_code::OK && _logger != nullptr) {
-                _logger->log_error("Error finalizing existing prepared statement: " + std::string(sqlite3_errmsg(_connection)));
-            }
-        }
-        _prepared.erase(existing_it);
-    }
+    std::lock_guard<std::mutex> lock(_prepared_mutex);    
 
     sqlite3_stmt* stmt = nullptr;
 
@@ -195,7 +188,7 @@ query_result connection::exec_prepared(const std::vector<std::string>& params, c
 
             stream << "Execute prepare query " << name << " with params: [ ";
             for(const auto& param : params) {
-                stream << param << " ";
+                stream << param << "; ";
             }
             stream << "]";
 
@@ -494,6 +487,11 @@ std::string connection::extract_column_value(sqlite3_stmt* stmt, int column_inde
         default:
             return "";
     }
+}
+
+std::shared_ptr<query_craft::sql_dialect> connection::dialect() const
+{
+    return std::make_shared<query_craft::sqlite_dialect>();
 }
 
 } // namespace sqlite

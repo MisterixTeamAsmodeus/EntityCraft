@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <memory>
 
 namespace {
 void validate_connection_settings(const database_adapter::database_connection_settings& settings)
@@ -127,6 +128,13 @@ void IConnection::rollback_to_save_point(const std::string& save_point)
 void IConnection::rollback()
 {
     rollback_to_save_point("");
+}
+
+std::shared_ptr<query_craft::sql_dialect> IConnection::dialect() const
+{
+    // Базовая реализация возвращает nullptr
+    // Должна быть переопределена в производных классах
+    return nullptr;
 }
 
 } // namespace database_adapter

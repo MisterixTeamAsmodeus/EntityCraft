@@ -1,43 +1,55 @@
 project(EntityCraft LANGUAGES CXX)
 
-file(GLOB_RECURSE HEADER_FILES include/*.h)
-file(GLOB_RECURSE SOURCE_FILES src/*.cpp)
+# Header-only библиотека
+add_library(${PROJECT_NAME} INTERFACE)
 
-add_library(${PROJECT_NAME} STATIC ${HEADER_FILES} ${SOURCE_FILES})
-
-target_include_directories(${PROJECT_NAME} PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs
+# Добавляем заголовочные файлы как источники интерфейса
+file(GLOB_RECURSE HEADER_FILES include/*.h include/*.hpp)
+target_sources(${PROJECT_NAME} INTERFACE
+    $<BUILD_INTERFACE:${HEADER_FILES}>
+    $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(${PROJECT_NAME} PUBLIC
+# Настройка путей включения
+target_include_directories(${PROJECT_NAME} INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libs>
+        $<INSTALL_INTERFACE:libs>
+)
+
+target_include_directories(${PROJECT_NAME} INTERFACE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:include>
+)
+
+# Связывание с зависимостями
+target_link_libraries(${PROJECT_NAME} INTERFACE
         QueryCraft
         ReflectionApi
         DatabaseAdapter
 )
 
-target_include_directories(${PROJECT_NAME} PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-        $<INSTALL_INTERFACE:include>
-)
-
+# Установка интерфейсной библиотеки
 install(TARGETS ${PROJECT_NAME}
-        LIBRARY DESTINATION lib
+        EXPORT ${PROJECT_NAME}Targets
         ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
         RUNTIME DESTINATION bin
 )
 
+# Установка заголовочных файлов
 install(DIRECTORY include
         DESTINATION include
+        FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp"
 )
 
 if (${ENTITY_CRAFT_ENABLE_SQLITE})
-    target_link_libraries(${PROJECT_NAME} PUBLIC
+    target_link_libraries(${PROJECT_NAME} INTERFACE
             SqliteAdapter
     )
 endif ()
 
 if (${ENTITY_CRAFT_ENABLE_POSTGRE})
-    target_link_libraries(${PROJECT_NAME} PUBLIC
+    target_link_libraries(${PROJECT_NAME} INTERFACE
             PostgreAdapter
     )
 endif ()

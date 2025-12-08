@@ -7,6 +7,7 @@
 
 #include <initializer_list>
 #include <memory>
+#include <vector>
 
 namespace query_craft {
 namespace dsl {
@@ -33,11 +34,25 @@ public:
     insert_builder& columns(std::initializer_list<std::string> column_names);
 
     /**
+     * @brief Устанавливает столбцы для вставки из контейнера.
+     * @param column_names Имена столбцов из контейнера.
+     * @return Ссылка на билдер для цепочки вызовов.
+     */
+    insert_builder& columns(const std::vector<std::string>& column_names);
+
+    /**
      * @brief Устанавливает значения для вставки.
      * @param row Значения.
      * @return Ссылка на билдер для цепочки вызовов.
      */
     insert_builder& values(std::initializer_list<ast::expression> row);
+
+    /**
+     * @brief Устанавливает значения для вставки из контейнера.
+     * @param row Значения из контейнера.
+     * @return Ссылка на билдер для цепочки вызовов.
+     */
+    insert_builder& values(const std::vector<ast::expression>& row);
 
     /**
      * @brief Устанавливает столбцы для возврата.
