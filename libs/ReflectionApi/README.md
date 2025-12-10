@@ -133,6 +133,38 @@ Person person;
 idProperty.set_value(person, 1);           // Установить значение
 int id = idProperty.value(person);           // Получить значение
 std::string name = idProperty.name();       // Получить имя свойства
+
+// Конвертация в строку и обратно
+std::string idStr = idProperty.to_string(person);  // Конвертировать значение в строку
+idProperty.from_string(person, "42");              // Заполнить значение из строки
+```
+
+#### Конвертация типов (to_string/from_string)
+
+`property` поддерживает конвертацию значений в строки и обратно:
+
+```cpp
+auto ageProperty = reflection_api::make_property("age", &Person::age);
+
+Person person;
+person.age = 25;
+
+// Конвертация значения в строку
+std::string ageStr = ageProperty.to_string(person);
+// ageStr = "25"
+
+// Заполнение значения из строки
+Person person2;
+ageProperty.from_string(person2, "30");
+// person2.age = 30
+```
+
+По умолчанию используется стандартный конвертер из `TypeConverterApi`. Можно установить кастомный конвертер:
+
+```cpp
+auto customConverter = std::make_shared<type_converter_api::type_converter<int>>();
+auto ageProperty = reflection_api::make_property("age", &Person::age)
+    .set_converter(customConverter);
 ```
 
 ### Entity (Сущность)
@@ -287,6 +319,9 @@ auto make_reference_property(
 - `PropertyType value(const ClassType& obj) const` - получить значение
 - `const std::string& name() const noexcept` - получить имя свойства
 - `static constexpr PropertyType empty_property()` - создать пустое значение свойства
+- `std::string to_string(const ClassType& obj) const` - конвертировать значение свойства в строку
+- `void from_string(ClassType& obj, const std::string& str) const` - заполнить значение свойства из строки
+- `property& set_converter(std::shared_ptr<type_converter_api::type_converter<property_type>> converter)` - установить кастомный конвертер типов
 
 ### Класс entity
 
@@ -389,9 +424,41 @@ auto anyVisitor = reflection_api::visitor::make_any_property_visitor(
 personEntity.for_each(anyVisitor);
 ```
 
+### Конвертация в строки и обратно
+
+Методы `to_string` и `from_string` позволяют легко работать с сериализацией и десериализацией:
+
+```cpp
+auto personEntity = make_entity<Person>(
+    reflection_api::make_property("id", &Person::id),
+    reflection_api::make_property("name", &Person::name),
+    reflection_api::make_property("age", &Person::age)
+);
+
+Person person;
+person.id = 1;
+person.name = "Иван";
+person.age = 25;
+
+// Конвертация всех свойств в строки
+std::map<std::string, std::string> serialized;
+personEntity.for_each([&person, &serialized](const auto& prop) {
+    serialized[prop.name()] = prop.to_string(person);
+});
+
+// Восстановление объекта из строк
+Person restored;
+personEntity.for_each([&restored, &serialized](const auto& prop) {
+    auto it = serialized.find(prop.name());
+    if (it != serialized.end()) {
+        prop.from_string(restored, it->second);
+    }
+});
+```
+
 ### Сериализация
 
-Пример реализации сериализации с использованием `for_each`:
+Пример реализации сериализации с использованием `to_string`:
 
 ```cpp
 void serialize(const auto& entity, const auto& obj) {
@@ -402,10 +469,7 @@ void serialize(const auto& entity, const auto& obj) {
             std::cout << ",\n";
         }
         first = false;
-        auto value = prop.value(obj);
-        std::cout << "  \"" << prop.name() << "\": ";
-        // Здесь можно добавить логику сериализации в зависимости от типа
-        std::cout << value;
+        std::cout << "  \"" << prop.name() << "\": \"" << prop.to_string(obj) << "\"";
     });
     std::cout << "\n}\n";
 }
@@ -438,7 +502,7 @@ bool validate(const auto& entity, const auto& obj) {
 - **example-3.cpp** - Использование for_each и визиторов
 - **example-4.cpp** - Работа с reference_property (вложенные структуры)
 - **example-5.cpp** - Дополнительные примеры
-- **example-6.cpp** - Продвинутые сценарии
+- **example-6.cpp** - Продвинутые сценарии (включая конвертацию строк через to_string/from_string)
 
 Для сборки примеров:
 

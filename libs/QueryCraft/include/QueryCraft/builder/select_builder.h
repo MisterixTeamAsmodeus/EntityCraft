@@ -29,17 +29,26 @@ public:
 
     /**
      * @brief Устанавливает столбцы для выборки.
-     * @param columns Столбцы.
+     * @param columns_info Столбцы.
      * @return Ссылка на билдер для цепочки вызовов.
      */
-    select_builder& columns(std::initializer_list<ast::expression> columns);
+    select_builder& columns(std::initializer_list<ast::expression> columns_info);
 
     /**
      * @brief Устанавливает столбцы для выборки из контейнера.
-     * @param columns Столбцы из контейнера.
+     * @param columns_info Столбцы из контейнера.
      * @return Ссылка на билдер для цепочки вызовов.
      */
-    select_builder& columns(const std::vector<ast::expression>& columns);
+    select_builder& columns(const std::vector<ast::expression>& columns_info);
+
+    /**
+     * @brief Устанавливает столбцы для выборки из итераторов.
+     * @param begin Начало итератора.
+     * @param end Конец итератора.
+     * @return Ссылка на билдер для цепочки вызовов.
+     */
+    template<typename Begin, typename End>
+    select_builder& columns(Begin begin, End end);
 
     /**
      * @brief Устанавливает условие WHERE.
@@ -67,6 +76,22 @@ public:
      * @return Ссылка на билдер для цепочки вызовов.
      */
     select_builder& order_by(std::initializer_list<ast::order_by_item> items);
+
+    /**
+     * @brief Устанавливает сортировку из контейнера.
+     * @param items Сортировки из контейнера.
+     * @return Ссылка на билдер для цепочки вызовов.
+     */
+    select_builder& order_by(const std::vector<ast::order_by_item>& items);
+
+    /**
+     * @brief Устанавливает сортировку из итераторов.
+     * @param begin Начало итератора.
+     * @param end Конец итератора.
+     * @return Ссылка на билдер для цепочки вызовов.
+     */
+    template<typename Begin, typename End>
+    select_builder& order_by(Begin begin, End end);
 
     /**
      * @brief Устанавливает лимит.
@@ -175,12 +200,24 @@ public:
      * @param dialect Диалект.
      * @return Скомпилированный запрос.
      */
-    compiled_query compile(std::shared_ptr<sql_dialect> dialect) const;
+    compiled_query compile(std::shared_ptr<sql_dialect> dialect);
 
 private:
     /// AST‑запрос.
     ast::select_query query_;
 };
+
+template<typename Begin, typename End> select_builder& select_builder::columns(Begin begin, End end)
+{
+    query_.columns.assign(begin, end);
+    return *this;
+}
+
+template<typename Begin, typename End> select_builder& select_builder::order_by(Begin begin, End end)
+{
+    query_.order_by.assign(begin, end);
+    return *this;
+}
 
 } // namespace dsl
 } // namespace query_craft

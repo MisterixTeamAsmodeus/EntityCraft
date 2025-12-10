@@ -57,6 +57,14 @@ public:
     update_builder& returning(const std::vector<std::string>& column_names);
 
     /**
+     * @brief Устанавливает столбцы для возврата из итераторов.
+     * @param begin Начало итератора.
+     * @param end Конец итератора.
+     * @return Ссылка на билдер для цепочки вызовов.
+     */
+    template<typename Begin, typename End>
+    update_builder& returning(Begin begin, End end);
+    /**
      * @brief Возвращает AST‑запрос.
      * @return AST‑запрос.
      */
@@ -73,6 +81,17 @@ private:
     /// AST‑запрос.
     ast::update_query query_;
 };
+
+template<typename Begin, typename End> update_builder& update_builder::returning(Begin begin, End end)
+{
+    query_.returning.clear();
+    for(auto it = begin; it != end; ++it) {
+        ast::identifier id;
+        id.name = *it;
+        query_.returning.push_back(id);
+    }
+    return *this;
+}
 
 } // namespace dsl
 } // namespace query_craft

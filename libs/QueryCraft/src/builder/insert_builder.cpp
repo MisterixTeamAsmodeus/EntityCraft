@@ -16,47 +16,33 @@ insert_builder& insert_builder::into(const std::string& table_name,const std::st
 
 insert_builder& insert_builder::columns(const std::initializer_list<std::string> column_names)
 {
-    query_.columns.clear();
-    for(const auto& name : column_names) {
-        ast::identifier id;
-        id.name = name;
-        query_.columns.push_back(id);
-    }
-    return *this;
+    return columns(column_names.begin(), column_names.end());
 }
 
 insert_builder& insert_builder::columns(const std::vector<std::string>& column_names)
 {
-    query_.columns.clear();
-    for(const auto& name : column_names) {
-        ast::identifier id;
-        id.name = name;
-        query_.columns.push_back(id);
-    }
-    return *this;
+    return columns(column_names.begin(), column_names.end());
 }
 
 insert_builder& insert_builder::values(const std::initializer_list<ast::expression> row)
 {
-    query_.values.emplace_back(row.begin(), row.end());
-    return *this;
+    return values(row.begin(), row.end());
 }
 
 insert_builder& insert_builder::values(const std::vector<ast::expression>& row)
 {
-    query_.values.emplace_back(row.begin(), row.end());
-    return *this;
+
+    return values(row.begin(), row.end());
 }
 
 insert_builder& insert_builder::returning(const std::initializer_list<std::string> column_names)
 {
-    query_.returning.clear();
-    for(const auto& name : column_names) {
-        ast::identifier id;
-        id.name = name;
-        query_.returning.push_back(id);
-    }
-    return *this;
+    return returning(column_names.begin(), column_names.end());
+}
+
+insert_builder& insert_builder::returning(const std::vector<std::string>& column_names)
+{
+    return returning(column_names.begin(), column_names.end());
 }
 
 ast::insert_query insert_builder::to_ast() const noexcept
@@ -64,9 +50,11 @@ ast::insert_query insert_builder::to_ast() const noexcept
     return query_;
 }
 
-compiled_query insert_builder::compile(std::shared_ptr<sql_dialect> dialect) const
+compiled_query insert_builder::compile(std::shared_ptr<sql_dialect> dialect)
 {
-    return sql_compiler(std::move(dialect)).compile(query_);
+    auto compile = sql_compiler(std::move(dialect)).compile(query_);
+    query_ = {};
+    return compile;
 }
 
 } // namespace dsl

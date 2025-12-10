@@ -33,27 +33,9 @@ ClassType map_row_to_entity(const table<ClassType, Columns...>& dto, const datab
         if(it != row.end()) {
             auto db_value = it->second;
 
-            if(db_value == NULL_VALUE || db_value.empty()) {
-                auto null_checker = column.null_checker();
-                if(null_checker != nullptr) {
-                    auto default_value = column.empty_property();
-                    column.set_value(entity, default_value);
-                }
-            } else {
+            if(db_value != NULL_VALUE && !db_value.empty()) {
                 // Конвертация значения из строки в тип свойства
-                using PropertyType = typename std::decay_t<decltype(column)>::property_type;
-                PropertyType property_value = column.empty_property();
-
-                auto converter = column.property_converter();
-                if(converter != nullptr) {
-                    converter->fill_from_string(property_value, db_value);
-                } else {
-                    // Fallback на стандартный конвертер
-                    type_converter_api::type_converter<PropertyType> default_converter;
-                    default_converter.fill_from_string(property_value, db_value);
-                }
-
-                column.set_value(entity, property_value);
+                column.from_string(entity, db_value);
             }
         }
     });
@@ -67,46 +49,29 @@ ClassType map_row_to_entity(const table<ClassType, Columns...>& dto, const datab
  * @tparam Columns Типы колонок
  * @param dto Описание таблицы с метаданными
  * @param entity Объект сущности
- * @param include_primary_key Флаг, указывающий включать ли primary key в параметры
+ * @param include_auto_increment Флаг, указывающий включать ли auto increment в параметры
  * @return Вектор строковых значений параметров в порядке колонок
  */
 template<typename ClassType, typename... Columns>
 std::vector<std::string> map_entity_to_params(const table<ClassType, Columns...>& dto,
     const ClassType& entity,
-    bool include_primary_key = true)
+    bool include_auto_increment = true)
 {
     std::vector<std::string> params;
 
-    dto.for_each([&entity, &params, include_primary_key](const auto& column) {
-        // Пропускаем primary key, если указано
-        if(!include_primary_key) {
-            column_settings settings = column.settings();
-            if(has_setting(settings, column_settings::primary_key) || has_setting(settings, column_settings::auto_increment)) {
+    dto.for_each([&entity, &params, include_auto_increment](const auto& column) {
+        // Пропускаем auto increment, если указано
+        if(!include_auto_increment) {
+            auto settings = column.settings();
+            if(has_setting(settings, column_settings::auto_increment)) {
                 return;
             }
         }
 
-        // Получаем значение свойства
-        using PropertyType = typename std::decay_t<decltype(column)>::property_type;
-        PropertyType property_value = column.value(entity);
-
-        // Проверяем на NULL
-        auto null_checker = column.null_checker();
-        if(null_checker != nullptr && null_checker->is_null(property_value)) {
-            const std::string null_value_str = "NULL";
-            params.push_back(null_value_str);
+        if(column.is_null_value(entity)) {
+            params.emplace_back(NULL_VALUE);
         } else {
-            // Конвертируем значение в строку
-            std::string string_value;
-            auto converter = column.property_converter();
-            if(converter != nullptr) {
-                string_value = converter->convert_to_string(property_value);
-            } else {
-                // Fallback на стандартный конвертер
-                type_converter_api::type_converter<PropertyType> default_converter;
-                string_value = default_converter.convert_to_string(property_value);
-            }
-            params.push_back(string_value);
+            params.push_back(column.to_string(entity));
         }
     });
 

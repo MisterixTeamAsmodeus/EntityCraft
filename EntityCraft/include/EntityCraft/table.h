@@ -12,24 +12,25 @@ template<typename ClassType, typename... Columns>
 class table : public reflection_api::entity<ClassType, Columns...>
 {
 public:
-    template<typename T>
-    static ClassType empty_entity_with_id(T&& id)
-    {
-        return ClassType(std::forward<T>(id));
-    }
-
-public:
     explicit table(std::string table_name, std::string scheme, Columns... properties)
         : reflection_api::entity<ClassType, Columns...>(std::move(properties)...)
         , _scheme(std::move(scheme))
         , _table_name(std::move(table_name))
     {
         for_each([this](const auto& column) {
-            auto it = _columns_name.find(column.name());
-            if(it == _columns_name.end()) {
-                _columns_name.insert(column.name());
+            _columns_name.push_back(column.name());
+
+            const auto settings = column.settings();
+
+            if(has_setting(settings, column_settings::primary_key) && _primary_key_column_name.empty()) {
+                _primary_key_column_name = column.name();
+            }
+
+            if(has_setting(settings, column_settings::auto_increment)) {
+                _auto_increment_column_names.push_back(column.name());
+                _has_auto_inc = true;
             } else {
-                _duplicate_columns_name.insert(column.name());
+                _column_names_without_auto_increment.push_back(column.name());
             }
         });
     }
@@ -57,22 +58,53 @@ public:
         return (_scheme.empty() ? "" : _scheme + "_") + _table_name + "_" + column_name;
     }
 
-    std::set<std::string> columns_name() const
+    std::vector<std::string> columns_name() const
     {
         return _columns_name;
     }
 
-    std::set<std::string> duplicate_columns_name() const
+    std::string primary_key_column_name() const
     {
-        return _duplicate_columns_name;
+        return _primary_key_column_name;
+    }
+
+    std::string primary_key_column_value(const ClassType& entity) const
+    {
+        std::string value;
+        for_each([this, &entity, &value](const auto& column) {
+            if(column.name() == _primary_key_column_name) {
+                value = column.to_string(entity);
+            }
+        });
+        return value;
+    }
+
+    std::vector<std::string> column_names_without_auto_increment()
+    {
+        return _column_names_without_auto_increment;
+    }
+
+    std::vector<std::string> auto_increment_column_names()
+    {
+        return _auto_increment_column_names;
+    }
+
+    bool has_auto_increment() const
+    {
+        return _has_auto_inc;
     }
 
 private:
     std::string _scheme;
     std::string _table_name;
 
-    std::set<std::string> _columns_name;
-    std::set<std::string> _duplicate_columns_name;
+    std::vector<std::string> _columns_name;
+
+    std::vector<std::string> _column_names_without_auto_increment;
+    std::vector<std::string> _auto_increment_column_names;
+
+    std::string _primary_key_column_name;
+    bool _has_auto_inc = false;
 };
 
 /**

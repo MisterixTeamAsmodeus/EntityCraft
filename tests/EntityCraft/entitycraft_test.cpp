@@ -1,6 +1,7 @@
 #include <EntityCraft/entitycraft.h>
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cstdlib>
 #include <ctime>
 #include <DatabaseAdapter/databaseadapter.hpp>
@@ -108,10 +109,10 @@ TEST_F(EntityCraft, Table_Columns)
 
     auto columns_name = users_table.columns_name();
     EXPECT_EQ(columns_name.size(), 4);
-    EXPECT_TRUE(columns_name.find("id") != columns_name.end());
-    EXPECT_TRUE(columns_name.find("name") != columns_name.end());
-    EXPECT_TRUE(columns_name.find("email") != columns_name.end());
-    EXPECT_TRUE(columns_name.find("age") != columns_name.end());
+    EXPECT_TRUE(std::find(columns_name.begin(), columns_name.end(), "id") != columns_name.end());
+    EXPECT_TRUE(std::find(columns_name.begin(), columns_name.end(), "name") != columns_name.end());
+    EXPECT_TRUE(std::find(columns_name.begin(), columns_name.end(), "email") != columns_name.end());
+    EXPECT_TRUE(std::find(columns_name.begin(), columns_name.end(), "age") != columns_name.end());
 }
 
 /**
@@ -165,7 +166,7 @@ TEST_F(EntityCraft, Storage_InsertBatch)
         User("Sergey Smirnov", "sergey@example.com", 35)
     };
 
-    auto inserted_batch = _user_storage->insert_batch(batch_users);
+    auto inserted_batch = _user_storage->insert_batch(batch_users.begin(), batch_users.end());
 
     EXPECT_EQ(inserted_batch.size(), 3);
     EXPECT_GT(inserted_batch[0].id, 0);
@@ -291,8 +292,10 @@ TEST_F(EntityCraft, Storage_UpdateWhere)
     _user_storage->insert(User("User2", "user2@example.com", 30));
 
     using namespace query_craft::dsl;
-    User update_template("", "updated@example.com", 0);
-    User updated = _user_storage->update_where(update_template, col("name") == param(std::string("User1")));
+    User update_template;
+    update_template.email = "updated@example.com";
+
+    auto updated = _user_storage->update_where(update_template, col("name") == param(std::string("User1")));
 
     EXPECT_EQ(updated.email, "updated@example.com");
 

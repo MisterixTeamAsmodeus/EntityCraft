@@ -22,24 +22,12 @@ delete_builder& delete_builder::where(ast::expression expr)
 
 delete_builder& delete_builder::returning(const std::initializer_list<std::string> column_names)
 {
-    query_.returning.clear();
-    for(const auto& name : column_names) {
-        ast::identifier id;
-        id.name = name;
-        query_.returning.push_back(id);
-    }
-    return *this;
+    return returning(column_names.begin(), column_names.end());
 }
 
 delete_builder& delete_builder::returning(const std::vector<std::string>& column_names)
 {
-    query_.returning.clear();
-    for(const auto& name : column_names) {
-        ast::identifier id;
-        id.name = name;
-        query_.returning.push_back(id);
-    }
-    return *this;
+    return returning(column_names.begin(), column_names.end());
 }
 
 ast::delete_query delete_builder::to_ast() const noexcept

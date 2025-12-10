@@ -30,13 +30,13 @@ public:
 
     column_settings settings() const;
 
-    std::shared_ptr<entity_craft::null_cheker<PropertyType>> null_checker() const;
-
     column set_null_checker(const std::shared_ptr<entity_craft::null_cheker<PropertyType>>& null_checker);
+
+    bool is_null_value(const ClassType& classValue) const;
 
 private:
     column_settings _settings;
-    std::shared_ptr<entity_craft::null_cheker<PropertyType>> _null_checker = std::make_shared<entity_craft::null_cheker<PropertyType>>();
+    std::shared_ptr<entity_craft::null_cheker<PropertyType>> _null_checker;
 };
 
 template<typename ClassType, typename PropertyType, typename Setter, typename Getter> column<ClassType, PropertyType, Setter, Getter>::column(const std::string& name, const reflection_api::helper::Variable_t<ClassType, PropertyType> variable, const column_settings settings) noexcept
@@ -56,15 +56,15 @@ template<typename ClassType, typename PropertyType, typename Setter, typename Ge
     return _settings;
 }
 
-template<typename ClassType, typename PropertyType, typename Setter, typename Getter> std::shared_ptr<null_cheker<PropertyType>> column<ClassType, PropertyType, Setter, Getter>::null_checker() const
-{
-    return _null_checker;
-}
-
 template<typename ClassType, typename PropertyType, typename Setter, typename Getter> column<ClassType, PropertyType, Setter, Getter> column<ClassType, PropertyType, Setter, Getter>::set_null_checker(const std::shared_ptr<null_cheker<PropertyType>>& null_checker)
 {
     _null_checker = null_checker;
     return *this;
+}
+
+template<typename ClassType, typename PropertyType, typename Setter, typename Getter> bool column<ClassType, PropertyType, Setter, Getter>::is_null_value(const ClassType& classValue) const
+{
+    return _null_checker != nullptr && _null_checker->is_null(value(classValue));
 }
 
 /**

@@ -114,19 +114,24 @@ TEST(ReflectionApi, Property_EmptyProperty)
     EXPECT_TRUE(emptyString.empty());
 }
 
-TEST(ReflectionApi, Property_Converter)
+TEST(ReflectionApi, Property_ToString_DefaultConverter)
 {
-    const auto prop = reflection_api::make_property("intValue", &TestStruct::intValue);
-    const auto converter = prop.property_converter();
+    auto prop = reflection_api::make_property("intValue", &TestStruct::intValue);
 
-    EXPECT_NE(converter, nullptr);
+    TestStruct obj;
+    obj.intValue = 42;
 
-    int value = 0;
-    converter->fill_from_string(value, "123");
-    EXPECT_EQ(value, 123);
+    const std::string result = prop.to_string(obj);
+    EXPECT_EQ(result, "42");
+}
 
-    const auto str = converter->convert_to_string(456);
-    EXPECT_EQ(str, "456");
+TEST(ReflectionApi, Property_FromString_DefaultConverter)
+{
+    auto prop = reflection_api::make_property("intValue", &TestStruct::intValue);
+
+    TestStruct obj;
+    prop.from_string(obj, "123");
+    EXPECT_EQ(obj.intValue, 123);
 }
 
 TEST(ReflectionApi, Property_SetConverter)
@@ -135,9 +140,11 @@ TEST(ReflectionApi, Property_SetConverter)
     const auto customConverter = std::make_shared<type_converter_api::type_converter<int>>();
 
     prop.set_converter(customConverter);
-    const auto converter = prop.property_converter();
 
-    EXPECT_EQ(converter, customConverter);
+    TestStruct obj;
+    obj.intValue = 456;
+    const std::string result = prop.to_string(obj);
+    EXPECT_FALSE(result.empty());
 }
 
 TEST(ReflectionApi, Property_WithString)
@@ -180,49 +187,142 @@ TEST(ReflectionApi, Property_WithStringGetterSetter)
     EXPECT_EQ(prop.value(obj), "test_string");
 }
 
-TEST(ReflectionApi, Property_ConverterDefault)
-{
-    auto prop = reflection_api::make_property("intValue", &TestStruct::intValue);
-    const auto converter = prop.property_converter();
-
-    EXPECT_NE(converter, nullptr);
-
-    // Test default converter
-    int value = 0;
-    converter->fill_from_string(value, "789");
-    EXPECT_EQ(value, 789);
-
-    const auto str = converter->convert_to_string(101112);
-    EXPECT_EQ(str, "101112");
-}
-
-TEST(ReflectionApi, Property_ConverterString)
+TEST(ReflectionApi, Property_ToString_StringType)
 {
     auto prop = reflection_api::make_property("stringValue", &TestStruct::stringValue);
-    const auto converter = prop.property_converter();
 
-    EXPECT_NE(converter, nullptr);
+    TestStruct obj;
+    obj.stringValue = "test_string";
 
-    std::string value;
-    converter->fill_from_string(value, "converted");
-    EXPECT_EQ(value, "converted");
-
-    const auto str = converter->convert_to_string(std::string("test"));
-    EXPECT_EQ(str, "test");
+    const std::string result = prop.to_string(obj);
+    EXPECT_EQ(result, "test_string");
 }
 
-TEST(ReflectionApi, Property_SetConverterMultipleTimes)
+TEST(ReflectionApi, Property_FromString_StringType)
+{
+    auto prop = reflection_api::make_property("stringValue", &TestStruct::stringValue);
+
+    TestStruct obj;
+    prop.from_string(obj, "converted_string");
+    EXPECT_EQ(obj.stringValue, "converted_string");
+}
+
+TEST(ReflectionApi, Property_ToString_DoubleType)
+{
+    auto prop = reflection_api::make_property("doubleValue", &TestStruct::doubleValue);
+
+    TestStruct obj;
+    obj.doubleValue = 3.14;
+
+    const std::string result = prop.to_string(obj);
+    EXPECT_FALSE(result.empty());
+}
+
+TEST(ReflectionApi, Property_FromString_DoubleType)
+{
+    auto prop = reflection_api::make_property("doubleValue", &TestStruct::doubleValue);
+
+    TestStruct obj;
+    prop.from_string(obj, "2.718");
+    EXPECT_DOUBLE_EQ(obj.doubleValue, 2.718);
+}
+
+TEST(ReflectionApi, Property_ToString_BoolType)
+{
+    auto prop = reflection_api::make_property("boolValue", &TestStruct::boolValue);
+
+    TestStruct obj;
+    obj.boolValue = true;
+
+    const std::string result = prop.to_string(obj);
+    EXPECT_FALSE(result.empty());
+}
+
+TEST(ReflectionApi, Property_FromString_BoolType)
+{
+    auto prop = reflection_api::make_property("boolValue", &TestStruct::boolValue);
+
+    TestStruct obj;
+    prop.from_string(obj, "true");
+    EXPECT_TRUE(obj.boolValue);
+}
+
+TEST(ReflectionApi, Property_ToString_WithCustomConverter)
 {
     auto prop = reflection_api::make_property("intValue", &TestStruct::intValue);
-    
-    const auto converter1 = std::make_shared<type_converter_api::type_converter<int>>();
-    prop.set_converter(converter1);
-    EXPECT_EQ(prop.property_converter(), converter1);
+    const auto customConverter = std::make_shared<type_converter_api::type_converter<int>>();
+    prop.set_converter(customConverter);
 
-    const auto converter2 = std::make_shared<type_converter_api::type_converter<int>>();
-    prop.set_converter(converter2);
-    EXPECT_EQ(prop.property_converter(), converter2);
-    EXPECT_NE(prop.property_converter(), converter1);
+    TestStruct obj;
+    obj.intValue = 999;
+
+    const std::string result = prop.to_string(obj);
+    EXPECT_FALSE(result.empty());
+}
+
+TEST(ReflectionApi, Property_FromString_WithCustomConverter)
+{
+    auto prop = reflection_api::make_property("intValue", &TestStruct::intValue);
+    const auto customConverter = std::make_shared<type_converter_api::type_converter<int>>();
+    prop.set_converter(customConverter);
+
+    TestStruct obj;
+    prop.from_string(obj, "888");
+    EXPECT_EQ(obj.intValue, 888);
+}
+
+TEST(ReflectionApi, Property_SetConverter_ChainCall)
+{
+    auto prop = reflection_api::make_property("intValue", &TestStruct::intValue);
+    const auto customConverter = std::make_shared<type_converter_api::type_converter<int>>();
+
+    auto& result = prop.set_converter(customConverter);
+    EXPECT_EQ(&result, &prop);
+}
+
+TEST(ReflectionApi, Property_ToStringFromString_RoundTrip)
+{
+    auto prop = reflection_api::make_property("intValue", &TestStruct::intValue);
+
+    TestStruct obj1;
+    obj1.intValue = 555;
+    const std::string str = prop.to_string(obj1);
+
+    TestStruct obj2;
+    prop.from_string(obj2, str);
+    EXPECT_EQ(obj2.intValue, 555);
+}
+
+TEST(ReflectionApi, Property_ToStringFromString_StringRoundTrip)
+{
+    auto prop = reflection_api::make_property("stringValue", &TestStruct::stringValue);
+
+    TestStruct obj1;
+    obj1.stringValue = "round_trip_test";
+    const std::string str = prop.to_string(obj1);
+
+    TestStruct obj2;
+    prop.from_string(obj2, str);
+    EXPECT_EQ(obj2.stringValue, "round_trip_test");
+}
+
+TEST(ReflectionApi, Property_FromString_WithGetterSetter)
+{
+    auto prop = reflection_api::make_property("intValue", &TestClassWithMethods::setIntValue, &TestClassWithMethods::getIntValue);
+
+    TestClassWithMethods obj;
+    prop.from_string(obj, "777");
+    EXPECT_EQ(obj.getIntValue(), 777);
+}
+
+TEST(ReflectionApi, Property_ToString_WithGetterSetter)
+{
+    auto prop = reflection_api::make_property("intValue", &TestClassWithMethods::setIntValue, &TestClassWithMethods::getIntValue);
+
+    TestClassWithMethods obj;
+    obj.setIntValue(666);
+    const std::string result = prop.to_string(obj);
+    EXPECT_EQ(result, "666");
 }
 
 TEST(ReflectionApi, Property_WithBool)

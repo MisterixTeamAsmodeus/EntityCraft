@@ -14,16 +14,14 @@ select_builder& select_builder::from(const std::string& table_name, const std::s
     return *this;
 }
 
-select_builder& select_builder::columns(const std::initializer_list<ast::expression> columns)
+select_builder& select_builder::columns(const std::initializer_list<ast::expression> columns_info)
 {
-    query_.columns.assign(columns.begin(), columns.end());
-    return *this;
+    return columns(columns_info.begin(), columns_info.end());
 }
 
-select_builder& select_builder::columns(const std::vector<ast::expression>& columns)
+select_builder& select_builder::columns(const std::vector<ast::expression>& columns_info)
 {
-    query_.columns.assign(columns.begin(), columns.end());
-    return *this;
+    return columns(columns_info.begin(), columns_info.end());
 }
 
 select_builder& select_builder::where(ast::expression expr)
@@ -51,8 +49,12 @@ select_builder& select_builder::having(ast::expression expr)
 
 select_builder& select_builder::order_by(const std::initializer_list<ast::order_by_item> items)
 {
-    query_.order_by.assign(items.begin(), items.end());
-    return *this;
+    return order_by(items.begin(), items.end());
+}
+
+select_builder& select_builder::order_by(const std::vector<ast::order_by_item>& items)
+{
+    return order_by(items.begin(), items.end());
 }
 
 select_builder& select_builder::limit(const std::uint64_t value)
@@ -84,22 +86,22 @@ select_builder& select_builder::join(const ast::join_type type, const std::strin
     return *this;
 }
 
-select_builder& select_builder::inner_join(const std::string& table_name,ast::expression on,const std::string& schema)
+select_builder& select_builder::inner_join(const std::string& table_name, ast::expression on, const std::string& schema)
 {
     return join(ast::join_type::inner, table_name, std::move(on), schema);
 }
 
-select_builder& select_builder::left_join(const std::string& table_name,ast::expression on,const std::string& schema)
+select_builder& select_builder::left_join(const std::string& table_name, ast::expression on, const std::string& schema)
 {
     return join(ast::join_type::left, table_name, std::move(on), schema);
 }
 
-select_builder& select_builder::right_join(const std::string& table_name,ast::expression on,const std::string& schema)
+select_builder& select_builder::right_join(const std::string& table_name, ast::expression on, const std::string& schema)
 {
     return join(ast::join_type::right, table_name, std::move(on), schema);
 }
 
-select_builder& select_builder::full_join(const std::string& table_name,ast::expression on,const std::string& schema)
+select_builder& select_builder::full_join(const std::string& table_name, ast::expression on, const std::string& schema)
 {
     return join(ast::join_type::full, table_name, std::move(on), schema);
 }
@@ -118,9 +120,11 @@ ast::select_query select_builder::to_ast() const noexcept
     return query_;
 }
 
-compiled_query select_builder::compile(std::shared_ptr<sql_dialect> dialect) const
+compiled_query select_builder::compile(std::shared_ptr<sql_dialect> dialect)
 {
-    return sql_compiler(std::move(dialect)).compile(query_);
+    auto compile_result = sql_compiler(std::move(dialect)).compile(query_);
+    query_ = {};
+    return compile_result;
 }
 
 } // namespace dsl

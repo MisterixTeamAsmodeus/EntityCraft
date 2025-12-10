@@ -44,11 +44,13 @@ public:
     ClassType insert(const ClassType& entity);
 
     /**
-     * @brief Вставляет несколько сущностей в базу данных (batch insert)
-     * @param entities Вектор сущностей для вставки
+     * @brief Вставляет несколько сущностей в базу данных (batch insert) из итераторов.
+     * @param begin Начало итератора.
+     * @param end Конец итератора.
      * @return Вектор вставленных сущностей с обновленными ID (если auto_increment)
      */
-    std::vector<ClassType> insert_batch(const std::vector<ClassType>& entities);
+    template<typename Begin, typename End>
+    std::vector<ClassType> insert_batch(Begin begin, End end);
 
     /**
      * @brief Находит сущность по ID
@@ -66,6 +68,13 @@ public:
     std::vector<ClassType> find_all();
 
     /**
+     * @brief Находит одну сущность по условию
+     * @param condition Условие WHERE
+     * @return Уникальный указатель на сущность, если найдена, иначе nullptr
+     */
+    std::unique_ptr<ClassType> find_one(const query_craft::ast::expression& condition);
+
+    /**
      * @brief Находит сущности по условию
      * @param condition Условие WHERE
      * @return Вектор найденных сущностей
@@ -73,11 +82,13 @@ public:
     std::vector<ClassType> find_where(const query_craft::ast::expression& condition);
 
     /**
-     * @brief Находит одну сущность по условию
-     * @param condition Условие WHERE
-     * @return Уникальный указатель на сущность, если найдена, иначе nullptr
+     * @brief Обновляет несколько сущностей в базе данных (batch update) из итераторов.
+     * @param begin Начало итератора.
+     * @param end Конец итератора.
+     * @return Вектор обновленных сущностей
      */
-    std::unique_ptr<ClassType> find_one(const query_craft::ast::expression& condition);
+    template<typename Begin, typename End>
+    std::vector<ClassType> update_batch(Begin begin, End end);
 
     /**
      * @brief Обновляет сущность в базе данных (по ID)
@@ -93,6 +104,15 @@ public:
      * @return Обновленная сущность (первая из обновленных)
      */
     ClassType update_where(const ClassType& entity, const query_craft::ast::expression& condition);
+
+    /**
+     * @brief Удаляет несколько сущностей в базе данных (batch delete) из итераторов.
+     * @param begin Начало итератора.
+     * @param end Конец итератора.
+     * @return true, если все сущности были удалены
+     */
+    template<typename Begin, typename End>
+    bool remove_batch(Begin begin, End end);
 
     /**
      * @brief Удаляет сущность из базы данных (по ID)
@@ -117,25 +137,24 @@ public:
      */
     bool remove_where(const query_craft::ast::expression& condition);
 
-
 private:
     /**
      * @brief Начинает транзакцию, если она еще не начата
      * @return true, если транзакция была начата, false если уже была активна
      */
-    bool begin_transaction_if_needed();
+    bool begin_transaction_if_needed() const;
 
     /**
      * @brief Фиксирует транзакцию, если она была начата автоматически и включен auto_commit
      * @param transaction_started Флаг, указывающий была ли начата транзакция автоматически
      */
-    void commit_transaction_if_needed(bool transaction_started);
+    void commit_transaction_if_needed(bool transaction_started) const;
 
     /**
      * @brief Откатывает транзакцию при ошибке, если она была начата автоматически
      * @param transaction_started Флаг, указывающий была ли начата транзакция автоматически
      */
-    void rollback_transaction_on_error(bool transaction_started);
+    void rollback_transaction_on_error(bool transaction_started) const;
 
 private:
     std::shared_ptr<database_adapter::IConnection> _database;
@@ -145,7 +164,8 @@ private:
 
 // Реализация методов storage
 
-template<typename ClassType, typename... Columns> storage<ClassType, Columns...>::storage(const std::shared_ptr<database_adapter::IConnection>& database, table<ClassType, Columns...> dto, const bool auto_commit)
+template<typename ClassType, typename... Columns>
+storage<ClassType, Columns...>::storage(const std::shared_ptr<database_adapter::IConnection>& database, table<ClassType, Columns...> dto, const bool auto_commit)
     : _database(database)
     , _dto(std::move(dto))
     , _auto_commit(auto_commit)
@@ -157,8 +177,7 @@ template<typename ClassType, typename... Columns> storage<ClassType, Columns...>
 
 template<typename ClassType, typename... Columns> storage<ClassType, Columns...>::~storage()
 {
-    if(_database != nullptr && _database->is_transaction() && _auto_commit)
-    {
+    if(_database != nullptr && _database->is_transaction() && _auto_commit) {
         try {
             _database->commit();
         } catch(...) {
@@ -177,19 +196,17 @@ ClassType storage<ClassType, Columns...>::insert(const ClassType& entity)
             throw std::runtime_error("Unable to determine SQL dialect");
         }
 
-        std::vector<std::string> column_names = get_column_names(_dto, true);
+        auto column_names = _dto.column_names_without_auto_increment();
         if(column_names.empty()) {
             throw std::runtime_error("No columns to insert");
         }
 
-        std::vector<std::string> params = map_entity_to_params(_dto, entity, false);
-
         query_craft::dsl::insert_builder builder;
         builder.into(_dto.table_name(), _dto.scheme())
-            .columns(column_names);
+            .columns(column_names.begin(), column_names.end());
 
         std::vector<query_craft::ast::expression> values;
-        for(const auto& param : params) {
+        for(const auto& param : map_entity_to_params(_dto, entity, false)) {
             if(param == NULL_VALUE) {
                 values.push_back(query_craft::dsl::value(NULL_VALUE));
             } else {
@@ -198,13 +215,8 @@ ClassType storage<ClassType, Columns...>::insert(const ClassType& entity)
         }
         builder.values(values);
 
-        bool has_auto_inc = has_auto_increment(_dto);
-        if(has_auto_inc) {
-            auto primary_key_name = get_primary_key_column_name(_dto);
-            if(primary_key_name != nullptr) {
-                builder.returning({ *primary_key_name });
-            }
-        }
+        auto auto_increment_column_names = _dto.auto_increment_column_names();
+        builder.returning(auto_increment_column_names.begin(), auto_increment_column_names.end());
 
         auto compiled = builder.compile(dialect);
         database_adapter::query_result result;
@@ -218,27 +230,15 @@ ClassType storage<ClassType, Columns...>::insert(const ClassType& entity)
         result = _database->exec_prepared(compiled.parameters, statement_name);
 
         ClassType result_entity = entity;
-        if(has_auto_inc && !result.empty()) {
-            const auto& row = result.at(0);
-            auto primary_key_name = get_primary_key_column_name(_dto);
-            if(primary_key_name != nullptr) {
-                auto it = row.find(*primary_key_name);
+        if(!result.empty()) {
+            auto row = result.at(0);
+
+            _dto.for_each([&result_entity, &row](const auto& column) {
+                auto it = row.find(column.name());
                 if(it != row.end() && it->second != NULL_VALUE) {
-                    _dto.for_each([&result_entity, &it, &primary_key_name](const auto& column) {
-                        if(column.name() == *primary_key_name) {
-                            using PropertyType = typename std::decay_t<decltype(column)>::property_type;
-                            PropertyType id_value = column.empty_property();
-                            auto converter = column.property_converter();
-                            if(converter != nullptr) {
-                                converter->fill_from_string(id_value, it->second);
-                            } else {
-                                type_converter_api::from_string(id_value, it->second);
-                            }
-                            column.set_value(result_entity, id_value);
-                        }
-                    });
+                    column.from_string(result_entity, it->second);
                 }
-            }
+            });
         }
 
         commit_transaction_if_needed(transaction_started);
@@ -250,34 +250,26 @@ ClassType storage<ClassType, Columns...>::insert(const ClassType& entity)
 }
 
 template<typename ClassType, typename... Columns>
-std::vector<ClassType> storage<ClassType, Columns...>::insert_batch(const std::vector<ClassType>& entities)
+template<typename Begin, typename End>
+std::vector<ClassType> storage<ClassType, Columns...>::insert_batch(Begin begin, End end)
 {
-    if(entities.empty()) {
+    if(begin == end) {
         return {};
     }
 
-    bool transaction_started = begin_transaction_if_needed();
-    bool saved_auto_commit = _auto_commit;
+    const bool transaction_started = begin_transaction_if_needed();
     try {
-        // Временно отключаем auto_commit, чтобы insert() не коммитил транзакцию после каждой вставки
-        _auto_commit = false;
-
         std::vector<ClassType> result_entities;
-        result_entities.reserve(entities.size());
+        result_entities.reserve(std::distance(begin, end));
 
-        for(const auto& entity : entities) {
-            // insert() видит, что транзакция уже начата, и не будет коммитить из-за _auto_commit = false
-            result_entities.emplace_back(insert(entity));
+        for(auto it = begin; it != end; ++it) {
+            // insert() видит, что транзакция уже начата, и не будет коммитить
+            result_entities.emplace_back(insert(*it));
         }
-
-        // Восстанавливаем исходное значение auto_commit
-        _auto_commit = saved_auto_commit;
 
         commit_transaction_if_needed(transaction_started);
         return result_entities;
     } catch(...) {
-        // Восстанавливаем исходное значение auto_commit перед откатом
-        _auto_commit = saved_auto_commit;
         rollback_transaction_on_error(transaction_started);
         throw;
     }
@@ -287,38 +279,29 @@ template<typename ClassType, typename... Columns>
 template<typename IdType>
 std::unique_ptr<ClassType> storage<ClassType, Columns...>::find_by_id(const IdType& id)
 {
-    auto primary_key_name = get_primary_key_column_name(_dto);
-    if(primary_key_name == nullptr) {
+    auto primary_key_name = _dto.primary_key_column_name();
+    if(primary_key_name.empty()) {
         throw std::runtime_error("Table has no primary key");
     }
 
-    auto condition = create_id_where_condition(*primary_key_name, id);
+    auto condition = create_where_condition(primary_key_name, id);
     return find_one(condition);
 }
 
 template<typename ClassType, typename... Columns>
 std::vector<ClassType> storage<ClassType, Columns...>::find_all()
 {
-    auto dialect = _database->dialect();
-    if(dialect == nullptr) {
-        throw std::runtime_error("Unable to determine SQL dialect");
+    return find_where({});
+}
+
+template<typename ClassType, typename... Columns>
+std::unique_ptr<ClassType> storage<ClassType, Columns...>::find_one(const query_craft::ast::expression& condition)
+{
+    auto results = find_where(condition);
+    if(results.empty()) {
+        return nullptr;
     }
-
-    std::vector<std::string> column_names = get_column_names(_dto);
-
-    query_craft::dsl::select_builder builder;
-    std::vector<query_craft::ast::expression> columns;
-    for(const auto& name : column_names) {
-        columns.push_back(query_craft::dsl::col(name, _dto.column_alias(name)));
-    }
-
-    builder.from(_dto.table_name(), _dto.scheme())
-        .columns(columns);
-
-    auto compiled = builder.compile(dialect);
-    database_adapter::query_result result = _database->exec(compiled.sql);
-
-    return map_result_to_entities(_dto, result);
+    return std::make_unique<ClassType>(std::move(results[0]));
 }
 
 template<typename ClassType, typename... Columns>
@@ -329,11 +312,9 @@ std::vector<ClassType> storage<ClassType, Columns...>::find_where(const query_cr
         throw std::runtime_error("Unable to determine SQL dialect");
     }
 
-    std::vector<std::string> column_names = get_column_names(_dto);
-
     query_craft::dsl::select_builder builder;
     std::vector<query_craft::ast::expression> columns;
-    for(const auto& name : column_names) {
+    for(const auto& name : _dto.columns_name()) {
         columns.push_back(query_craft::dsl::col(name, _dto.column_alias(name)));
     }
 
@@ -358,39 +339,39 @@ std::vector<ClassType> storage<ClassType, Columns...>::find_where(const query_cr
     return map_result_to_entities(_dto, result);
 }
 
-template<typename ClassType, typename... Columns>
-std::unique_ptr<ClassType> storage<ClassType, Columns...>::find_one(const query_craft::ast::expression& condition)
+template<typename ClassType, typename... Columns> template<typename Begin, typename End> std::vector<ClassType> storage<ClassType, Columns...>::update_batch(Begin begin, End end)
 {
-    auto results = find_where(condition);
-    if(results.empty()) {
-        return nullptr;
+    if(begin == end) {
+        return {};
     }
-    return std::unique_ptr<ClassType>(new ClassType(std::move(results[0])));
+
+    const bool transaction_started = begin_transaction_if_needed();
+    try {
+        std::vector<ClassType> result_entities;
+        result_entities.reserve(std::distance(begin, end));
+
+        for(auto it = begin; it != end; ++it) {
+            result_entities.emplace_back(update(*it));
+        }
+
+        commit_transaction_if_needed(transaction_started);
+        return result_entities;
+    } catch(...) {
+        rollback_transaction_on_error(transaction_started);
+        throw;
+    }
+    return {};
 }
 
 template<typename ClassType, typename... Columns>
 ClassType storage<ClassType, Columns...>::update(const ClassType& entity)
 {
-    auto primary_key_name = get_primary_key_column_name(_dto);
-    if(primary_key_name == nullptr) {
+    auto primary_key_name = _dto.primary_key_column_name();
+    if(primary_key_name.empty()) {
         throw std::runtime_error("Table has no primary key for update");
     }
 
-    ClassType temp_entity = entity;
-    std::string id_str;
-    _dto.for_each([&temp_entity, &id_str, &primary_key_name](const auto& column) {
-        if(column.name() == *primary_key_name) {
-            auto id = column.value(temp_entity);
-            auto converter = column.property_converter();
-            if(converter != nullptr) {
-                id_str = converter->convert_to_string(id);
-            } else {
-                id_str = type_converter_api::to_string(id);
-            }
-        }
-    });
-
-    auto condition = create_id_where_condition(*primary_key_name, id_str);
+    auto condition = create_where_condition(primary_key_name, _dto.primary_key_column_value(entity));
     return update_where(entity, condition);
 }
 
@@ -408,31 +389,32 @@ ClassType storage<ClassType, Columns...>::update_where(const ClassType& entity, 
         builder.table(_dto.table_name(), _dto.scheme())
             .where(condition);
 
-        std::vector<std::string> column_names = get_column_names(_dto, true);
-        std::vector<std::string> params = map_entity_to_params(_dto, entity, false);
+        auto column_names = _dto.column_names_without_auto_increment();
+        auto params = map_entity_to_params(_dto, entity, false);
+        auto default_params = map_entity_to_params(_dto, _dto.empty_entity(), false);
 
-        // При обновлении пропускаем поля с NULL значениями, чтобы обновлялись только поля с реальными значениями
         for(size_t i = 0; i < column_names.size() && i < params.size(); ++i) {
-            if(params[i] != NULL_VALUE) {
-                builder.set(column_names[i], query_craft::dsl::param(params[i]));
+            if(params[i] == default_params[i]) {
+                continue;
             }
-            // Пропускаем поля с NULL значениями - они не будут обновлены
+
+            builder.set(column_names[i], query_craft::dsl::param(params[i]));
         }
 
-        std::vector<std::string> return_columns = get_column_names(_dto);
-        builder.returning(return_columns);
+        auto return_columns = _dto.columns_name();
+        builder.returning(return_columns.begin(), return_columns.end());
 
         auto compiled = builder.compile(dialect);
         database_adapter::query_result result;
 
         // Всегда используем prepared statements для защиты от SQL инъекций
         // Генерируем уникальное имя на основе SQL и параметров
-        std::string base_name = "update_" + _dto.table_name();
-        std::string statement_name = generate_unique_statement_name(base_name, compiled.sql);
+        const auto base_name = "update_" + _dto.table_name();
+        auto statement_name = generate_unique_statement_name(base_name, compiled.sql);
         _database->prepare(compiled.sql, statement_name);
         result = _database->exec_prepared(compiled.parameters, statement_name);
 
-        ClassType result_entity = entity;
+        auto result_entity = _dto.empty_entity();
         if(!result.empty()) {
             result_entity = map_row_to_entity(_dto, result.at(0));
         }
@@ -445,55 +427,62 @@ ClassType storage<ClassType, Columns...>::update_where(const ClassType& entity, 
     }
 }
 
+template<typename ClassType, typename... Columns> template<typename Begin, typename End> bool storage<ClassType, Columns...>::remove_batch(Begin begin, End end)
+{
+    if(begin == end) {
+        return false;
+    }
+
+    const bool transaction_started = begin_transaction_if_needed();
+    try {
+        for(auto it = begin; it != end; ++it) {
+            if(!remove(*it)) {
+                rollback_transaction_on_error(transaction_started);
+                return false;
+            }
+        }
+        commit_transaction_if_needed(transaction_started);
+        return true;
+    } catch(...) {
+        rollback_transaction_on_error(transaction_started);
+        throw;
+    }
+    return false;
+}
+
 template<typename ClassType, typename... Columns>
 bool storage<ClassType, Columns...>::remove(const ClassType& entity)
 {
-    auto primary_key_name = get_primary_key_column_name(_dto);
-    if(primary_key_name == nullptr) {
+    auto primary_key_name = _dto.primary_key_column_name();
+    if(primary_key_name.empty()) {
         throw std::runtime_error("Table has no primary key for delete");
     }
 
-    std::string id_str;
-    _dto.for_each([&entity, &id_str, &primary_key_name](const auto& column) {
-        if(column.name() == *primary_key_name) {
-            using PropertyType = typename std::decay_t<decltype(column)>::property_type;
-            PropertyType id = column.value(entity);
-            auto converter = column.property_converter();
-            if(converter != nullptr) {
-                id_str = converter->convert_to_string(id);
-            } else {
-                type_converter_api::type_converter<PropertyType> default_converter;
-                id_str = default_converter.convert_to_string(id);
-            }
-        }
-    });
-
-    return remove_by_id(id_str);
+    return remove_by_id(_dto.primary_key_column_value(entity));
 }
 
 template<typename ClassType, typename... Columns>
 template<typename IdType>
 bool storage<ClassType, Columns...>::remove_by_id(const IdType& id)
 {
-    auto primary_key_name = get_primary_key_column_name(_dto);
-    if(primary_key_name == nullptr) {
-        throw std::runtime_error("Table has no primary key");
+    auto primary_key_name = _dto.primary_key_column_name();
+    if(primary_key_name.empty()) {
+        throw std::runtime_error("Table has no primary key for delete");
     }
 
-    auto condition = create_id_where_condition(*primary_key_name, id);
-    return remove_where(condition);
+    return remove_where(create_where_condition(primary_key_name, id));
 }
 
 template<typename ClassType, typename... Columns>
 bool storage<ClassType, Columns...>::remove_where(const query_craft::ast::expression& condition)
 {
+    auto objects = find_where(condition);
+    if(objects.empty()) {
+        return false;
+    }
+
     bool transaction_started = begin_transaction_if_needed();
     try {
-        if(find_where(condition).empty()) {
-            commit_transaction_if_needed(transaction_started);
-            return false;
-        }
-
         auto dialect = _database->dialect();
         if(dialect == nullptr) {
             throw std::runtime_error("Unable to determine SQL dialect");
@@ -522,10 +511,12 @@ bool storage<ClassType, Columns...>::remove_where(const query_craft::ast::expres
         rollback_transaction_on_error(transaction_started);
         throw;
     }
+
+    return false;
 }
 
 template<typename ClassType, typename... Columns>
-bool storage<ClassType, Columns...>::begin_transaction_if_needed()
+bool storage<ClassType, Columns...>::begin_transaction_if_needed() const
 {
     if(!_database->is_transaction()) {
         _database->begin_transaction();
@@ -535,7 +526,7 @@ bool storage<ClassType, Columns...>::begin_transaction_if_needed()
 }
 
 template<typename ClassType, typename... Columns>
-void storage<ClassType, Columns...>::commit_transaction_if_needed(bool transaction_started)
+void storage<ClassType, Columns...>::commit_transaction_if_needed(bool transaction_started) const
 {
     if(transaction_started && _auto_commit) {
         _database->commit();
@@ -543,7 +534,7 @@ void storage<ClassType, Columns...>::commit_transaction_if_needed(bool transacti
 }
 
 template<typename ClassType, typename... Columns>
-void storage<ClassType, Columns...>::rollback_transaction_on_error(bool transaction_started)
+void storage<ClassType, Columns...>::rollback_transaction_on_error(bool transaction_started) const
 {
     if(transaction_started) {
         try {

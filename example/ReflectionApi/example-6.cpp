@@ -170,26 +170,36 @@ int main()
     std::cout << ");\n\n";
 
     // ============================================================
-    // ШАГ 3: ИСПОЛЬЗОВАНИЕ КОНВЕРТЕРОВ ТИПОВ
+    // ШАГ 3: ИСПОЛЬЗОВАНИЕ КОНВЕРТЕРОВ ТИПОВ (to_string/from_string)
     // ============================================================
 
-    std::cout << "ШАГ 3: Использование конвертеров типов\n";
-    std::cout << "--------------------------------------\n";
+    std::cout << "ШАГ 3: Использование конвертеров типов (to_string/from_string)\n";
+    std::cout << "---------------------------------------------------------------\n";
 
     // Получаем property для id
     auto idProp = reflection_api::make_property("id", &User::id);
 
-    // Получаем конвертер для этого property
-    auto converter = idProp.property_converter();
+    // Создаем объект User
+    User testUser;
+    testUser.id = 42;
 
-    // Конвертируем из строки в int
-    int idValue = 0;
-    converter->fill_from_string(idValue, "42");
-    std::cout << "Конвертация из строки '42' в int: " << idValue << "\n";
+    // Конвертируем значение свойства в строку
+    std::string idString = idProp.to_string(testUser);
+    std::cout << "Конвертация id в строку через to_string: '" << idString << "'\n";
 
-    // Конвертируем из int в строку
-    std::string idString = converter->convert_to_string(100);
-    std::cout << "Конвертация из int 100 в строку: '" << idString << "'\n\n";
+    // Конвертируем строку обратно в значение свойства
+    User testUser2;
+    idProp.from_string(testUser2, "100");
+    std::cout << "Конвертация строки '100' в id через from_string: " << testUser2.id << "\n";
+
+    // Работа с другими типами
+    auto usernameProp = reflection_api::make_property("username", &User::username);
+    testUser.username = "john_doe";
+    std::string usernameString = usernameProp.to_string(testUser);
+    std::cout << "Конвертация username в строку: '" << usernameString << "'\n";
+
+    usernameProp.from_string(testUser2, "jane_smith");
+    std::cout << "Конвертация строки 'jane_smith' в username: '" << testUser2.username << "'\n\n";
 
     // ============================================================
     // ШАГ 4: ДИНАМИЧЕСКОЕ СОЗДАНИЕ ОБЪЕКТОВ
@@ -209,21 +219,14 @@ int main()
     // Создаем пустой объект
     User newUser = userEntity.empty_entity();
 
-    // Заполняем объект из map
+    // Заполняем объект из map используя from_string
     for(const auto& pair : formData) {
         if(userEntity.has_property(pair.first)) {
-            // Получаем property для определения типа
-            userEntity.for_each([&newUser, &pair, &userEntity](const auto& prop) {
+            // Используем for_each для поиска нужного property
+            userEntity.for_each([&newUser, &pair](const auto& prop) {
                 if(prop.name() == pair.first) {
-                    User temp;
-                    auto value = prop.value(temp);
-
-                    // Используем конвертер для преобразования
-                    auto conv = prop.property_converter();
-
-                    decltype(value) tempValue;
-                    conv->fill_from_string(tempValue, pair.second);
-                    userEntity.set_property_value(newUser, tempValue, pair.first);
+                    // Используем from_string для конвертации строки в значение
+                    prop.from_string(newUser, pair.second);
                 }
             });
         }
@@ -303,10 +306,9 @@ int main()
 
     std::map<std::string, std::string> exportMap;
 
+    // Используем to_string для конвертации значений в строки
     userEntity.for_each([&user, &exportMap](const auto& prop) {
-        auto value = prop.value(user);
-        auto converter = prop.property_converter();
-        std::string strValue = converter->convert_to_string(value);
+        std::string strValue = prop.to_string(user);
         exportMap[prop.name()] = strValue;
     });
 
@@ -322,7 +324,7 @@ int main()
     //
     // В этом примере мы изучили практические сценарии:
     // 1. Генерацию SQL-запросов (ORM-подобная работа)
-    // 2. Использование конвертеров типов
+    // 2. Использование конвертеров типов через to_string/from_string
     // 3. Динамическое создание объектов из данных
     // 4. Копирование значений между объектами
     // 5. Сравнение объектов
