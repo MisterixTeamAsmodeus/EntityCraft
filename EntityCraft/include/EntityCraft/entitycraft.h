@@ -1,11 +1,9 @@
 #pragma once
 
-#include "column.h"
-#include "mapper.h"
-#include "referencecolumn.h"
+#include "reflection/column.h"
+#include "reflection/referencecolumn.h"
+#include "reflection/table.h"
 #include "storage.h"
-#include "storage_utils.h"
-#include "table.h"
 
 #include <QueryCraft/querycraft.h>
 

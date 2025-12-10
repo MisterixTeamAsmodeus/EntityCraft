@@ -131,9 +131,6 @@ std::string container_to_string(const Container& container, const std::string& d
 template<typename Container>
 void container_from_string(Container& container, const std::string& str, const std::string& delimiter = ",")
 {
-    if(sfinae::has_clear_v<Container>) {
-        container.clear();
-    }
     if(str.empty())
         return;
 
@@ -180,6 +177,12 @@ TargetString string_convert(const SourceString& source)
     TargetString result;
     converter.fill_from_string(result, intermediate);
     return result;
+}
+
+template<typename Container, typename ValueType>
+void insert_item(Container& container, const ValueType& item)
+{
+    impl::insert_item(container, item, 0);
 }
 
 } // namespace type_converter_api

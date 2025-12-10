@@ -1,9 +1,9 @@
 #pragma once
 
 #include "DatabaseAdapter/iconnection.hpp"
-#include "mapper.h"
-#include "storage_utils.h"
-#include "table.h"
+#include "reflection/table.h"
+#include "utils/mapper.h"
+#include "utils/storage_utils.h"
 
 #include <QueryCraft/builder/delete_builder.h>
 #include <QueryCraft/builder/dsl.h>
@@ -12,7 +12,6 @@
 #include <QueryCraft/builder/update_builder.h>
 
 #include <memory>
-#include <set>
 #include <stdexcept>
 #include <vector>
 
@@ -82,6 +81,35 @@ public:
     std::vector<ClassType> find_where(const query_craft::ast::expression& condition);
 
     /**
+     * @brief Находит сущность по ID с блокировкой строк (SELECT ... FOR UPDATE)
+     * @tparam IdType Тип ID
+     * @param id Значение ID
+     * @return Уникальный указатель на сущность, если найдена, иначе nullptr
+     * @note Используется для конкурентного доступа к данным в транзакциях.
+     *       Блокирует выбранные строки до завершения транзакции.
+     */
+    template<typename IdType>
+    std::unique_ptr<ClassType> find_for_update_by_id(const IdType& id);
+
+    /**
+     * @brief Находит одну сущность по условию с блокировкой строк (SELECT ... FOR UPDATE)
+     * @param condition Условие WHERE
+     * @return Уникальный указатель на сущность, если найдена, иначе nullptr
+     * @note Используется для конкурентного доступа к данным в транзакциях.
+     *       Блокирует выбранные строки до завершения транзакции.
+     */
+    std::unique_ptr<ClassType> find_for_update_one(const query_craft::ast::expression& condition);
+
+    /**
+     * @brief Находит сущности по условию с блокировкой строк (SELECT ... FOR UPDATE)
+     * @param condition Условие WHERE
+     * @return Вектор найденных сущностей
+     * @note Используется для конкурентного доступа к данным в транзакциях.
+     *       Блокирует выбранные строки до завершения транзакции.
+     */
+    std::vector<ClassType> find_for_update_where(const query_craft::ast::expression& condition);
+
+    /**
      * @brief Обновляет несколько сущностей в базе данных (batch update) из итераторов.
      * @param begin Начало итератора.
      * @param end Конец итератора.
@@ -136,6 +164,25 @@ public:
      * @return true, если хотя бы одна сущность была удалена
      */
     bool remove_where(const query_craft::ast::expression& condition);
+
+    /**
+     * @brief Проверяет существование сущности по ID
+     * @tparam IdType Тип ID
+     * @param id Значение ID
+     * @return true, если сущность существует, иначе false
+     */
+    template<typename IdType>
+    bool contains(const IdType& id);
+
+    /**
+     * @brief Атомарно вставляет или обновляет сущность в базе данных
+     * @param entity Сущность для вставки или обновления
+     * @return Вставленная или обновленная сущность с обновленным ID (если auto_increment)
+     * @note Метод атомарно проверяет существование сущности по primary key.
+     *       Если сущность существует - обновляет её, иначе - вставляет.
+     *       Использует транзакцию и блокировку строк для обеспечения атомарности.
+     */
+    ClassType upsert(const ClassType& entity);
 
 private:
     /**
@@ -339,6 +386,64 @@ std::vector<ClassType> storage<ClassType, Columns...>::find_where(const query_cr
     return map_result_to_entities(_dto, result);
 }
 
+template<typename ClassType, typename... Columns>
+template<typename IdType>
+std::unique_ptr<ClassType> storage<ClassType, Columns...>::find_for_update_by_id(const IdType& id)
+{
+    auto primary_key_name = _dto.primary_key_column_name();
+    if(primary_key_name.empty()) {
+        throw std::runtime_error("Table has no primary key");
+    }
+
+    return find_for_update_one(create_where_condition(primary_key_name, id));
+}
+
+template<typename ClassType, typename... Columns>
+std::unique_ptr<ClassType> storage<ClassType, Columns...>::find_for_update_one(const query_craft::ast::expression& condition)
+{
+    auto results = find_for_update_where(condition);
+    if(results.empty()) {
+        return nullptr;
+    }
+    return std::make_unique<ClassType>(std::move(results[0]));
+}
+
+template<typename ClassType, typename... Columns>
+std::vector<ClassType> storage<ClassType, Columns...>::find_for_update_where(const query_craft::ast::expression& condition)
+{
+    auto dialect = _database->dialect();
+    if(dialect == nullptr) {
+        throw std::runtime_error("Unable to determine SQL dialect");
+    }
+
+    query_craft::dsl::select_builder builder;
+    std::vector<query_craft::ast::expression> columns;
+    for(const auto& name : _dto.columns_name()) {
+        columns.push_back(query_craft::dsl::col(name, _dto.column_alias(name)));
+    }
+
+    builder.from(_dto.table_name(), _dto.scheme())
+        .columns(columns)
+        .where(condition)
+        .for_update();
+
+    auto compiled = builder.compile(dialect);
+    database_adapter::query_result result;
+
+    // Используем prepared statements для защиты от SQL инъекций, если есть параметры
+    if(!compiled.parameters.empty()) {
+        // Генерируем уникальное имя на основе SQL и параметров
+        std::string base_name = "find_for_update_where_" + _dto.table_name();
+        std::string statement_name = generate_unique_statement_name(base_name, compiled.sql);
+        _database->prepare(compiled.sql, statement_name);
+        result = _database->exec_prepared(compiled.parameters, statement_name);
+    } else {
+        result = _database->exec(compiled.sql);
+    }
+
+    return map_result_to_entities(_dto, result);
+}
+
 template<typename ClassType, typename... Columns> template<typename Begin, typename End> std::vector<ClassType> storage<ClassType, Columns...>::update_batch(Begin begin, End end)
 {
     if(begin == end) {
@@ -513,6 +618,53 @@ bool storage<ClassType, Columns...>::remove_where(const query_craft::ast::expres
     }
 
     return false;
+}
+
+template<typename ClassType, typename... Columns>
+template<typename IdType>
+bool storage<ClassType, Columns...>::contains(const IdType& id)
+{
+    return find_by_id(id) != nullptr;
+}
+
+template<typename ClassType, typename... Columns>
+ClassType storage<ClassType, Columns...>::upsert(const ClassType& entity)
+{
+    auto primary_key_name = _dto.primary_key_column_name();
+    if(primary_key_name.empty()) {
+        throw std::runtime_error("Table has no primary key for upsert");
+    }
+
+    ClassType result_entity;
+
+    bool transaction_started = begin_transaction_if_needed();
+    try {
+        if(!_dto.is_primary_key_column_value_null(entity)) {
+            // Создаем условие для поиска по primary key
+            auto condition = create_where_condition(primary_key_name, _dto.primary_key_column_value(entity));
+            
+            // Ищем сущность с блокировкой строк для атомарности
+            auto existing = find_for_update_one(condition);
+            
+            if(existing != nullptr) {
+                // Сущность существует - обновляем
+                result_entity = update_where(entity, condition);
+            } else {
+                // Сущность не существует - вставляем
+                result_entity = insert(entity);
+            }
+        } else {
+            // Primary key пустой всегда вставляем
+            result_entity = insert(entity);
+        }
+
+        commit_transaction_if_needed(transaction_started);
+    } catch(...) {
+        rollback_transaction_on_error(transaction_started);
+        throw;
+    }
+
+    return result_entity;
 }
 
 template<typename ClassType, typename... Columns>

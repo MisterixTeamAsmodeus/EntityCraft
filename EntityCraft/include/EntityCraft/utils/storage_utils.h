@@ -1,12 +1,7 @@
 #pragma once
 
-#include "column.h"
-#include "table.h"
-
 #include <QueryCraft/querycraft.h>
 
-#include <functional>
-#include <memory>
 #include <sstream>
 #include <string>
 

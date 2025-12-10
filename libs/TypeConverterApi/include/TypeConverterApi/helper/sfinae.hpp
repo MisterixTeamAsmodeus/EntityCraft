@@ -151,23 +151,6 @@ struct has_insert<Container, T, void_t<decltype((std::declval<Container&>().inse
 template<typename Container, typename T>
 constexpr bool has_insert_v = has_insert<Container, T>::value;
 
-/// Структура для проверки наличия метода clear
-template<typename Container, typename = void>
-struct has_clear : std::false_type
-{
-};
-
-/// Структура для проверки наличия метода clear
-template<typename Container>
-struct has_clear<Container, void_t<decltype(std::declval<Container&>().clear())>>
-    : std::true_type
-{
-};
-
-/// Результат проверки наличия метода clear
-template<typename Container>
-constexpr bool has_clear_v = has_clear<Container>::value;
-
 /// \brief Проверка наличия метода reserve для оптимизации
 template<typename Container, typename = void>
 struct has_reserve : std::false_type

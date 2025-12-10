@@ -7,7 +7,6 @@
 #include <cstdint>
 #include <ReflectionApi/helper/templates.hpp>
 #include <string>
-#include <TypeConverterApi/containerconverter.hpp>
 
 namespace entity_craft {
 
@@ -39,9 +38,6 @@ template<typename ClassType,
 class reference_column final : public column<ClassType, PropertyType, Setter, Getter>
 {
 public:
-    static PropertyType empty_property();
-
-public:
     explicit reference_column(const std::string& name,
         reflection_api::helper::Variable_t<ClassType, PropertyType> variable,
         table<ReferencePropertyType, ReferenceColumns...> reference_table,
@@ -64,9 +60,7 @@ public:
 
     relation_type type() const;
 
-    std::unique_ptr<type_converter_api::container_converter<PropertyType, ReferencePropertyType>> inserter() const;
-
-    reference_column set_inserter(std::unique_ptr<type_converter_api::container_converter<PropertyType, ReferencePropertyType>> inserter);
+    void append_value(ClassType& obj, const ReferencePropertyType& value) const;
 
     /**
      * @brief Получить тип каскадного поведения
@@ -101,15 +95,7 @@ private:
     cascade_behavior _cascade_behavior = cascade_behavior::none;
     std::string _foreign_key_column;
     std::string _primary_key_column;
-
-    std::unique_ptr<type_converter_api::container_converter<PropertyType, ReferencePropertyType>> _inserter;
 };
-
-template<typename ClassType, typename PropertyType, typename Setter, typename Getter, typename ReferencePropertyType, typename... ReferenceColumns>
-PropertyType reference_column<ClassType, PropertyType, Setter, Getter, ReferencePropertyType, ReferenceColumns...>::empty_property()
-{
-    return PropertyType();
-}
 
 template<typename ClassType, typename PropertyType, typename Setter, typename Getter, typename ReferencePropertyType, typename... ReferenceColumns>
 reference_column<ClassType, PropertyType, Setter, Getter, ReferencePropertyType, ReferenceColumns...>::reference_column(
@@ -135,6 +121,7 @@ reference_column<ClassType, PropertyType, Setter, Getter, ReferencePropertyType,
     : column<ClassType, PropertyType, Setter, Getter>(name, setter, getter, settings)
     , _reference_table(reference_table)
     , _type(type)
+    , _foreign_key_column(_reference_table.primary_key_column_name())
 {
 }
 
@@ -151,12 +138,9 @@ relation_type reference_column<ClassType, PropertyType, Setter, Getter, Referenc
 }
 
 template<typename ClassType, typename PropertyType, typename Setter, typename Getter, typename ReferencePropertyType, typename... ReferenceColumns>
-reference_column<ClassType, PropertyType, Setter, Getter, ReferencePropertyType, ReferenceColumns...>
-reference_column<ClassType, PropertyType, Setter, Getter, ReferencePropertyType, ReferenceColumns...>::set_inserter(
-    std::unique_ptr<type_converter_api::container_converter<PropertyType, ReferencePropertyType>> inserter)
+void reference_column<ClassType, PropertyType, Setter, Getter, ReferencePropertyType, ReferenceColumns...>::append_value(ClassType& obj, const ReferencePropertyType& value) const
 {
-    _inserter = inserter;
-    return *this;
+    set_value(obj, type_converter_api::insert_item(value(obj), value));
 }
 
 template<typename ClassType, typename PropertyType, typename Setter, typename Getter, typename ReferencePropertyType, typename... ReferenceColumns>
@@ -191,4 +175,18 @@ void reference_column<ClassType, PropertyType, Setter, Getter, ReferenceProperty
     _primary_key_column = primary_key_column;
 }
 
+template<typename ClassType, typename PropertyType,typename ReferencePropertyType, typename... ReferenceColumns>
+auto make_reference_column(const std::string& name,
+    const reflection_api::helper::Variable_t<ClassType, PropertyType> variable,
+    table<ReferencePropertyType, ReferenceColumns...> reference_table,
+    const relation_type type,
+    const column_settings settings = column_settings::empty) noexcept
+{
+    return reference_column<ClassType, 
+    PropertyType, 
+    reflection_api::helper::Setter_t<ClassType, PropertyType>, 
+    reflection_api::helper::ConstGetter_t<ClassType, PropertyType>, 
+    ReferencePropertyType,
+    ReferenceColumns...>(name, variable, reference_table, type, settings);
+}
 } // namespace entity_craft

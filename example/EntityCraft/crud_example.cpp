@@ -134,7 +134,7 @@ int main()
             User(0, "Anna Kozlova", "anna@example.com", 22),
             User(0, "Sergey Smirnov", "sergey@example.com", 35)
         };
-        std::vector<User> inserted_batch = user_storage.insert_batch(batch_users);
+        std::vector<User> inserted_batch = user_storage.insert_batch(batch_users.begin(), batch_users.end());
         std::cout << "Batch inserted users: " << inserted_batch.size() << "\n";
         for(const auto& user : inserted_batch) {
             std::cout << "  - ID=" << user.id << ", Name=" << user.name << "\n";

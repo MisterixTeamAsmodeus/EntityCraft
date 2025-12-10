@@ -1,8 +1,9 @@
 #pragma once
 
+#include "EntityCraft/visitor/columnvisitor.hpp"
+#include "EntityCraft/visitor/referencecolumnvisitor.hpp"
 #include "ReflectionApi/entity.hpp"
 
-#include <set>
 #include <type_traits>
 #include <utility>
 
@@ -12,12 +13,15 @@ template<typename ClassType, typename... Columns>
 class table : public reflection_api::entity<ClassType, Columns...>
 {
 public:
+    using class_type = ClassType;
+public:
     explicit table(std::string table_name, std::string scheme, Columns... properties)
         : reflection_api::entity<ClassType, Columns...>(std::move(properties)...)
         , _scheme(std::move(scheme))
         , _table_name(std::move(table_name))
     {
-        for_each([this](const auto& column) {
+
+        for_each(visitor::make_column_visitor([this](const auto& column) {
             _columns_name.push_back(column.name());
 
             const auto settings = column.settings();
@@ -32,7 +36,11 @@ public:
             } else {
                 _column_names_without_auto_increment.push_back(column.name());
             }
-        });
+        }));
+
+        for_each(visitor::make_reference_column_visitor([this](auto& reference_column) {
+            reference_column.set_primary_key_column(_primary_key_column_name);
+        }));
     }
 
     table(const table& other) = default;
@@ -68,7 +76,7 @@ public:
         return _primary_key_column_name;
     }
 
-    std::string primary_key_column_value(const ClassType& entity) const
+    std::string primary_key_column_value(const ClassType& entity)
     {
         std::string value;
         for_each([this, &entity, &value](const auto& column) {
@@ -77,6 +85,17 @@ public:
             }
         });
         return value;
+    }
+
+    bool is_primary_key_column_value_null(const ClassType& entity)
+    {
+        bool is_null = true;
+        for_each([this, &entity, &is_null](const auto& column) {
+            if(column.name() == _primary_key_column_name) {
+                is_null = column.is_null_value(entity);
+            }
+        });
+        return is_null;
     }
 
     std::vector<std::string> column_names_without_auto_increment()

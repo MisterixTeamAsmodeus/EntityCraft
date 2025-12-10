@@ -29,26 +29,12 @@ void reserve_if_available(Container&, std::size_t, ...)
     // Метод reserve недоступен, ничего не делаем
 }
 
-/// \brief Вспомогательная функция для очистки контейнера (если доступно)
-template<typename Container,
-    std::enable_if_t<sfinae::has_clear_v<Container>, bool> = true>
-void clear_if_available(Container& container, int)
-{
-    container.clear();
-}
-
-template<typename Container>
-void clear_if_available(Container&, ...)
-{
-    // Метод clear недоступен, ничего не делаем
-}
-
 /// \brief Конвертация для Qt-контейнеров с оператором << (одинаковые типы элементов)
 template<typename TargetContainer, typename SourceType, typename TargetType, typename CurrentContainer,
     std::enable_if_t<sfinae::has_left_shift_container_operator_v<TargetContainer, TargetType> && std::is_same<SourceType, TargetType>::value, bool> = true>
 void convert_to_target_impl(TargetContainer& target, const CurrentContainer& source, int)
 {
-    reserve_if_available(target, source.size(), 0);
+    reserve_if_available(target, source.size() + target.size(), 0);
 
     // Прямая конвертация без изменения типа
     for(const auto& value : source) {
@@ -61,7 +47,7 @@ template<typename TargetContainer, typename SourceType, typename TargetType, typ
     std::enable_if_t<sfinae::has_left_shift_container_operator_v<TargetContainer, TargetType> && !std::is_same<SourceType, TargetType>::value && sfinae::is_numeric_v<SourceType> && sfinae::is_numeric_v<TargetType>, bool> = true>
 void convert_to_target_impl(TargetContainer& target, const CurrentContainer& source, int)
 {
-    reserve_if_available(target, source.size(), 0);
+    reserve_if_available(target, source.size() + target.size(), 0);
 
     // Прямая конвертация для числовых типов
     for(const auto& value : source) {
@@ -75,7 +61,7 @@ template<typename TargetContainer, typename SourceType, typename TargetType, typ
     std::enable_if_t<sfinae::has_left_shift_container_operator_v<TargetContainer, TargetType> && !std::is_same<SourceType, TargetType>::value && (!sfinae::is_numeric_v<SourceType> || !sfinae::is_numeric_v<TargetType>), bool> = true>
 void convert_to_target_impl(TargetContainer& target, const CurrentContainer& source, int)
 {
-    reserve_if_available(target, source.size(), 0);
+    reserve_if_available(target, source.size() + target.size(), 0);
 
     // Конвертация с изменением типа элементов через строку
     type_converter<TargetType> converter;
@@ -92,11 +78,8 @@ template<typename TargetContainer, typename SourceType, typename TargetType, typ
     std::enable_if_t<(sfinae::has_push_back_v<TargetContainer, TargetType> || sfinae::has_insert_v<TargetContainer, TargetType> || sfinae::has_emplace_back_v<TargetContainer, TargetType>) && std::is_same<SourceType, TargetType>::value, bool> = true>
 void convert_to_target_impl(TargetContainer& target, const CurrentContainer& source, int)
 {
-    // Очистка целевого контейнера
-    clear_if_available(target, 0);
-
     // Резервирование памяти для оптимизации
-    reserve_if_available(target, source.size(), 0);
+    reserve_if_available(target, source.size() + target.size(), 0);
 
     // Прямая конвертация без изменения типа
     for(const auto& value : source) {
@@ -110,16 +93,13 @@ template<typename TargetContainer, typename SourceType, typename TargetType, typ
     std::enable_if_t<(sfinae::has_push_back_v<TargetContainer, TargetType> || sfinae::has_insert_v<TargetContainer, TargetType> || sfinae::has_emplace_back_v<TargetContainer, TargetType>) && !std::is_same<SourceType, TargetType>::value && sfinae::is_numeric_v<SourceType> && sfinae::is_numeric_v<TargetType>, bool> = true>
 void convert_to_target_impl(TargetContainer& target, const CurrentContainer& source, int)
 {
-    // Очистка целевого контейнера
-    clear_if_available(target, 0);
-
     // Резервирование памяти для оптимизации
-    reserve_if_available(target, source.size(), 0);
+    reserve_if_available(target, source.size() + target.size(), 0);
 
     // Прямая конвертация для числовых типов (более эффективно и правильно)
     for(const auto& value : source) {
-        TargetType converted_value = static_cast<TargetType>(value);
-        ::type_converter_api::impl::insert_item(target, converted_value, 0);
+        auto converted_value = static_cast<TargetType>(value);
+        impl::insert_item(target, converted_value, 0);
     }
 }
 
@@ -129,11 +109,8 @@ template<typename TargetContainer, typename SourceType, typename TargetType, typ
     std::enable_if_t<(sfinae::has_push_back_v<TargetContainer, TargetType> || sfinae::has_insert_v<TargetContainer, TargetType> || sfinae::has_emplace_back_v<TargetContainer, TargetType>) && !std::is_same<SourceType, TargetType>::value && (!sfinae::is_numeric_v<SourceType> || !sfinae::is_numeric_v<TargetType>), bool> = true>
 void convert_to_target_impl(TargetContainer& target, const CurrentContainer& source, int)
 {
-    // Очистка целевого контейнера
-    clear_if_available(target, 0);
-
     // Резервирование памяти для оптимизации
-    reserve_if_available(target, source.size(), 0);
+    reserve_if_available(target, source.size() + target.size(), 0);
 
     // Конвертация с изменением типа элементов через строку
     type_converter<TargetType> converter;

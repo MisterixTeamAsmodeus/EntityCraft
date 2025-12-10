@@ -45,6 +45,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
 #        QueryCraft/cte_test.cpp
 
         EntityCraft/entitycraft_test.cpp
+        EntityCraft/mapper_test.cpp
 )
 
 set(ENTITY_CRAFT_GOOGLETEST_MODULES_LOCATION "EXTERNAL" CACHE STRING "Location where to find googletest modules. can be [INSTALLED|EXTERNAL]")

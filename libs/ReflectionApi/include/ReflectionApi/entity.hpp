@@ -104,7 +104,7 @@ public:
      * @param action Действие которое необходимо выполнить для каждой проперти
      */
     template<typename Action>
-    void for_each(Action&& action) const
+    void for_each(Action&& action)
     {
         helper::for_each(
             _properties,

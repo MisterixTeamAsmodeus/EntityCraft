@@ -31,6 +31,13 @@ std::string sqlite_dialect::format_limit_offset(std::size_t limit, std::size_t o
     return stream.str();
 }
 
+std::string sqlite_dialect::select_for_update_clause() const
+{
+    // SQLite не поддерживает синтаксис FOR UPDATE в SELECT запросах.
+    // В SQLite блокировка строк происходит автоматически в транзакциях.
+    return "";
+}
+
 bool sqlite_dialect::supports_returning() const
 {
     // SQLite поддерживает RETURNING начиная с версии 3.35.0 (март 2021).
