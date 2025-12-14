@@ -101,8 +101,8 @@ std::vector<dependency_info> collect_dependencies(query_craft::dsl::select_build
         // Получаем информацию о связанной таблице
         auto ref_table = ref_column.reference_table();
 
-        info.dep_table_name = ref_table->table_name();
-        info.dep_table_scheme = ref_table->scheme();
+        info.dep_table_name = ref_table.table_name();
+        info.dep_table_scheme = ref_table.scheme();
 
         add_table_columns_to_select(builder, ref_table);
 
@@ -124,8 +124,8 @@ std::vector<dependency_info> collect_dependencies(query_craft::dsl::select_build
 
         dependencies.push_back(info);
 
-        auto inline_dependencies = collect_dependencies(ref_table);
-        dependencies.assign(inline_dependencies.begin(), inline_dependencies.end());
+        auto inline_dependencies = collect_dependencies(builder, ref_table);
+        dependencies.insert(dependencies.end(), inline_dependencies.begin(), inline_dependencies.end());
     }));
 
     return dependencies;
@@ -141,7 +141,7 @@ std::vector<dependency_info> collect_dependencies(query_craft::dsl::select_build
 template<typename ClassType, typename... Columns>
 void add_joins_for_dependencies(query_craft::dsl::select_builder& builder, const table<ClassType, Columns...>& dto)
 {
-    for(const auto& dep_info : collect_dependencies(dto, builder)) {
+    for(const auto& dep_info : collect_dependencies(builder, dto)) {
         // Создаем условие JOIN
         auto join_condition = create_join_condition(dep_info);
 
@@ -170,7 +170,8 @@ query_craft::dsl::select_builder build_select_with_joins(const table<ClassType, 
 
     // Добавляем колонки основной таблицы в SELECT
     add_table_columns_to_select(builder, dto);
-    collect_dependencies(builder, dto);
+    // Собираем зависимости и добавляем JOIN
+    add_joins_for_dependencies(builder, dto);
 
     return builder;
 }

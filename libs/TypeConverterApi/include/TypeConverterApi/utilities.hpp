@@ -30,9 +30,11 @@ void insert_item(Container& container, const ValueType& item, int)
 }
 
 template<typename Container, typename ValueType>
-void insert_item(Container& container, const ValueType& item, ...)
+void insert_item(Container&, const ValueType&, ...)
 {
-    container.insert(container.end(), item);
+    std::stringstream message;
+    message << "insert_item not implemented: cannot insert item of type " << typeid(ValueType).name() << " into container of type " << typeid(Container).name();
+    throw std::runtime_error(message.str());
 }
 } // namespace impl
 

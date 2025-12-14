@@ -60,7 +60,7 @@ public:
 
     relation_type type() const;
 
-    void append_value(ClassType& obj, const ReferencePropertyType& value) const;
+    void append_value(ClassType& obj, const ReferencePropertyType& property_value) const;
 
     /**
      * @brief Получить тип каскадного поведения
@@ -75,26 +75,10 @@ public:
      */
     reference_column set_cascade(cascade_behavior behavior);
 
-    /**
-     * @brief Получить имя колонки внешнего ключа
-     * @return Имя колонки внешнего ключа или пустая строка, если не установлено
-     */
-    std::string foreign_key_column() const;
-
-    /**
-     * @brief Получить имя колонки первичного ключа связанной таблицы
-     * @return Имя колонки первичного ключа или пустая строка, если не установлено
-     */
-    std::string primary_key_column() const;
-
-    void set_primary_key_column(const std::string& primary_key_column);
-
 private:
     table<ReferencePropertyType, ReferenceColumns...> _reference_table;
     relation_type _type;
     cascade_behavior _cascade_behavior = cascade_behavior::none;
-    std::string _foreign_key_column;
-    std::string _primary_key_column;
 };
 
 template<typename ClassType, typename PropertyType, typename Setter, typename Getter, typename ReferencePropertyType, typename... ReferenceColumns>
@@ -121,7 +105,6 @@ reference_column<ClassType, PropertyType, Setter, Getter, ReferencePropertyType,
     : column<ClassType, PropertyType, Setter, Getter>(name, setter, getter, settings)
     , _reference_table(reference_table)
     , _type(type)
-    , _foreign_key_column(_reference_table.primary_key_column_name())
 {
 }
 
@@ -138,9 +121,11 @@ relation_type reference_column<ClassType, PropertyType, Setter, Getter, Referenc
 }
 
 template<typename ClassType, typename PropertyType, typename Setter, typename Getter, typename ReferencePropertyType, typename... ReferenceColumns>
-void reference_column<ClassType, PropertyType, Setter, Getter, ReferencePropertyType, ReferenceColumns...>::append_value(ClassType& obj, const ReferencePropertyType& value) const
+void reference_column<ClassType, PropertyType, Setter, Getter, ReferencePropertyType, ReferenceColumns...>::append_value(ClassType& obj, const ReferencePropertyType& property_value) const
 {
-    set_value(obj, type_converter_api::insert_item(value(obj), value));
+    auto container = value(obj);
+    type_converter_api::insert_item(container, property_value);
+    set_value(obj, container);
 }
 
 template<typename ClassType, typename PropertyType, typename Setter, typename Getter, typename ReferencePropertyType, typename... ReferenceColumns>
@@ -155,24 +140,6 @@ reference_column<ClassType, PropertyType, Setter, Getter, ReferencePropertyType,
 {
     _cascade_behavior = behavior;
     return *this;
-}
-
-template<typename ClassType, typename PropertyType, typename Setter, typename Getter, typename ReferencePropertyType, typename... ReferenceColumns>
-std::string reference_column<ClassType, PropertyType, Setter, Getter, ReferencePropertyType, ReferenceColumns...>::foreign_key_column() const
-{
-    return _foreign_key_column;
-}
-
-template<typename ClassType, typename PropertyType, typename Setter, typename Getter, typename ReferencePropertyType, typename... ReferenceColumns>
-std::string reference_column<ClassType, PropertyType, Setter, Getter, ReferencePropertyType, ReferenceColumns...>::primary_key_column() const
-{
-    return _primary_key_column;
-}
-
-template<typename ClassType, typename PropertyType, typename Setter, typename Getter, typename ReferencePropertyType, typename... ReferenceColumns>
-void reference_column<ClassType, PropertyType, Setter, Getter, ReferencePropertyType, ReferenceColumns...>::set_primary_key_column(const std::string& primary_key_column)
-{
-    _primary_key_column = primary_key_column;
 }
 
 template<typename ClassType, typename PropertyType,typename ReferencePropertyType, typename... ReferenceColumns>

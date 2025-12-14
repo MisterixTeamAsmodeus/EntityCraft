@@ -1,7 +1,7 @@
 #pragma once
 
 #include "EntityCraft/visitor/columnvisitor.hpp"
-#include "EntityCraft/visitor/referencecolumnvisitor.hpp"
+#include "EntityCraft/utils/table_utils.hpp"
 #include "ReflectionApi/entity.hpp"
 
 #include <type_traits>
@@ -37,10 +37,6 @@ public:
                 _column_names_without_auto_increment.push_back(column.name());
             }
         }));
-
-        for_each(visitor::make_reference_column_visitor([this](auto& reference_column) {
-            reference_column.set_primary_key_column(_primary_key_column_name);
-        }));
     }
 
     table(const table& other) = default;
@@ -74,6 +70,18 @@ public:
     std::string primary_key_column_name() const
     {
         return _primary_key_column_name;
+    }
+
+    template<typename TargetType>
+    void append_property_value(ClassType& obj, TargetType&& item, const std::string& property_name) const
+    {
+        helper::append_value(
+            reflection_api::entity<ClassType, Columns...>::_properties,
+            obj,
+            std::forward<TargetType>(item),
+            [&](const auto& column) {
+                return column.name() == property_name;
+            });
     }
 
     std::string primary_key_column_value(const ClassType& entity)

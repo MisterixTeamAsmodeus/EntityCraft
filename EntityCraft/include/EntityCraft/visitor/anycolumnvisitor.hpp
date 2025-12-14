@@ -28,6 +28,42 @@ public:
     {
     }
 
+
+    /**
+     * @brief Оператор вызова для обычной колонки
+     * @tparam ClassType Тип класса
+     * @tparam PropertyType Тип свойства
+     * @tparam Setter Тип сеттера
+     * @tparam Getter Тип геттера
+     * @param column Колонка
+     */
+    template<typename ClassType,
+        typename PropertyType,
+        typename Setter,
+        typename Getter>
+    void operator()(const column<ClassType, PropertyType, Setter, Getter>& column) const
+    {
+        _property_action(column);
+    }
+
+    /**
+     * @brief Оператор вызова для ссылочной колонки
+     * @tparam ClassType Тип класса
+     * @tparam PropertyType Тип свойства
+     * @tparam Setter Тип сеттера
+     * @tparam Getter Тип геттера
+     * @param reference_column Ссылочная колонка
+     */
+    template<typename ClassType,
+        typename PropertyType,
+        typename Setter,
+        typename Getter,
+        typename... ReferenceProperties>
+    void operator()(const reference_column<ClassType, PropertyType, Setter, Getter, ReferenceProperties...>& reference_column) const
+    {
+        _reference_property_action(reference_column);
+    }
+
     /**
      * @brief Оператор вызова для обычной колонки
      * @tparam ClassType Тип класса

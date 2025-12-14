@@ -3,6 +3,7 @@
 #include "EntityCraft/reflection/column.h"
 #include "EntityCraft/reflection/relationtype.h"
 #include "EntityCraft/reflection/table.h"
+#include "EntityCraft/visitor/referencecolumnvisitor.hpp"
 
 #include <DatabaseAdapter/model/queryresult.hpp>
 #include <string>
@@ -24,7 +25,9 @@ ClassType map_row_to_entity(table<ClassType, Columns...>& dto, const database_ad
 {
     ClassType entity = dto.empty_entity();
 
-    dto.for_each([&entity, &row, &dto, contains_by_alias](const auto& column) {
+    // Используем column_visitor, чтобы обрабатывать только обычные колонки,
+    // а не reference_column. reference_column обрабатываются отдельно в map_row_to_entity_with_dependencies
+    dto.for_each(visitor::make_column_visitor([&entity, &row, &dto, contains_by_alias](const auto& column) {
         auto it = contains_by_alias ? row.find(dto.column_alias(column.name())) : row.find(column.name());
 
         if(it != row.end()) {
@@ -35,7 +38,7 @@ ClassType map_row_to_entity(table<ClassType, Columns...>& dto, const database_ad
                 column.from_string(entity, db_value);
             }
         }
-    });
+    }));
 
     return entity;
 }
@@ -110,14 +113,12 @@ std::vector<ClassType> map_result_to_entities(table<ClassType, Columns...>& dto,
  * @param relation Тип связи между сущностями
  */
 template<typename ClassType,
-    typename PropertyType,
-    typename Setter,
-    typename Getter,
     typename ReferencePropertyType,
-    typename... ReferenceColumns>
+    typename... Columns>
 void map_reference_column_value(
     ClassType& entity,
-    const reference_column<ClassType, PropertyType, Setter, Getter, ReferencePropertyType, ReferenceColumns...>& ref_column,
+    table<ClassType, Columns...>& dto,
+    std::string&& reference_column_name,
     const ReferencePropertyType& dependent_entity,
     const relation_type relation)
 {
@@ -126,13 +127,13 @@ void map_reference_column_value(
         case relation_type::one_to_one_inverted:
         case relation_type::many_to_one: {
             // Для one_to_one и many_to_one устанавливаем одну сущность
-            ref_column.set_value(entity, dependent_entity);
+            dto.set_property_value(entity, dependent_entity, reference_column_name);
             break;
         }
 
         case relation_type::one_to_many: {
             // Для one_to_many нужно добавить сущность в коллекцию
-            ref_column.append_value(entity, dependent_entity);
+            dto.append_property_value(entity, dependent_entity, reference_column_name);
             break;
         }
     }
@@ -211,16 +212,30 @@ ClassType map_row_to_entity_with_dependencies(table<ClassType, Columns...>& dto,
         auto ref_table = ref_column.reference_table();
         relation_type relation = ref_column.type();
 
+        // Определяем параметры для extract_dependent_entities в зависимости от типа связи
+        std::string main_pk_alias = dto.column_alias(dto.primary_key_column_name());
+        std::string main_fk_alias;
+        std::string dep_pk_alias = ref_table.column_alias(ref_table.primary_key_column_name());
+        std::string dep_fk_alias;
+
+        if(relation == relation_type::many_to_one || relation == relation_type::one_to_one) {
+            // Для many_to_one и one_to_one: FK в основной таблице ссылается на PK зависимой таблицы
+            main_fk_alias = dto.column_alias(ref_column.name());
+        } else {
+            // Для one_to_one_inverted и one_to_many: FK в зависимой таблице ссылается на PK основной таблицы
+            dep_fk_alias = ref_table.column_alias(ref_column.name());
+        }
+
         // Извлекаем зависимую сущность из строки JOIN
         auto dependent_entity = extract_dependent_entities(
-            dto.column_alias(ref_column.name()),
-            dto.column_alias(ref_column.name()),
-            ref_table.column_alias(ref_table.primary_key_column_name()),
-            ref_table.column_alias(ref_table.primary_key_column_name()),
+            std::move(main_pk_alias),
+            std::move(main_fk_alias),
+            std::move(dep_pk_alias),
+            std::move(dep_fk_alias),
             ref_column,
             row);
 
-        map_reference_column_value(entity, ref_column, ref_table, dependent_entity, relation);
+        map_reference_column_value(entity, dto, ref_column.name(), dependent_entity, relation);
     }));
 
     return entity;
@@ -247,7 +262,7 @@ std::vector<ClassType> merge_entities(const std::vector<ClassType>& entities, ta
     std::vector<ClassType> merged_entities;
     for(const auto& pair : mapped_entities) {
         auto merged = pair.second.front();
-        dto.for_each(visitor::make_reference_column_visitor([&pair, &merged](const auto& ref_column) {
+        dto.for_each(visitor::make_reference_column_visitor([&pair, &merged, dto](const auto& ref_column) {
             auto reference_table = ref_column.reference_table();
             if(ref_column.type() == relation_type::one_to_many) {
                 std::vector<typename std::decay_t<decltype(reference_table)>::class_type> dependent_entities;
@@ -258,8 +273,8 @@ std::vector<ClassType> merge_entities(const std::vector<ClassType>& entities, ta
 
                 auto merge_dependent = merge_entities(dependent_entities, reference_table);
 
-                ref_column.set_value(merged, type_converter_api::container_converter<decltype(dependent_entities)>()
-                    .template convert<decltype(ref_column.value(merged))>(merge_dependent));
+                dto.set_property_value(merged, type_converter_api::container_converter<decltype(dependent_entities)>()
+                    .template convert<decltype(ref_column.value(merged))>(merge_dependent), ref_column.name());
             }
         }));
 

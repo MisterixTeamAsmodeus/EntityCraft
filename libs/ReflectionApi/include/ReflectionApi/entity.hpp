@@ -112,6 +112,18 @@ public:
     }
 
     /**
+     * @brief Выполнить действия над всеми проперти в объекте
+     * @param action Действие которое необходимо выполнить для каждой проперти
+     */
+    template<typename Action>
+    void for_each(Action&& action) const
+    {
+        helper::for_each(
+            _properties,
+            std::forward<Action>(action));
+    }
+
+    /**
      * @brief Получить количество свойств в entity
      * @return Количество свойств
      */
@@ -136,7 +148,7 @@ public:
         return found;
     }
 
-private:
+protected:
     /// Список проперти в сущности
     std::tuple<Properties...> _properties = {};
 };

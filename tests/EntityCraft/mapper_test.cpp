@@ -185,6 +185,81 @@ struct TestUserWithOrders
 };
 
 /**
+ * @brief Тестовая структура User с many_to_one связью к Profile
+ */
+struct TestUserWithProfileManyToOne
+{
+    int id = 0;
+    std::string name;
+    int profile_id = 0;
+    TestProfile profile;
+
+    TestUserWithProfileManyToOne() = default;
+
+    static auto dto()
+    {
+        auto profile_table = TestProfile::dto();
+        return entity_craft::make_table<TestUserWithProfileManyToOne>(
+            "users",
+            "",
+            entity_craft::make_column("id", &TestUserWithProfileManyToOne::id, entity_craft::primary_key_auto_increment()),
+            entity_craft::make_column("name", &TestUserWithProfileManyToOne::name, entity_craft::not_null()),
+            entity_craft::make_column("profile_id", &TestUserWithProfileManyToOne::profile_id, entity_craft::not_null()),
+            entity_craft::make_reference_column("profile", &TestUserWithProfileManyToOne::profile, profile_table, entity_craft::relation_type::many_to_one));
+    }
+};
+
+/**
+ * @brief Тестовая структура User с one_to_one связью к Profile
+ */
+struct TestUserWithProfileOneToOne
+{
+    int id = 0;
+    std::string name;
+    int profile_id = 0;
+    TestProfile profile;
+
+    TestUserWithProfileOneToOne() = default;
+
+    static auto dto()
+    {
+        auto profile_table = TestProfile::dto();
+        return entity_craft::make_table<TestUserWithProfileOneToOne>(
+            "users",
+            "",
+            entity_craft::make_column("id", &TestUserWithProfileOneToOne::id, entity_craft::primary_key_auto_increment()),
+            entity_craft::make_column("name", &TestUserWithProfileOneToOne::name, entity_craft::not_null()),
+            entity_craft::make_column("profile_id", &TestUserWithProfileOneToOne::profile_id, entity_craft::not_null()),
+            entity_craft::make_reference_column("profile", &TestUserWithProfileOneToOne::profile, profile_table, entity_craft::relation_type::one_to_one));
+    }
+};
+
+/**
+ * @brief Тестовая структура Profile с one_to_one_inverted связью к User
+ */
+struct TestProfileWithUserOneToOneInverted
+{
+    int id = 0;
+    int user_id = 0;
+    std::string bio;
+    TestUser user;
+
+    TestProfileWithUserOneToOneInverted() = default;
+
+    static auto dto()
+    {
+        auto user_table = TestUser::dto();
+        return entity_craft::make_table<TestProfileWithUserOneToOneInverted>(
+            "profiles",
+            "",
+            entity_craft::make_column("id", &TestProfileWithUserOneToOneInverted::id, entity_craft::primary_key_auto_increment()),
+            entity_craft::make_column("user_id", &TestProfileWithUserOneToOneInverted::user_id, entity_craft::not_null()),
+            entity_craft::make_column("bio", &TestProfileWithUserOneToOneInverted::bio, entity_craft::not_null()),
+            entity_craft::make_reference_column("user", &TestProfileWithUserOneToOneInverted::user, user_table, entity_craft::relation_type::one_to_one_inverted));
+    }
+};
+
+/**
  * @brief Фикстура для тестов mapper
  */
 class MapperTest : public ::testing::Test
@@ -520,6 +595,192 @@ TEST_F(MapperTest, MapRowToEntityWithDependencies_Basic)
     EXPECT_EQ(user.name, "Dependency User");
     EXPECT_EQ(user.email, "dependency@example.com");
     EXPECT_EQ(user.age, 25);
+}
+
+/**
+ * @brief Тест map_row_to_entity_with_dependencies - many_to_one связь
+ */
+TEST_F(MapperTest, MapRowToEntityWithDependencies_ManyToOne)
+{
+    auto user_table = TestUserWithProfileManyToOne::dto();
+    
+    database_adapter::query_result::row row;
+    row["users_id"] = "1";
+    row["users_name"] = "User 1";
+    row["users_profile_id"] = "100";
+    row["profiles_id"] = "100";
+    row["profiles_user_id"] = "1";
+    row["profiles_bio"] = "User 1 Bio";
+
+    TestUserWithProfileManyToOne user = entity_craft::map_row_to_entity_with_dependencies(user_table, row);
+
+    EXPECT_EQ(user.id, 1);
+    EXPECT_EQ(user.name, "User 1");
+    EXPECT_EQ(user.profile_id, 100);
+    EXPECT_EQ(user.profile.id, 100);
+    EXPECT_EQ(user.profile.user_id, 1);
+    EXPECT_EQ(user.profile.bio, "User 1 Bio");
+}
+
+/**
+ * @brief Тест map_row_to_entity_with_dependencies - many_to_one связь с несовпадающими ключами
+ */
+TEST_F(MapperTest, MapRowToEntityWithDependencies_ManyToOne_NonMatchingKeys)
+{
+    auto user_table = TestUserWithProfileManyToOne::dto();
+    
+    database_adapter::query_result::row row;
+    row["users_id"] = "1";
+    row["users_name"] = "User 1";
+    row["users_profile_id"] = "200"; // Не совпадает с profiles_id
+    row["profiles_id"] = "100";
+    row["profiles_user_id"] = "1";
+    row["profiles_bio"] = "User 1 Bio";
+
+    TestUserWithProfileManyToOne user = entity_craft::map_row_to_entity_with_dependencies(user_table, row);
+
+    EXPECT_EQ(user.id, 1);
+    EXPECT_EQ(user.name, "User 1");
+    EXPECT_EQ(user.profile_id, 200);
+    // Профиль должен быть пустым, так как ключи не совпадают
+    EXPECT_EQ(user.profile.id, 0);
+    EXPECT_EQ(user.profile.user_id, 0);
+    EXPECT_TRUE(user.profile.bio.empty());
+}
+
+/**
+ * @brief Тест map_row_to_entity_with_dependencies - one_to_one связь
+ */
+TEST_F(MapperTest, MapRowToEntityWithDependencies_OneToOne)
+{
+    auto user_table = TestUserWithProfileOneToOne::dto();
+    
+    database_adapter::query_result::row row;
+    row["users_id"] = "1";
+    row["users_name"] = "User 1";
+    row["users_profile_id"] = "100";
+    row["profiles_id"] = "100";
+    row["profiles_user_id"] = "1";
+    row["profiles_bio"] = "User 1 Bio";
+
+    TestUserWithProfileOneToOne user = entity_craft::map_row_to_entity_with_dependencies(user_table, row);
+
+    EXPECT_EQ(user.id, 1);
+    EXPECT_EQ(user.name, "User 1");
+    EXPECT_EQ(user.profile_id, 100);
+    EXPECT_EQ(user.profile.id, 100);
+    EXPECT_EQ(user.profile.user_id, 1);
+    EXPECT_EQ(user.profile.bio, "User 1 Bio");
+}
+
+/**
+ * @brief Тест map_row_to_entity_with_dependencies - one_to_one_inverted связь
+ */
+TEST_F(MapperTest, MapRowToEntityWithDependencies_OneToOneInverted)
+{
+    auto profile_table = TestProfileWithUserOneToOneInverted::dto();
+    
+    database_adapter::query_result::row row;
+    row["profiles_id"] = "100";
+    row["profiles_user_id"] = "1";
+    row["profiles_bio"] = "User 1 Bio";
+    row["users_id"] = "1";
+    row["users_name"] = "User 1";
+    row["users_email"] = "user1@example.com";
+    row["users_age"] = "25";
+
+    TestProfileWithUserOneToOneInverted profile = entity_craft::map_row_to_entity_with_dependencies(profile_table, row);
+
+    EXPECT_EQ(profile.id, 100);
+    EXPECT_EQ(profile.user_id, 1);
+    EXPECT_EQ(profile.bio, "User 1 Bio");
+    EXPECT_EQ(profile.user.id, 1);
+    EXPECT_EQ(profile.user.name, "User 1");
+    EXPECT_EQ(profile.user.email, "user1@example.com");
+    EXPECT_EQ(profile.user.age, 25);
+}
+
+/**
+ * @brief Тест map_row_to_entity_with_dependencies - one_to_one_inverted связь с несовпадающими ключами
+ */
+TEST_F(MapperTest, MapRowToEntityWithDependencies_OneToOneInverted_NonMatchingKeys)
+{
+    auto profile_table = TestProfileWithUserOneToOneInverted::dto();
+    
+    database_adapter::query_result::row row;
+    row["profiles_id"] = "100";
+    row["profiles_user_id"] = "2"; // Не совпадает с users_id
+    row["profiles_bio"] = "User 1 Bio";
+    row["users_id"] = "1";
+    row["users_name"] = "User 1";
+    row["users_email"] = "user1@example.com";
+    row["users_age"] = "25";
+
+    TestProfileWithUserOneToOneInverted profile = entity_craft::map_row_to_entity_with_dependencies(profile_table, row);
+
+    EXPECT_EQ(profile.id, 100);
+    EXPECT_EQ(profile.user_id, 2);
+    EXPECT_EQ(profile.bio, "User 1 Bio");
+    // User должен быть пустым, так как ключи не совпадают
+    EXPECT_EQ(profile.user.id, 0);
+    EXPECT_TRUE(profile.user.name.empty());
+    EXPECT_TRUE(profile.user.email.empty());
+    EXPECT_EQ(profile.user.age, 0);
+}
+
+/**
+ * @brief Тест map_row_to_entity_with_dependencies - one_to_many связь
+ */
+TEST_F(MapperTest, MapRowToEntityWithDependencies_OneToMany)
+{
+    auto user_table = TestUserWithOrders::dto();
+    
+    database_adapter::query_result::row row;
+    row["users_id"] = "1";
+    row["users_name"] = "User 1";
+    row["orders_id"] = "10";
+    row["orders_description"] = "Order 1";
+    row["order_items_id"] = "100";
+    row["order_items_name"] = "Item 1";
+    row["order_items_quantity"] = "5";
+
+    TestUserWithOrders user = entity_craft::map_row_to_entity_with_dependencies(user_table, row);
+
+    EXPECT_EQ(user.id, 1);
+    EXPECT_EQ(user.name, "User 1");
+    EXPECT_EQ(user.orders.size(), 1);
+    EXPECT_EQ(user.orders[0].id, 10);
+    EXPECT_EQ(user.orders[0].description, "Order 1");
+    EXPECT_EQ(user.orders[0].items.size(), 1);
+    EXPECT_EQ(user.orders[0].items[0].id, 100);
+    EXPECT_EQ(user.orders[0].items[0].name, "Item 1");
+    EXPECT_EQ(user.orders[0].items[0].quantity, 5);
+}
+
+/**
+ * @brief Тест map_row_to_entity_with_dependencies - one_to_many связь с несколькими зависимостями
+ */
+TEST_F(MapperTest, MapRowToEntityWithDependencies_OneToMany_MultipleDependencies)
+{
+    auto user_table = TestUserWithOrders::dto();
+    
+    database_adapter::query_result::row row;
+    row["users_id"] = "1";
+    row["users_name"] = "User 1";
+    row["orders_id"] = "10";
+    row["orders_description"] = "Order 1";
+    row["order_items_id"] = "100";
+    row["order_items_name"] = "Item 1";
+    row["order_items_quantity"] = "5";
+
+    TestUserWithOrders user = entity_craft::map_row_to_entity_with_dependencies(user_table, row);
+
+    EXPECT_EQ(user.id, 1);
+    EXPECT_EQ(user.name, "User 1");
+    EXPECT_EQ(user.orders.size(), 1);
+    EXPECT_EQ(user.orders[0].id, 10);
+    EXPECT_EQ(user.orders[0].description, "Order 1");
+    EXPECT_EQ(user.orders[0].items.size(), 1);
 }
 
 /**

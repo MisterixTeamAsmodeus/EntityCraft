@@ -1,7 +1,6 @@
 #pragma once
 
 #include "EntityCraft/reflection/column.h"
-#include "EntityCraft/reflection/referencecolumn.h"
 
 #include <utility>
 
@@ -40,6 +39,34 @@ public:
         : _property_action(property_action)
     {
     }
+
+    /**
+ * @brief Оператор вызова для обычной колонки
+ * @tparam ClassType Тип класса
+ * @tparam PropertyType Тип свойства
+ * @tparam Setter Тип сеттера
+ * @tparam Getter Тип геттера
+ * @param column Колонка
+ */
+    template<typename ClassType,
+        typename PropertyType,
+        typename Setter,
+        typename Getter>
+    void operator()(const column<ClassType, PropertyType, Setter, Getter>& column) const
+    {
+        _property_action(column);
+    }
+
+    template<typename ClassType,
+        typename PropertyType,
+        typename Setter,
+        typename Getter,
+        typename ReferencePropertyType,
+        typename... ReferenceColumns>
+    void operator()(const reference_column<ClassType, PropertyType, Setter, Getter, ReferencePropertyType, ReferenceColumns...>&) const
+    {
+    }
+
 
     /**
      * @brief Оператор вызова для обычной колонки
