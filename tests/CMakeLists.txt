@@ -45,7 +45,11 @@ set(SOURCE_FILES ${SOURCE_FILES}
 #        QueryCraft/cte_test.cpp
 
         EntityCraft/entitycraft_test.cpp
-        EntityCraft/mapper_test.cpp
+        EntityCraft/mapper_test_basic.cpp
+        EntityCraft/mapper_test_one_to_one.cpp
+        EntityCraft/mapper_test_one_to_one_inverted.cpp
+        EntityCraft/mapper_test_one_to_many.cpp
+        EntityCraft/mapper_test_many_to_one.cpp
         EntityCraft/join_builder_test.cpp
 )
 

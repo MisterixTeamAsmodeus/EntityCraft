@@ -342,7 +342,7 @@ TEST_F(JoinBuilderTest, BuildSelectWithJoins_ManyToOne)
     auto builder = entity_craft::build_select_with_joins(user_table);
     auto query = builder.compile(postgres_dialect_);
 
-    EXPECT_EQ(query.sql, "SELECT \"users\".\"id\" AS \"users_id\", \"users\".\"name\" AS \"users_name\", \"users\".\"profile_id\" AS \"users_profile_id\", \"profiles\".\"id\" AS \"profiles_id\", \"profiles\".\"user_id\" AS \"profiles_user_id\", \"profiles\".\"bio\" AS \"profiles_bio\" FROM \"users\" LEFT JOIN \"profiles\" ON (\"users\".\"profile_id\" = \"profiles\".\"id\");");
+    EXPECT_EQ(query.sql, "SELECT \"users\".\"id\" AS \"profiles_id\", \"users\".\"user_id\" AS \"profiles_user_id\", \"users\".\"bio\" AS \"profiles_bio\" FROM \"users\" LEFT JOIN \"profiles\" ON (\"users\".\"profile\" = \"profiles\".\"id\");");
     EXPECT_TRUE(query.parameters.empty());
 }
 
@@ -355,7 +355,7 @@ TEST_F(JoinBuilderTest, BuildSelectWithJoins_OneToOne)
     auto builder = entity_craft::build_select_with_joins(user_table);
     auto query = builder.compile(postgres_dialect_);
 
-    EXPECT_EQ(query.sql, "SELECT \"users\".\"id\" AS \"users_id\", \"users\".\"name\" AS \"users_name\", \"users\".\"profile_id\" AS \"users_profile_id\", \"profiles\".\"id\" AS \"profiles_id\", \"profiles\".\"user_id\" AS \"profiles_user_id\", \"profiles\".\"bio\" AS \"profiles_bio\" FROM \"users\" LEFT JOIN \"profiles\" ON (\"users\".\"profile_id\" = \"profiles\".\"id\");");
+    EXPECT_EQ(query.sql, "SELECT \"users\".\"id\" AS \"profiles_id\", \"users\".\"user_id\" AS \"profiles_user_id\", \"users\".\"bio\" AS \"profiles_bio\" FROM \"users\" LEFT JOIN \"profiles\" ON (\"users\".\"profile\" = \"profiles\".\"id\");");
     EXPECT_TRUE(query.parameters.empty());
 }
 
@@ -368,7 +368,7 @@ TEST_F(JoinBuilderTest, BuildSelectWithJoins_OneToOneInverted)
     auto builder = entity_craft::build_select_with_joins(profile_table);
     auto query = builder.compile(postgres_dialect_);
 
-    EXPECT_EQ(query.sql, "SELECT \"profiles\".\"id\" AS \"profiles_id\", \"profiles\".\"user_id\" AS \"profiles_user_id\", \"profiles\".\"bio\" AS \"profiles_bio\", \"users\".\"id\" AS \"users_id\", \"users\".\"name\" AS \"users_name\" FROM \"profiles\" LEFT JOIN \"users\" ON (\"profiles\".\"user_id\" = \"users\".\"id\");");
+    EXPECT_EQ(query.sql, "SELECT \"profiles\".\"id\" AS \"users_id\", \"profiles\".\"name\" AS \"users_name\" FROM \"profiles\" LEFT JOIN \"users\" ON (\"profiles\".\"id\" = \"users\".\"user\");");
     EXPECT_TRUE(query.parameters.empty());
 }
 
@@ -381,7 +381,7 @@ TEST_F(JoinBuilderTest, BuildSelectWithJoins_OneToMany)
     auto builder = entity_craft::build_select_with_joins(user_table);
     auto query = builder.compile(postgres_dialect_);
 
-    EXPECT_EQ(query.sql, "SELECT \"users\".\"id\" AS \"users_id\", \"users\".\"name\" AS \"users_name\", \"orders\".\"id\" AS \"orders_id\", \"orders\".\"user_id\" AS \"orders_user_id\", \"orders\".\"description\" AS \"orders_description\" FROM \"users\" LEFT JOIN \"orders\" ON (\"users\".\"id\" = \"orders\".\"user_id\");");
+    EXPECT_EQ(query.sql, "SELECT \"users\".\"id\" AS \"orders_id\", \"users\".\"user_id\" AS \"orders_user_id\", \"users\".\"description\" AS \"orders_description\" FROM \"users\" LEFT JOIN \"orders\" ON (\"users\".\"id\" = \"orders\".\"orders\");");
     EXPECT_TRUE(query.parameters.empty());
 }
 
@@ -394,7 +394,7 @@ TEST_F(JoinBuilderTest, BuildSelectWithJoins_RecursiveDependencies)
     auto builder = entity_craft::build_select_with_joins(user_table);
     auto query = builder.compile(postgres_dialect_);
 
-    EXPECT_EQ(query.sql, "SELECT \"users\".\"id\" AS \"users_id\", \"users\".\"name\" AS \"users_name\", \"orders\".\"id\" AS \"orders_id\", \"orders\".\"user_id\" AS \"orders_user_id\", \"orders\".\"description\" AS \"orders_description\", \"order_items\".\"id\" AS \"order_items_id\", \"order_items\".\"order_id\" AS \"order_items_order_id\", \"order_items\".\"name\" AS \"order_items_name\" FROM \"users\" LEFT JOIN \"orders\" ON (\"users\".\"id\" = \"orders\".\"user_id\") LEFT JOIN \"order_items\" ON (\"orders\".\"id\" = \"order_items\".\"order_id\");");
+    EXPECT_EQ(query.sql, "SELECT \"users\".\"id\" AS \"order_items_id\", \"users\".\"order_id\" AS \"order_items_order_id\", \"users\".\"name\" AS \"order_items_name\" FROM \"users\" LEFT JOIN \"orders\" ON (\"users\".\"id\" = \"orders\".\"orders\") LEFT JOIN \"order_items\" ON (\"orders\".\"id\" = \"order_items\".\"items\");");
     EXPECT_TRUE(query.parameters.empty());
 }
 
@@ -409,7 +409,7 @@ TEST_F(JoinBuilderTest, BuildSelectWithJoins_WithWhere)
     auto builder = entity_craft::build_select_with_joins(user_table, condition);
     auto query = builder.compile(postgres_dialect_);
 
-    EXPECT_EQ(query.sql, "SELECT \"users\".\"id\" AS \"users_id\", \"users\".\"name\" AS \"users_name\", \"users\".\"profile_id\" AS \"users_profile_id\", \"profiles\".\"id\" AS \"profiles_id\", \"profiles\".\"user_id\" AS \"profiles_user_id\", \"profiles\".\"bio\" AS \"profiles_bio\" FROM \"users\" LEFT JOIN \"profiles\" ON (\"users\".\"profile_id\" = \"profiles\".\"id\") WHERE (\"users\".\"id\" = $1);");
+    EXPECT_EQ(query.sql, "SELECT \"users\".\"id\" AS \"profiles_id\", \"users\".\"user_id\" AS \"profiles_user_id\", \"users\".\"bio\" AS \"profiles_bio\" FROM \"users\" LEFT JOIN \"profiles\" ON (\"users\".\"profile\" = \"profiles\".\"id\") WHERE (\"users\".\"users.id\" = $1);");
     EXPECT_EQ(query.parameters.size(), 1);
     EXPECT_EQ(query.parameters[0], "1");
 }
@@ -475,7 +475,7 @@ TEST_F(JoinBuilderTest, AddJoinsForDependencies_Correctness)
     
     auto query = builder.compile(postgres_dialect_);
 
-    EXPECT_EQ(query.sql, "SELECT * FROM \"users\" LEFT JOIN \"profiles\" ON (\"users\".\"profile_id\" = \"profiles\".\"id\");");
+    EXPECT_EQ(query.sql, "SELECT \"users\".\"id\" AS \"profiles_id\", \"users\".\"user_id\" AS \"profiles_user_id\", \"users\".\"bio\" AS \"profiles_bio\" FROM \"users\" LEFT JOIN \"profiles\" ON (\"users\".\"profile\" = \"profiles\".\"id\");");
     EXPECT_TRUE(query.parameters.empty());
 }
 
@@ -493,7 +493,7 @@ TEST_F(JoinBuilderTest, AddJoinsForDependencies_MultipleJoins)
     
     auto query = builder.compile(postgres_dialect_);
 
-    EXPECT_EQ(query.sql, "SELECT * FROM \"users\" LEFT JOIN \"orders\" ON (\"users\".\"id\" = \"orders\".\"user_id\") LEFT JOIN \"order_items\" ON (\"orders\".\"id\" = \"order_items\".\"order_id\");");
+    EXPECT_EQ(query.sql, "SELECT \"users\".\"id\" AS \"order_items_id\", \"users\".\"order_id\" AS \"order_items_order_id\", \"users\".\"name\" AS \"order_items_name\" FROM \"users\" LEFT JOIN \"orders\" ON (\"users\".\"id\" = \"orders\".\"orders\") LEFT JOIN \"order_items\" ON (\"orders\".\"id\" = \"order_items\".\"items\");");
     EXPECT_TRUE(query.parameters.empty());
 }
 

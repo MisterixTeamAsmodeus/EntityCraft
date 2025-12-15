@@ -12,6 +12,16 @@
 
 namespace entity_craft {
 /**
+ * @brief Пре-декларация функции маппинга строки с учетом зависимостей.
+ *
+ * Необходимо, чтобы использовать функцию в других шаблонах (например,
+ * в map_result_to_entities) до её полной реализации.
+ */
+template<typename ClassType, typename... Columns>
+ClassType map_row_to_entity_with_dependencies(const table<ClassType, Columns...>& dto,
+    const database_adapter::query_result::row& row);
+
+/**
  * @brief Преобразует строку результата запроса в объект сущности
  * @tparam ClassType Тип класса сущности
  * @tparam Columns Типы колонок
@@ -21,12 +31,15 @@ namespace entity_craft {
  * @return Объект сущности с заполненными данными
  */
 template<typename ClassType, typename... Columns>
-ClassType map_row_to_entity(table<ClassType, Columns...>& dto, const database_adapter::query_result::row& row, bool contains_by_alias = false)
+ClassType map_row_to_entity(const table<ClassType, Columns...>& dto,
+    const database_adapter::query_result::row& row,
+    bool contains_by_alias = false)
 {
     ClassType entity = dto.empty_entity();
 
     // Используем column_visitor, чтобы обрабатывать только обычные колонки,
-    // а не reference_column. reference_column обрабатываются отдельно в map_row_to_entity_with_dependencies
+    // а не reference_column. reference_column обрабатываются отдельно
+    // в map_row_to_entity_with_dependencies.
     dto.for_each(visitor::make_column_visitor([&entity, &row, &dto, contains_by_alias](const auto& column) {
         auto it = contains_by_alias ? row.find(dto.column_alias(column.name())) : row.find(column.name());
 
@@ -87,37 +100,27 @@ std::vector<std::string> map_entity_to_params(table<ClassType, Columns...>& dto,
  * @return Вектор объектов сущностей
  */
 template<typename ClassType, typename... Columns>
-std::vector<ClassType> map_result_to_entities(table<ClassType, Columns...>& dto, const database_adapter::query_result& result)
+std::vector<ClassType> map_result_to_entities(const table<ClassType, Columns...>& dto, const database_adapter::query_result& result)
 {
     std::vector<ClassType> entities;
     entities.reserve(result.size());
 
     for(const auto& row : result.data()) {
-        entities.push_back(map_row_to_entity(dto, row, true));
+        // Используем маппинг с учётом зависимостей, чтобы корректно
+        // заполнять связи (one_to_many, one_to_one и т.п.) при работе
+        // с результатом JOIN.
+        entities.push_back(map_row_to_entity_with_dependencies(dto, row));
     }
 
     return entities;
 }
 
-/**
- * @brief Маппинг значения reference_column с учетом типа связи
- * @tparam ClassType Тип класса сущности
- * @tparam PropertyType Тип свойства reference_column
- * @tparam Setter Тип сеттера
- * @tparam Getter Тип геттера
- * @tparam ReferencePropertyType Тип связанной сущности
- * @tparam ReferenceColumns Типы колонок связанной таблицы
- * @param entity Основная сущность для установки значения
- * @param ref_column Ссылочная колонка
- * @param dependent_entity Зависимая сущность для установки
- * @param relation Тип связи между сущностями
- */
 template<typename ClassType,
     typename ReferencePropertyType,
     typename... Columns>
 void map_reference_column_value(
     ClassType& entity,
-    table<ClassType, Columns...>& dto,
+    const table<ClassType, Columns...>& dto,
     std::string&& reference_column_name,
     const ReferencePropertyType& dependent_entity,
     const relation_type relation)
@@ -138,6 +141,16 @@ void map_reference_column_value(
         }
     }
 }
+
+/**
+ * @brief Предварительное объявление функции маппинга строки с учетом зависимостей
+ *
+ * Необходимо для использования в extract_dependent_entities, чтобы поддерживать
+ * рекурсивный маппинг зависимостей (например, User -> Orders -> OrderItems).
+ */
+template<typename ClassType, typename... Columns>
+ClassType map_row_to_entity_with_dependencies(const table<ClassType, Columns...>& dto,
+    const database_adapter::query_result::row& row);
 
 /**
  * @brief Извлекает зависимые сущности из результата JOIN
@@ -188,8 +201,8 @@ ReferencePropertyType extract_dependent_entities(
             break;
     }
 
-    // Маппим строку в зависимую сущность, используя алиасы
-    return map_row_to_entity(ref_table, row, true);
+    // Маппим строку в зависимую сущность, используя алиасы и учитывая её собственные зависимости
+    return map_row_to_entity_with_dependencies(ref_table, row);
 }
 
 /**
@@ -201,7 +214,7 @@ ReferencePropertyType extract_dependent_entities(
  * @return Объект сущности с заполненными данными и зависимостями
  */
 template<typename ClassType, typename... Columns>
-ClassType map_row_to_entity_with_dependencies(table<ClassType, Columns...>& dto,
+ClassType map_row_to_entity_with_dependencies(const table<ClassType, Columns...>& dto,
     const database_adapter::query_result::row& row)
 {
     // Сначала маппим основную сущность
@@ -212,21 +225,12 @@ ClassType map_row_to_entity_with_dependencies(table<ClassType, Columns...>& dto,
         auto ref_table = ref_column.reference_table();
         relation_type relation = ref_column.type();
 
-        // Определяем параметры для extract_dependent_entities в зависимости от типа связи
         std::string main_pk_alias = dto.column_alias(dto.primary_key_column_name());
-        std::string main_fk_alias;
+        std::string main_fk_alias = dto.column_alias(ref_column.name());
         std::string dep_pk_alias = ref_table.column_alias(ref_table.primary_key_column_name());
-        std::string dep_fk_alias;
+        std::string dep_fk_alias= ref_table.column_alias(ref_column.name());
 
-        if(relation == relation_type::many_to_one || relation == relation_type::one_to_one) {
-            // Для many_to_one и one_to_one: FK в основной таблице ссылается на PK зависимой таблицы
-            main_fk_alias = dto.column_alias(ref_column.name());
-        } else {
-            // Для one_to_one_inverted и one_to_many: FK в зависимой таблице ссылается на PK основной таблицы
-            dep_fk_alias = ref_table.column_alias(ref_column.name());
-        }
-
-        // Извлекаем зависимую сущность из строки JOIN
+        // Извлекаем зависимую сущность из строки JOIN с учётом её собственных зависимостей
         auto dependent_entity = extract_dependent_entities(
             std::move(main_pk_alias),
             std::move(main_fk_alias),
@@ -235,7 +239,16 @@ ClassType map_row_to_entity_with_dependencies(table<ClassType, Columns...>& dto,
             ref_column,
             row);
 
-        map_reference_column_value(entity, dto, ref_column.name(), dependent_entity, relation);
+        // Сравнение сущностей по значению требует перегрузки операторов сравнения.
+        // Чтобы избежать неявных зависимостей и сохранить универсальность, проверяем,
+        // что первичный ключ извлечённой сущности отличается от первичного ключа
+        // "пустой" сущности. Таким образом, мы определяем, что зависимость действительно
+        // существует в текущей строке результата JOIN.
+        const auto empty_pk_value = ref_table.primary_key_column_value(ref_table.empty_entity());
+        const auto dependent_pk_value = ref_table.primary_key_column_value(dependent_entity);
+        if(dependent_pk_value != empty_pk_value) {
+            map_reference_column_value(entity, dto, ref_column.name(), dependent_entity, relation);
+        }
     }));
 
     return entity;
